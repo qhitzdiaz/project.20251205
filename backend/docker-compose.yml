@@ -101,7 +101,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-api
     ports:
-      - "5010:5010"
+      - "0.0.0.0:5010:5010"
     volumes:
       - .:/app:z
     environment:
@@ -125,7 +125,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-media
     ports:
-      - "5011:5011"
+      - "0.0.0.0:5011:5011"
     volumes:
       - .:/app:z
       - media-uploads:/app/uploads
@@ -150,7 +150,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-cloud
     ports:
-      - "5012:5012"
+      - "0.0.0.0:5012:5012"
     volumes:
       - .:/app:z
       - cloud-storage:/app/storage
@@ -175,7 +175,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-dental
     ports:
-      - "5013:5013"
+      - "0.0.0.0:5013:5013"
     volumes:
       - .:/app:z
       - dental-scanned-docs:/app/scanned_documents
