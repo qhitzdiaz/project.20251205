@@ -420,41 +420,121 @@ def health_check():
 def create_patient():
     """Create a new patient"""
     data = request.get_json()
-    
+
+    # Validate JSON payload
+    if not data:
+        return jsonify({'message': 'Request body must be JSON'}), 400
+
+    # Check required fields
     required_fields = ['first_name', 'last_name', 'email', 'phone']
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Missing required fields'}), 400
-    
+    missing_fields = [field for field in required_fields if field not in data or not data[field]]
+    if missing_fields:
+        return jsonify({
+            'message': 'Missing required fields',
+            'missing_fields': missing_fields
+        }), 400
+
+    # Validate field types and formats
+    errors = []
+
+    # Validate names (must be non-empty strings)
+    if not isinstance(data['first_name'], str) or len(data['first_name'].strip()) == 0:
+        errors.append('first_name must be a non-empty string')
+    elif len(data['first_name']) > 100:
+        errors.append('first_name must be 100 characters or less')
+
+    if not isinstance(data['last_name'], str) or len(data['last_name'].strip()) == 0:
+        errors.append('last_name must be a non-empty string')
+    elif len(data['last_name']) > 100:
+        errors.append('last_name must be 100 characters or less')
+
+    # Validate email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not isinstance(data['email'], str) or not re.match(email_pattern, data['email']):
+        errors.append('email must be a valid email address')
+    elif len(data['email']) > 120:
+        errors.append('email must be 120 characters or less')
+
+    # Validate phone
+    if not isinstance(data['phone'], str) or len(data['phone'].strip()) == 0:
+        errors.append('phone must be a non-empty string')
+    elif len(data['phone']) > 20:
+        errors.append('phone must be 20 characters or less')
+
+    # Validate optional date_of_birth
+    if data.get('date_of_birth'):
+        try:
+            dob = datetime.fromisoformat(data['date_of_birth'])
+            if dob > datetime.utcnow():
+                errors.append('date_of_birth cannot be in the future')
+        except (ValueError, TypeError):
+            errors.append('date_of_birth must be a valid ISO format date (YYYY-MM-DD)')
+
+    # Validate optional string length fields
+    string_fields = {
+        'street_address': 255,
+        'city': 100,
+        'state': 100,
+        'zip_code': 20,
+        'country': 100,
+        'emergency_contact': 100,
+        'emergency_phone': 20,
+        'insurance_provider': 100,
+        'insurance_number': 50
+    }
+
+    for field, max_length in string_fields.items():
+        if data.get(field) and len(str(data[field])) > max_length:
+            errors.append(f'{field} must be {max_length} characters or less')
+
+    if errors:
+        return jsonify({
+            'message': 'Validation failed',
+            'errors': errors
+        }), 400
+
     # Check if email exists
-    if Patient.query.filter_by(email=data['email']).first():
-        return jsonify({'message': 'Email already exists'}), 409
-    
-    patient = Patient(
-        first_name=data['first_name'],
-        last_name=data['last_name'],
-        email=data['email'],
-        phone=data['phone'],
-        date_of_birth=datetime.fromisoformat(data['date_of_birth']) if data.get('date_of_birth') else None,
-        street_address=data.get('street_address'),
-        city=data.get('city'),
-        state=data.get('state'),
-        zip_code=data.get('zip_code'),
-        country=data.get('country'),
-        emergency_contact=data.get('emergency_contact'),
-        emergency_phone=data.get('emergency_phone'),
-        insurance_provider=data.get('insurance_provider'),
-        insurance_number=data.get('insurance_number'),
-        medical_notes=data.get('medical_notes'),
-        allergies=data.get('allergies')
-    )
-    
-    db.session.add(patient)
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Patient created successfully',
-        'patient': patient.to_dict()
-    }), 201
+    if Patient.query.filter_by(email=data['email'].strip().lower()).first():
+        return jsonify({
+            'message': 'Email already exists',
+            'error': 'A patient with this email address is already registered'
+        }), 409
+
+    try:
+        patient = Patient(
+            first_name=data['first_name'].strip(),
+            last_name=data['last_name'].strip(),
+            email=data['email'].strip().lower(),
+            phone=data['phone'].strip(),
+            date_of_birth=datetime.fromisoformat(data['date_of_birth']) if data.get('date_of_birth') else None,
+            street_address=data.get('street_address', '').strip() if data.get('street_address') else None,
+            city=data.get('city', '').strip() if data.get('city') else None,
+            state=data.get('state', '').strip() if data.get('state') else None,
+            zip_code=data.get('zip_code', '').strip() if data.get('zip_code') else None,
+            country=data.get('country', '').strip() if data.get('country') else None,
+            emergency_contact=data.get('emergency_contact', '').strip() if data.get('emergency_contact') else None,
+            emergency_phone=data.get('emergency_phone', '').strip() if data.get('emergency_phone') else None,
+            insurance_provider=data.get('insurance_provider', '').strip() if data.get('insurance_provider') else None,
+            insurance_number=data.get('insurance_number', '').strip() if data.get('insurance_number') else None,
+            medical_notes=data.get('medical_notes'),
+            allergies=data.get('allergies')
+        )
+
+        db.session.add(patient)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Patient created successfully',
+            'patient': patient.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'message': 'Failed to create patient',
+            'error': str(e)
+        }), 500
 
 @app.route('/api/dental/patients', methods=['GET'])
 def get_patients():
@@ -544,30 +624,92 @@ def update_patient(patient_id):
 def create_dentist():
     """Create a new dentist"""
     data = request.get_json()
-    
+
+    # Validate JSON payload
+    if not data:
+        return jsonify({'message': 'Request body must be JSON'}), 400
+
+    # Check required fields
     required_fields = ['first_name', 'last_name', 'email', 'phone']
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Missing required fields'}), 400
-    
-    if Dentist.query.filter_by(email=data['email']).first():
-        return jsonify({'message': 'Email already exists'}), 409
-    
-    dentist = Dentist(
-        first_name=data['first_name'],
-        last_name=data['last_name'],
-        email=data['email'],
-        phone=data['phone'],
-        specialization=data.get('specialization'),
-        license_number=data.get('license_number')
-    )
-    
-    db.session.add(dentist)
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Dentist created successfully',
-        'dentist': dentist.to_dict()
-    }), 201
+    missing_fields = [field for field in required_fields if field not in data or not data[field]]
+    if missing_fields:
+        return jsonify({
+            'message': 'Missing required fields',
+            'missing_fields': missing_fields
+        }), 400
+
+    # Validate field types and formats
+    errors = []
+    import re
+
+    # Validate names
+    if not isinstance(data['first_name'], str) or len(data['first_name'].strip()) == 0:
+        errors.append('first_name must be a non-empty string')
+    elif len(data['first_name']) > 100:
+        errors.append('first_name must be 100 characters or less')
+
+    if not isinstance(data['last_name'], str) or len(data['last_name'].strip()) == 0:
+        errors.append('last_name must be a non-empty string')
+    elif len(data['last_name']) > 100:
+        errors.append('last_name must be 100 characters or less')
+
+    # Validate email format
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not isinstance(data['email'], str) or not re.match(email_pattern, data['email']):
+        errors.append('email must be a valid email address')
+    elif len(data['email']) > 120:
+        errors.append('email must be 120 characters or less')
+
+    # Validate phone
+    if not isinstance(data['phone'], str) or len(data['phone'].strip()) == 0:
+        errors.append('phone must be a non-empty string')
+    elif len(data['phone']) > 20:
+        errors.append('phone must be 20 characters or less')
+
+    # Validate optional fields
+    if data.get('specialization') and len(str(data['specialization'])) > 100:
+        errors.append('specialization must be 100 characters or less')
+
+    if data.get('license_number') and len(str(data['license_number'])) > 50:
+        errors.append('license_number must be 50 characters or less')
+
+    if errors:
+        return jsonify({
+            'message': 'Validation failed',
+            'errors': errors
+        }), 400
+
+    # Check if email exists
+    if Dentist.query.filter_by(email=data['email'].strip().lower()).first():
+        return jsonify({
+            'message': 'Email already exists',
+            'error': 'A dentist with this email address is already registered'
+        }), 409
+
+    try:
+        dentist = Dentist(
+            first_name=data['first_name'].strip(),
+            last_name=data['last_name'].strip(),
+            email=data['email'].strip().lower(),
+            phone=data['phone'].strip(),
+            specialization=data.get('specialization', '').strip() if data.get('specialization') else None,
+            license_number=data.get('license_number', '').strip() if data.get('license_number') else None
+        )
+
+        db.session.add(dentist)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Dentist created successfully',
+            'dentist': dentist.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'message': 'Failed to create dentist',
+            'error': str(e)
+        }), 500
 
 @app.route('/api/dental/dentists', methods=['GET'])
 def get_dentists():
@@ -591,37 +733,105 @@ def create_appointment():
     """Create a new appointment"""
     data = request.get_json()
 
+    # Validate JSON payload
+    if not data:
+        return jsonify({'message': 'Request body must be JSON'}), 400
+
+    # Check required fields
     required_fields = ['patient_id', 'dentist_id', 'appointment_date']
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Missing required fields'}), 400
+    missing_fields = [field for field in required_fields if field not in data or not data[field]]
+    if missing_fields:
+        return jsonify({
+            'message': 'Missing required fields',
+            'missing_fields': missing_fields
+        }), 400
 
-    # Validate that appointment_date is not empty
-    if not data['appointment_date'] or data['appointment_date'].strip() == '':
-        return jsonify({'message': 'Appointment date cannot be empty'}), 400
+    # Validate field types and formats
+    errors = []
 
-    # Validate date format
+    # Validate patient_id
+    if not isinstance(data['patient_id'], int) or data['patient_id'] <= 0:
+        errors.append('patient_id must be a positive integer')
+    else:
+        # Check if patient exists
+        patient = Patient.query.get(data['patient_id'])
+        if not patient:
+            errors.append(f'Patient with ID {data["patient_id"]} does not exist')
+        elif not patient.is_active:
+            errors.append(f'Patient with ID {data["patient_id"]} is inactive')
+
+    # Validate dentist_id
+    if not isinstance(data['dentist_id'], int) or data['dentist_id'] <= 0:
+        errors.append('dentist_id must be a positive integer')
+    else:
+        # Check if dentist exists
+        dentist = Dentist.query.get(data['dentist_id'])
+        if not dentist:
+            errors.append(f'Dentist with ID {data["dentist_id"]} does not exist')
+        elif not dentist.is_active:
+            errors.append(f'Dentist with ID {data["dentist_id"]} is inactive')
+
+    # Validate appointment_date
+    if not isinstance(data['appointment_date'], str) or not data['appointment_date'].strip():
+        errors.append('appointment_date must be a non-empty string')
+    else:
+        try:
+            appointment_date = datetime.fromisoformat(data['appointment_date'])
+            # Check if appointment is not in the past (allow same day)
+            if appointment_date.date() < datetime.utcnow().date():
+                errors.append('appointment_date cannot be in the past')
+        except (ValueError, TypeError):
+            errors.append('appointment_date must be a valid ISO format (YYYY-MM-DDTHH:MM:SS)')
+            appointment_date = None
+
+    # Validate duration
+    if data.get('duration') is not None:
+        if not isinstance(data['duration'], int) or data['duration'] <= 0:
+            errors.append('duration must be a positive integer (minutes)')
+        elif data['duration'] > 480:  # 8 hours max
+            errors.append('duration cannot exceed 480 minutes (8 hours)')
+
+    # Validate appointment_type
+    if data.get('appointment_type') and len(str(data['appointment_type'])) > 100:
+        errors.append('appointment_type must be 100 characters or less')
+
+    # Validate status
+    valid_statuses = ['scheduled', 'confirmed', 'completed', 'cancelled']
+    if data.get('status') and data['status'] not in valid_statuses:
+        errors.append(f'status must be one of: {", ".join(valid_statuses)}')
+
+    if errors:
+        return jsonify({
+            'message': 'Validation failed',
+            'errors': errors
+        }), 400
+
     try:
-        appointment_date = datetime.fromisoformat(data['appointment_date'])
-    except ValueError:
-        return jsonify({'message': 'Invalid appointment date format. Expected ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+        appointment = Appointment(
+            patient_id=data['patient_id'],
+            dentist_id=data['dentist_id'],
+            appointment_date=appointment_date,
+            duration=data.get('duration', 30),
+            appointment_type=data.get('appointment_type', '').strip() if data.get('appointment_type') else None,
+            reason=data.get('reason'),
+            notes=data.get('notes'),
+            status=data.get('status', 'scheduled')
+        )
 
-    appointment = Appointment(
-        patient_id=data['patient_id'],
-        dentist_id=data['dentist_id'],
-        appointment_date=appointment_date,
-        duration=data.get('duration', 30),
-        appointment_type=data.get('appointment_type'),
-        reason=data.get('reason'),
-        notes=data.get('notes')
-    )
+        db.session.add(appointment)
+        db.session.commit()
 
-    db.session.add(appointment)
-    db.session.commit()
+        return jsonify({
+            'message': 'Appointment created successfully',
+            'appointment': appointment.to_dict()
+        }), 201
 
-    return jsonify({
-        'message': 'Appointment created successfully',
-        'appointment': appointment.to_dict()
-    }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'message': 'Failed to create appointment',
+            'error': str(e)
+        }), 500
 
 @app.route('/api/dental/appointments', methods=['GET'])
 def get_appointments():
@@ -692,30 +902,109 @@ def cancel_appointment(appointment_id):
 def create_treatment():
     """Create a new treatment record"""
     data = request.get_json()
-    
+
+    # Validate JSON payload
+    if not data:
+        return jsonify({'message': 'Request body must be JSON'}), 400
+
+    # Check required fields
     required_fields = ['patient_id', 'treatment_name', 'treatment_date']
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Missing required fields'}), 400
-    
-    treatment = Treatment(
-        patient_id=data['patient_id'],
-        appointment_id=data.get('appointment_id'),
-        treatment_name=data['treatment_name'],
-        description=data.get('description'),
-        tooth_number=data.get('tooth_number'),
-        treatment_date=datetime.fromisoformat(data['treatment_date']),
-        cost=data.get('cost'),
-        payment_status=data.get('payment_status', 'pending'),
-        notes=data.get('notes')
-    )
-    
-    db.session.add(treatment)
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Treatment record created successfully',
-        'treatment': treatment.to_dict()
-    }), 201
+    missing_fields = [field for field in required_fields if field not in data or not data[field]]
+    if missing_fields:
+        return jsonify({
+            'message': 'Missing required fields',
+            'missing_fields': missing_fields
+        }), 400
+
+    # Validate field types and formats
+    errors = []
+
+    # Validate patient_id
+    if not isinstance(data['patient_id'], int) or data['patient_id'] <= 0:
+        errors.append('patient_id must be a positive integer')
+    else:
+        # Check if patient exists
+        patient = Patient.query.get(data['patient_id'])
+        if not patient:
+            errors.append(f'Patient with ID {data["patient_id"]} does not exist')
+        elif not patient.is_active:
+            errors.append(f'Patient with ID {data["patient_id"]} is inactive')
+
+    # Validate appointment_id (optional)
+    if data.get('appointment_id') is not None:
+        if not isinstance(data['appointment_id'], int) or data['appointment_id'] <= 0:
+            errors.append('appointment_id must be a positive integer')
+        else:
+            appointment = Appointment.query.get(data['appointment_id'])
+            if not appointment:
+                errors.append(f'Appointment with ID {data["appointment_id"]} does not exist')
+
+    # Validate treatment_name
+    if not isinstance(data['treatment_name'], str) or len(data['treatment_name'].strip()) == 0:
+        errors.append('treatment_name must be a non-empty string')
+    elif len(data['treatment_name']) > 200:
+        errors.append('treatment_name must be 200 characters or less')
+
+    # Validate treatment_date
+    if not isinstance(data['treatment_date'], str) or not data['treatment_date'].strip():
+        errors.append('treatment_date must be a non-empty string')
+    else:
+        try:
+            treatment_date = datetime.fromisoformat(data['treatment_date'])
+            # Treatment date should not be in the future
+            if treatment_date > datetime.utcnow():
+                errors.append('treatment_date cannot be in the future')
+        except (ValueError, TypeError):
+            errors.append('treatment_date must be a valid ISO format (YYYY-MM-DDTHH:MM:SS)')
+            treatment_date = None
+
+    # Validate cost (optional)
+    if data.get('cost') is not None:
+        if not isinstance(data['cost'], (int, float)) or data['cost'] < 0:
+            errors.append('cost must be a non-negative number')
+
+    # Validate payment_status
+    valid_payment_statuses = ['pending', 'paid', 'partial']
+    if data.get('payment_status') and data['payment_status'] not in valid_payment_statuses:
+        errors.append(f'payment_status must be one of: {", ".join(valid_payment_statuses)}')
+
+    # Validate tooth_number (optional)
+    if data.get('tooth_number') and len(str(data['tooth_number'])) > 10:
+        errors.append('tooth_number must be 10 characters or less')
+
+    if errors:
+        return jsonify({
+            'message': 'Validation failed',
+            'errors': errors
+        }), 400
+
+    try:
+        treatment = Treatment(
+            patient_id=data['patient_id'],
+            appointment_id=data.get('appointment_id'),
+            treatment_name=data['treatment_name'].strip(),
+            description=data.get('description'),
+            tooth_number=data.get('tooth_number', '').strip() if data.get('tooth_number') else None,
+            treatment_date=treatment_date,
+            cost=data.get('cost'),
+            payment_status=data.get('payment_status', 'pending'),
+            notes=data.get('notes')
+        )
+
+        db.session.add(treatment)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Treatment record created successfully',
+            'treatment': treatment.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'message': 'Failed to create treatment',
+            'error': str(e)
+        }), 500
 
 @app.route('/api/dental/treatments', methods=['GET'])
 def get_treatments():
@@ -753,8 +1042,58 @@ def upload_scanned_document():
     tags = request.form.get('tags', '')
     page_count = request.form.get('page_count', 1, type=int)
 
-    if not document_title:
-        return jsonify({'message': 'document_title is required'}), 400
+    # Validate required fields
+    errors = []
+
+    if not document_title or not document_title.strip():
+        errors.append('document_title is required and cannot be empty')
+    elif len(document_title) > 255:
+        errors.append('document_title must be 255 characters or less')
+
+    # Validate document_type
+    valid_document_types = ['medical_history', 'xray', 'prescription', 'insurance',
+                           'consent_form', 'lab_report', 'treatment_plan', 'referral', 'other']
+    if document_type not in valid_document_types:
+        errors.append(f'document_type must be one of: {", ".join(valid_document_types)}')
+
+    # Validate patient_id if provided
+    if patient_id:
+        try:
+            patient_id_int = int(patient_id)
+            if patient_id_int <= 0:
+                errors.append('patient_id must be a positive integer')
+            else:
+                patient = Patient.query.get(patient_id_int)
+                if not patient:
+                    errors.append(f'Patient with ID {patient_id_int} does not exist')
+                elif not patient.is_active:
+                    errors.append(f'Patient with ID {patient_id_int} is inactive')
+        except ValueError:
+            errors.append('patient_id must be a valid integer')
+
+    # Validate page_count
+    if page_count <= 0:
+        errors.append('page_count must be a positive integer')
+    elif page_count > 1000:
+        errors.append('page_count cannot exceed 1000 pages')
+
+    # Validate optional fields
+    if scanned_by and len(scanned_by) > 100:
+        errors.append('scanned_by must be 100 characters or less')
+
+    if tags and len(tags) > 500:
+        errors.append('tags must be 500 characters or less')
+
+    # Validate file types
+    for idx, file in enumerate(files):
+        if file.filename and not file.filename.lower().endswith('.pdf'):
+            errors.append(f'File {idx + 1} ({file.filename}): Only PDF files are allowed')
+
+    if errors:
+        return jsonify({
+            'message': 'Validation failed',
+            'errors': errors
+        }), 400
 
     # If no patient_id provided, create a new auto-generated patient
     if not patient_id:
