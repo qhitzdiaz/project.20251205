@@ -1,0 +1,238 @@
+# Complete System with 4 Databases + Frontend
+# Main API (auth_db) - Port 5010 (changed from 5000 to avoid macOS AirPlay conflict)
+# Media Server (media_db) - Port 5011 (changed from 5001) [Backend only]
+# Cloud Storage (cloud_db) - Port 5012 (changed from 5002)
+# Dental App (dental_db) - Port 5013 (changed from 5003)
+# Frontend (React) - Port 3000
+
+services:
+  # ==================== DATABASES ====================
+  
+  # Auth Database
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    networks:
+      - qhitz-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Media Database
+  postgres-media:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-media
+    environment:
+      POSTGRES_DB: media_db
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass123}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-media-data:/var/lib/postgresql/data
+    networks:
+      - qhitz-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d media_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Cloud Storage Database
+  postgres-cloud:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-cloud
+    environment:
+      POSTGRES_DB: cloud_db
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass123}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-cloud-data:/var/lib/postgresql/data
+    networks:
+      - qhitz-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d cloud_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Dental App Database
+  postgres-dental:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-dental
+    environment:
+      POSTGRES_DB: dental_db
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass123}
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-dental-data:/var/lib/postgresql/data
+    networks:
+      - qhitz-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d dental_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==================== API SERVICES ====================
+  
+  # Main API Server (Auth)
+  backend-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-api
+    ports:
+      - "5010:5010"
+    volumes:
+      - .:/app:z
+    environment:
+      - DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-auth:5432/auth_db
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    command: python app.py
+    networks:
+      - qhitz-network
+    restart: unless-stopped
+
+  # Media Server
+  backend-media:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-media
+    ports:
+      - "5011:5011"
+    volumes:
+      - .:/app:z
+      - media-uploads:/app/uploads
+    environment:
+      - MEDIA_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-media:5432/media_db
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    depends_on:
+      postgres-media:
+        condition: service_healthy
+    command: python media_server.py
+    networks:
+      - qhitz-network
+    restart: unless-stopped
+
+  # Cloud Storage Server
+  backend-cloud:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-cloud
+    ports:
+      - "5012:5012"
+    volumes:
+      - .:/app:z
+      - cloud-storage:/app/storage
+    environment:
+      - CLOUD_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-cloud:5432/cloud_db
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    depends_on:
+      postgres-cloud:
+        condition: service_healthy
+    command: python cloud_server.py
+    networks:
+      - qhitz-network
+    restart: unless-stopped
+
+  # Dental Appointment System
+  backend-dental:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-dental
+    ports:
+      - "5013:5013"
+    volumes:
+      - .:/app:z
+      - dental-scanned-docs:/app/scanned_documents
+    environment:
+      - DENTAL_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-dental:5432/dental_db
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    depends_on:
+      postgres-dental:
+        condition: service_healthy
+    command: python dental_app.py
+    networks:
+      - qhitz-network
+    restart: unless-stopped
+
+  # ==================== FRONTEND ====================
+
+  # React Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: qhitz-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_AUTH_API_URL=http://localhost:5010/api
+      - REACT_APP_MEDIA_API_URL=http://localhost:5011/api
+      - REACT_APP_CLOUD_API_URL=http://localhost:5012/api
+      - REACT_APP_DENTAL_API_URL=http://localhost:5013/api
+    depends_on:
+      - backend-api
+      - backend-media
+      - backend-cloud
+      - backend-dental
+    networks:
+      - qhitz-network
+    restart: unless-stopped
+
+volumes:
+  postgres-auth-data:
+    driver: local
+  postgres-media-data:
+    driver: local
+  postgres-cloud-data:
+    driver: local
+  postgres-dental-data:
+    driver: local
+  media-uploads:
+    driver: local
+  cloud-storage:
+    driver: local
+  dental-scanned-docs:
+    driver: local
+
+networks:
+  qhitz-network:
+    driver: bridge
