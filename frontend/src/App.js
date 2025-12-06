@@ -64,6 +64,7 @@ import { API_URL } from './config/apiConfig';
 
 function AppContent() {
   const navigate = useNavigate();
+  const safeAreaTop = 'env(safe-area-inset-top)';
 
   // Detect system color scheme preference
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -280,6 +281,7 @@ function AppContent() {
           position="fixed"
           elevation={0}
           sx={{
+            paddingTop: safeAreaTop,
             backdropFilter: 'blur(20px)',
             backgroundColor: themeMode === 'dark'
               ? 'rgba(18, 18, 18, 0.85)'
@@ -436,7 +438,7 @@ function AppContent() {
       </AppBar>
 
       {/* Spacer for fixed AppBar */}
-      <Toolbar sx={{ minHeight: { xs: 64, sm: 70 } }} />
+      <Toolbar sx={{ minHeight: { xs: 'calc(64px + env(safe-area-inset-top))', sm: 'calc(70px + env(safe-area-inset-top))' } }} />
 
       {/* Mobile Drawer */}
       <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>

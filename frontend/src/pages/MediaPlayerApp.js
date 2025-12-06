@@ -31,8 +31,6 @@ import {
   Search as SearchIcon,
   CloudUpload as UploadIcon,
   Shuffle as ShuffleIcon,
-  ViewModule as GridViewIcon,
-  ViewList as ListViewIcon,
   FavoriteBorder as FavoriteBorderIcon,
   Favorite as FavoriteIcon,
   Radio as RadioIcon,
@@ -56,7 +54,6 @@ function MediaPlayerApp() {
   const [isMuted, setIsMuted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadDialog, setUploadDialog] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isShuffle, setIsShuffle] = useState(false);
   const [playlist, setPlaylist] = useState([]);
@@ -585,24 +582,6 @@ function MediaPlayerApp() {
           Music Player
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <IconButton
-            onClick={() => setViewMode('grid')}
-            sx={{
-              color: viewMode === 'grid' ? 'white' : 'rgba(255,255,255,0.6)',
-              bgcolor: viewMode === 'grid' ? 'rgba(255,255,255,0.2)' : 'transparent'
-            }}
-          >
-            <GridViewIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => setViewMode('list')}
-            sx={{
-              color: viewMode === 'list' ? 'white' : 'rgba(255,255,255,0.6)',
-              bgcolor: viewMode === 'list' ? 'rgba(255,255,255,0.2)' : 'transparent'
-            }}
-          >
-            <ListViewIcon />
-          </IconButton>
           <Button
             variant="contained"
             startIcon={<UploadIcon />}
@@ -838,7 +817,7 @@ function MediaPlayerApp() {
 
       {/* Music Grid/List */}
       <Container maxWidth="lg" sx={{ py: 3 }}>
-        <Paper sx={{ mb: 2, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Paper sx={{ mb: 2, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Typography variant="h6">Music Library</Typography>
             <Button size="small" startIcon={<QueueIcon />} onClick={() => addAllToQueue(filteredMusicBase)}>
@@ -872,6 +851,7 @@ function MediaPlayerApp() {
                 </InputAdornment>
               ),
             }}
+            sx={{ minWidth: 240, flex: 1 }}
           />
         </Paper>
 
