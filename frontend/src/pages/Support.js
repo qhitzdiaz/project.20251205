@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Container,
   Typography,
   Box,
   Grid,
   Card,
-  TextField,
-  Button,
   Paper,
-  Alert,
   Divider,
 } from '@mui/material';
 import {
@@ -16,29 +13,9 @@ import {
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
   AccessTime as TimeIcon,
-  Send as SendIcon,
 } from '@mui/icons-material';
 
 function Support() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // In a real app, this would send to backend
-    console.log('Support request:', formData);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 3000);
-  };
-
   const contactInfo = [
     {
       icon: <EmailIcon sx={{ fontSize: 40 }} />,
@@ -100,81 +77,37 @@ function Support() {
       </Grid>
 
       <Grid container spacing={4}>
-        {/* Contact Form */}
-        <Grid item xs={12} md={7}>
-          <Paper elevation={3} sx={{ p: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ p: 4, height: '100%' }}>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-              Send us a message
+              How to reach us
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph>
-              Fill out the form below and our team will get back to you as soon as possible.
+              Choose the channel that works best for you. We respond to email within 24 hours and phone for urgent issues.
             </Typography>
-            
-            {submitted && (
-              <Alert severity="success" sx={{ mb: 3 }}>
-                Thank you! Your message has been sent successfully. We'll respond within 24 hours.
-              </Alert>
-            )}
-
-            <Box component="form" onSubmit={handleSubmit}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Name"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Subject"
-                    required
-                    value={formData.subject}
-                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Message"
-                    multiline
-                    rows={6}
-                    required
-                    value={formData.message}
-                    onChange={(e) => setFormData({...formData, message: e.target.value})}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    startIcon={<SendIcon />}
-                    fullWidth
-                  >
-                    Send Message
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 2 }}>
+              Email
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              support@qhitz.com
+            </Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Phone
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              (555) 123-4567 — Mon–Fri, 9AM–5PM EST. For premium/enterprise customers, 24/7 hotline below.
+            </Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Documentation & FAQ
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Check the docs first for setup guides, troubleshooting, and release notes.
+            </Typography>
           </Paper>
         </Grid>
 
         {/* Additional Support Options */}
-        <Grid item xs={12} md={5}>
+        <Grid item xs={12} md={6}>
           <Paper elevation={3} sx={{ p: 4, mb: 3 }}>
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
               Support Plans

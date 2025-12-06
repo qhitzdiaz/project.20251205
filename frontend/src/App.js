@@ -39,7 +39,6 @@ import {
   Home as HomeIcon,
   Login as LoginIcon,
   Logout as LogoutIcon,
-  PersonAdd as PersonAddIcon,
   Close as CloseIcon,
   CloudUpload as CloudIcon,
   Image as MediaIcon,
@@ -79,13 +78,11 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [appsMenuAnchor, setAppsMenuAnchor] = useState(null);
 
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' });
-  const [registerForm, setRegisterForm] = useState({ username: '', email: '', password: '' });
 
   // Create theme based on mode
   const theme = useMemo(
@@ -173,29 +170,6 @@ function AppContent() {
         setLoginForm({ identifier: '', password: '' });
       } else {
         showSnackbar(data.message || 'Login failed', 'error');
-      }
-    } catch (error) {
-      showSnackbar('Error connecting to server', 'error');
-    }
-    setLoading(false);
-  };
-
-  const handleRegister = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registerForm),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setRegisterDialogOpen(false);
-        setLoginDialogOpen(true);
-        showSnackbar('Registration successful! Please login.', 'success');
-        setRegisterForm({ username: '', email: '', password: '' });
-      } else {
-        showSnackbar(data.message || 'Registration failed', 'error');
       }
     } catch (error) {
       showSnackbar('Error connecting to server', 'error');
@@ -477,14 +451,6 @@ function AppContent() {
                 >
                   Login
                 </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<PersonAddIcon />}
-                  onClick={() => { setRegisterDialogOpen(true); setDrawerOpen(false); }}
-                >
-                  Sign Up
-                </Button>
               </Box>
             )}
             <Divider />
@@ -568,14 +534,12 @@ function AppContent() {
               <Container sx={{ py: 8 }}>
                 {!isLoggedIn ? (
                   <Box sx={{ textAlign: 'center', color: 'white' }}>
-                    <Typography variant="h2" gutterBottom sx={{ fontWeight: 700 }}>Welcome to Qhitz</Typography>
-                    <Typography variant="h5" color="rgba(255,255,255,0.85)" paragraph>Complete Business Management System</Typography>
+                  <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>Login to continue</Typography>
                   <Typography variant="body1" color="rgba(255,255,255,0.85)" paragraph sx={{ maxWidth: 640, mx: 'auto', mb: 4 }}>
-                    Manage your dental practice, multimedia files, and cloud storage all in one place.
+                    Access your applications with your existing account.
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Button variant="contained" size="large" startIcon={<LoginIcon />} onClick={() => setLoginDialogOpen(true)}>Login</Button>
-                    <Button variant="outlined" size="large" startIcon={<PersonAddIcon />} onClick={() => setRegisterDialogOpen(true)} sx={{ color: 'white', borderColor: 'white' }}>Sign Up</Button>
                   </Box>
                 </Box>
               ) : (
@@ -672,20 +636,6 @@ function AppContent() {
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={() => setLoginDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleLogin} disabled={loading}>{loading ? <CircularProgress size={20} /> : 'Login'}</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Register Dialog */}
-      <Dialog open={registerDialogOpen} onClose={() => setRegisterDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle><Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><Typography variant="h5" sx={{ fontWeight: 700 }}>Sign Up</Typography><IconButton onClick={() => setRegisterDialogOpen(false)}><CloseIcon /></IconButton></Box></DialogTitle>
-        <DialogContent>
-          <TextField fullWidth label="Username" margin="normal" value={registerForm.username} onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })} />
-          <TextField fullWidth label="Email" type="email" margin="normal" value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} />
-          <TextField fullWidth label="Password" type="password" margin="normal" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} onKeyPress={(e) => e.key === 'Enter' && handleRegister()} />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setRegisterDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleRegister} disabled={loading}>{loading ? <CircularProgress size={20} /> : 'Register'}</Button>
         </DialogActions>
       </Dialog>
 

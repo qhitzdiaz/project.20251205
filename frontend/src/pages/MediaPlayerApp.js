@@ -12,6 +12,7 @@ import {
   ListItemButton,
   ListItemText,
   ListItemIcon,
+  useTheme,
   TextField,
   InputAdornment,
   Dialog,
@@ -44,6 +45,7 @@ const DEFAULT_ART =
   'linear-gradient(135deg, #0f172a 0%, #111827 50%, #1e293b 100%)';
 
 function MediaPlayerApp() {
+  const theme = useTheme();
   const [videos, setVideos] = useState([]);
   const [music, setMusic] = useState([]);
   const [currentMedia, setCurrentMedia] = useState(null);
@@ -881,7 +883,15 @@ function MediaPlayerApp() {
           </Paper>
         )}
 
-        <List sx={{ bgcolor: 'white', borderRadius: 1 }}>
+        <List
+          sx={{
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : '#f5f7fb',
+            borderRadius: 1,
+            boxShadow: theme.palette.mode === 'dark'
+              ? 'inset 0 1px 0 rgba(255,255,255,0.05)'
+              : 'inset 0 1px 0 rgba(0,0,0,0.05)',
+          }}
+        >
           {filteredMusic.map((track, index) => (
             <React.Fragment key={track.id}>
               <ListItemButton

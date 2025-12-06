@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Admin - Access</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 28px;
+      width: 100%;
+      max-width: 720px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+    input:focus, select:focus {
+      outline: 2px solid #3b82f6;
+      border-color: #3b82f6;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #2563eb, #3b82f6);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(59, 130, 246, 0.3); }
+    button:disabled { opacity: 0.7; cursor: not-allowed; box-shadow: none; }
+    .status {
+      margin-top: 6px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .ok { background: rgba(34, 197, 94, 0.12); color: #bbf7d0; border: 1px solid rgba(34, 197, 94, 0.4); }
+    .err { background: rgba(239, 68, 68, 0.12); color: #fecdd3; border: 1px solid rgba(239, 68, 68, 0.4); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="loginView">
+      <h2 style="margin: 0 0 8px;">Admin Login</h2>
+      <p class="sub">Sign in to manage doctors, patients, and users.</p>
+      <form id="loginForm">
+        <label for="loginId">Username or Email</label>
+        <input id="loginId" name="loginId" type="text" required />
+
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" name="loginPassword" type="password" required />
+
+        <button type="submit" id="loginBtn">Login</button>
+      </form>
+    </div>
+
+    <div id="adminView" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div>
+          <h2 style="margin: 0 0 4px;">Admin Dashboard</h2>
+          <p class="sub" style="margin:0;">Manage doctors, patients, and users.</p>
+        </div>
+        <button type="button" id="logoutBtn" style="max-width:140px;background:#ef4444;">Logout</button>
+      </div>
+
+      <div style="margin-top:20px;display:grid;gap:16px;">
+        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+          <h3 style="margin:0 0 10px;">Doctors</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div>
+              <label for="doctorName">Name</label>
+              <input id="doctorName" type="text" placeholder="Dr. Smith" />
+            </div>
+            <div>
+              <label for="doctorSpecialty">Specialty</label>
+              <input id="doctorSpecialty" type="text" placeholder="Orthodontist" />
+            </div>
+            <div>
+              <label for="doctorEmail">Email</label>
+              <input id="doctorEmail" type="email" placeholder="doc@example.com" />
+            </div>
+            <div>
+              <label for="doctorPhone">Phone</label>
+              <input id="doctorPhone" type="tel" placeholder="+1 555 123 4567" />
+            </div>
+          </div>
+          <button type="button" id="addDoctorBtn" style="margin-top:8px;">Add Doctor</button>
+          <ul id="doctorList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
+        </section>
+
+        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+          <h3 style="margin:0 0 10px;">Patients</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div>
+              <label for="patientName">Name</label>
+              <input id="patientName" type="text" placeholder="Jane Doe" />
+            </div>
+            <div>
+              <label for="patientEmail">Email</label>
+              <input id="patientEmail" type="email" placeholder="patient@example.com" />
+            </div>
+            <div>
+              <label for="patientPhone">Phone</label>
+              <input id="patientPhone" type="tel" placeholder="+1 555 987 6543" />
+            </div>
+            <div>
+              <label for="patientDoctor">Doctor</label>
+              <input id="patientDoctor" type="text" placeholder="Assigned doctor" />
+            </div>
+          </div>
+          <button type="button" id="addPatientBtn" style="margin-top:8px;">Add Patient</button>
+          <ul id="patientList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
+        </section>
+
+        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+          <h3 style="margin:0 0 10px;">Users</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div>
+              <label for="userName">Name</label>
+              <input id="userName" type="text" placeholder="Alex Admin" />
+            </div>
+            <div>
+              <label for="userEmail">Email</label>
+              <input id="userEmail" type="email" placeholder="user@example.com" />
+            </div>
+            <div>
+              <label for="userRole">Role</label>
+              <select id="userRole">
+                <option value="admin">Admin</option>
+                <option value="staff">Staff</option>
+                <option value="viewer">Viewer</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" id="addUserBtn" style="margin-top:8px;">Add User</button>
+          <ul id="userList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
+        </section>
+
+        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+          <h3 style="margin:0 0 10px;">Document Scanning & Upload</h3>
+          <p class="sub" style="margin:0 0 12px;">Scan/upload patient documents (uses dental API).</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div>
+              <label for="docPatient">Patient</label>
+              <select id="docPatient"></select>
+            </div>
+            <div>
+              <label for="docType">Type</label>
+              <select id="docType">
+                <option value="medical_history">Medical History</option>
+                <option value="xray">X-Ray</option>
+                <option value="prescription">Prescription</option>
+                <option value="insurance">Insurance</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="docTitle">Title</label>
+              <input id="docTitle" type="text" placeholder="e.g., X-Ray Upper Right" />
+            </div>
+            <div>
+              <label for="docTags">Tags (comma)</label>
+              <input id="docTags" type="text" placeholder="urgent, follow-up" />
+            </div>
+          </div>
+          <div style="margin:10px 0;">
+            <input id="docFiles" type="file" multiple accept=".pdf,image/*" style="display:none;" />
+            <button type="button" id="pickDocBtn">Select Files</button>
+            <span id="docFileInfo" style="margin-left:8px;color:#cbd5e1;"></span>
+          </div>
+          <button type="button" id="uploadDocBtn">Upload Documents</button>
+
+          <div style="margin-top:16px;">
+            <h4 style="margin:0 0 8px;">Recent Documents</h4>
+            <table>
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="docTableBody">
+                <tr><td colspan="5" style="text-align:center;color:#94a3b8;">No documents loaded</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const adminView = document.getElementById('adminView');
+    const loginView = document.getElementById('loginView');
+    const statusBox = document.getElementById('status');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const doctorList = document.getElementById('doctorList');
+    const patientList = document.getElementById('patientList');
+    const userList = document.getElementById('userList');
+    const addDoctorBtn = document.getElementById('addDoctorBtn');
+    const addPatientBtn = document.getElementById('addPatientBtn');
+    const addUserBtn = document.getElementById('addUserBtn');
+
+    const API_BASE = `${window.location.protocol}//${window.location.hostname}:5010/api`;
+    const DENTAL_API = `${window.location.protocol}//${window.location.hostname}:5013/api`;
+    let authToken = null;
+
+    const setStatus = (msg, ok = false) => {
+      statusBox.textContent = msg;
+      statusBox.className = ok ? 'status ok' : 'status err';
+    };
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginBtn.disabled = true;
+      statusBox.textContent = '';
+      try {
+        const identifier = loginForm.loginId.value.trim();
+        const payload = {
+          username: identifier,
+          email: identifier,
+          password: loginForm.loginPassword.value
+        };
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setStatus('Login successful', true);
+          authToken = data.token;
+          loginForm.reset();
+          loginView.style.display = 'none';
+          adminView.style.display = 'block';
+          loadPatients();
+          loadDocuments();
+        } else {
+          setStatus(data.message || 'Login failed');
+        }
+      } catch (err) {
+        setStatus('Error connecting to auth service');
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+    
+    logoutBtn.addEventListener('click', () => {
+      adminView.style.display = 'none';
+      loginView.style.display = 'block';
+      statusBox.textContent = '';
+      statusBox.className = '';
+    });
+
+    const addListItem = (listEl, text) => {
+      const li = document.createElement('li');
+      li.style.padding = '10px 12px';
+      li.style.borderRadius = '10px';
+      li.style.border = '1px solid rgba(255,255,255,0.08)';
+      li.style.background = 'rgba(255,255,255,0.02)';
+      li.textContent = text;
+      listEl.prepend(li);
+    };
+
+    addDoctorBtn.addEventListener('click', () => {
+      const name = document.getElementById('doctorName').value.trim();
+      const spec = document.getElementById('doctorSpecialty').value.trim();
+      const email = document.getElementById('doctorEmail').value.trim();
+      const phone = document.getElementById('doctorPhone').value.trim();
+      if (!name) return setStatus('Doctor name is required');
+      addListItem(doctorList, `${name} — ${spec || 'General'} — ${email || 'no email'} — ${phone || 'no phone'}`);
+      document.getElementById('doctorName').value = '';
+      document.getElementById('doctorSpecialty').value = '';
+      document.getElementById('doctorEmail').value = '';
+      document.getElementById('doctorPhone').value = '';
+      setStatus('Doctor added (local only)', true);
+    });
+
+    addPatientBtn.addEventListener('click', () => {
+      const name = document.getElementById('patientName').value.trim();
+      const email = document.getElementById('patientEmail').value.trim();
+      const phone = document.getElementById('patientPhone').value.trim();
+      const doc = document.getElementById('patientDoctor').value.trim();
+      if (!name) return setStatus('Patient name is required');
+      addListItem(patientList, `${name} — ${email || 'no email'} — ${phone || 'no phone'} — Doctor: ${doc || 'Unassigned'}`);
+      document.getElementById('patientName').value = '';
+      document.getElementById('patientEmail').value = '';
+      document.getElementById('patientPhone').value = '';
+      document.getElementById('patientDoctor').value = '';
+      setStatus('Patient added (local only)', true);
+    });
+
+    addUserBtn.addEventListener('click', () => {
+      const name = document.getElementById('userName').value.trim();
+      const email = document.getElementById('userEmail').value.trim();
+      const role = document.getElementById('userRole').value;
+      if (!name) return setStatus('User name is required');
+      addListItem(userList, `${name} — ${email || 'no email'} — ${role}`);
+      document.getElementById('userName').value = '';
+      document.getElementById('userEmail').value = '';
+      document.getElementById('userRole').value = 'admin';
+      setStatus('User added (local only)', true);
+    });
+
+    // ===== Dental fetch helpers =====
+    const authedFetch = async (url, options = {}) => {
+      const headers = options.headers || {};
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+      return fetch(url, { ...options, headers });
+    };
+
+    const docPatientSelect = (() => {
+      const sel = document.createElement('select');
+      return sel;
+    })();
+
+    const docPatient = document.getElementById('docPatient');
+    const docType = document.getElementById('docType');
+    const docTitle = document.getElementById('docTitle');
+    const docTags = document.getElementById('docTags');
+    const docFiles = document.getElementById('docFiles');
+    const docFileInfo = document.getElementById('docFileInfo');
+    const docTableBody = document.getElementById('docTableBody');
+    const pickDocBtn = document.getElementById('pickDocBtn');
+    const uploadDocBtn = document.getElementById('uploadDocBtn');
+
+    const loadPatients = async () => {
+      if (!authToken) return;
+      try {
+        const res = await authedFetch(`${DENTAL_API}/dental/patients`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.patients)) {
+          docPatient.innerHTML = '';
+          data.patients.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.full_name || `${p.first_name} ${p.last_name}`;
+            docPatient.appendChild(opt);
+          });
+        }
+      } catch {
+        setStatus('Could not load patients', false);
+      }
+    };
+
+    const renderDocs = (docs = []) => {
+      docTableBody.innerHTML = '';
+      if (!docs.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="5" style="text-align:center;color:#94a3b8;">No documents found</td>`;
+        docTableBody.appendChild(row);
+        return;
+      }
+      docs.forEach(doc => {
+        const row = document.createElement('tr');
+        const date = doc.scan_date ? new Date(doc.scan_date).toLocaleDateString() : '';
+        row.innerHTML = `
+          <td>${doc.patient_name || 'Unknown'}</td>
+          <td>${doc.document_title || ''}</td>
+          <td>${doc.document_type || ''}</td>
+          <td>${date}</td>
+          <td>
+            <a href="${doc.download_url || '#'}" target="_blank" style="color:#60a5fa;text-decoration:none;">Download</a>
+          </td>`;
+        docTableBody.appendChild(row);
+      });
+    };
+
+    const loadDocuments = async () => {
+      if (!authToken) return;
+      try {
+        const res = await authedFetch(`${DENTAL_API}/dental/documents`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.documents)) {
+          renderDocs(data.documents);
+        } else {
+          renderDocs([]);
+        }
+      } catch {
+        renderDocs([]);
+      }
+    };
+
+    pickDocBtn.addEventListener('click', () => docFiles.click());
+    docFiles.addEventListener('change', () => {
+      const count = docFiles.files?.length || 0;
+      docFileInfo.textContent = count ? `${count} file(s) selected` : '';
+    });
+
+    uploadDocBtn.addEventListener('click', async () => {
+      if (!authToken) return setStatus('Login first');
+      if (!docFiles.files || docFiles.files.length === 0) return setStatus('Select at least one file');
+      if (!docTitle.value.trim()) return setStatus('Document title required');
+      const formData = new FormData();
+      Array.from(docFiles.files).forEach(f => formData.append('files', f));
+      formData.append('patient_id', docPatient.value || '');
+      formData.append('document_type', docType.value);
+      formData.append('document_title', docTitle.value.trim());
+      formData.append('tags', docTags.value.trim());
+      try {
+        uploadDocBtn.disabled = true;
+        const res = await authedFetch(`${DENTAL_API}/dental/documents/upload`, { method: 'POST', body: formData });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setStatus(data.message || 'Uploaded', true);
+          docFiles.value = '';
+          docFileInfo.textContent = '';
+          docTitle.value = '';
+          docTags.value = '';
+          loadDocuments();
+        } else {
+          setStatus(data.message || 'Upload failed');
+        }
+      } catch {
+        setStatus('Error uploading documents');
+      } finally {
+        uploadDocBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

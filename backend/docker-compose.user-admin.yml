@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  user-admin:
+    image: nginx:alpine
+    container_name: qhitz-user-admin
+    ports:
+      - "5020:80"
+    volumes:
+      - ../user-admin:/usr/share/nginx/html:ro
+    networks:
+      - qhitz-network
+    restart: unless-stopped
+
+networks:
+  qhitz-network:
+    external: true
