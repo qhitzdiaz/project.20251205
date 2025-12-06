@@ -67,14 +67,49 @@
     }
     .ok { background: rgba(34, 197, 94, 0.12); color: #bbf7d0; border: 1px solid rgba(34, 197, 94, 0.4); }
     .err { background: rgba(239, 68, 68, 0.12); color: #fecdd3; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .nav-btn {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: #cbd5e1;
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-btn.active {
+      background: linear-gradient(120deg,#2563eb,#3b82f6);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 8px 18px rgba(59,130,246,0.35);
+    }
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="card" style="display:flex;flex-direction:row;gap:16px;">
+    <aside id="sidebar" style="display:none;flex-shrink:0;width:180px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;background:rgba(255,255,255,0.02);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(120deg,#2563eb,#3b82f6);display:flex;align-items:center;justify-content:center;font-weight:800;">UA</div>
+        <div>
+          <div style="font-weight:800;">User Admin</div>
+          <div style="font-size:12px;color:#94a3b8;">Dental Console</div>
+        </div>
+      </div>
+      <nav id="navBar" style="display:flex;flex-direction:column;gap:8px;">
+        <button type="button" class="nav-btn" data-target="doctors">Doctors</button>
+        <button type="button" class="nav-btn" data-target="patients">Patients</button>
+        <button type="button" class="nav-btn" data-target="users">Users</button>
+        <button type="button" class="nav-btn" data-target="dentalUsers">Dental Mgmt Users</button>
+        <button type="button" class="nav-btn" data-target="accounting">Accounting</button>
+        <button type="button" class="nav-btn" data-target="documents">Documents</button>
+        <button type="button" id="logoutBtn" class="nav-btn" style="background:#ef4444;border-color:transparent;">Logout</button>
+      </nav>
+    </aside>
+
+    <div style="flex:1;min-width:0;">
     <div id="loginView">
       <h2 style="margin: 0 0 8px;">Admin Login</h2>
       <p class="sub">Sign in to manage doctors, patients, and users.</p>
-      <form id="loginForm">
+      <form id="loginForm" method="post" action="#" autocomplete="off" onsubmit="return false;">
         <label for="loginId">Username or Email</label>
         <input id="loginId" name="loginId" type="text" required />
 
@@ -91,11 +126,10 @@
           <h2 style="margin: 0 0 4px;">Admin Dashboard</h2>
           <p class="sub" style="margin:0;">Manage doctors, patients, and users.</p>
         </div>
-        <button type="button" id="logoutBtn" style="max-width:140px;background:#ef4444;">Logout</button>
       </div>
 
       <div style="margin-top:20px;display:grid;gap:16px;">
-        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+        <section id="doctors" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
           <h3 style="margin:0 0 10px;">Doctors</h3>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
             <div>
@@ -119,31 +153,49 @@
           <ul id="doctorList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
         </section>
 
-        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+        <section id="patients" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
           <h3 style="margin:0 0 10px;">Patients</h3>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
-            <div>
-              <label for="patientName">Name</label>
-              <input id="patientName" type="text" placeholder="Jane Doe" />
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+            <div><label for="pFirst">First Name</label><input id="pFirst" type="text" required /></div>
+            <div><label for="pLast">Last Name</label><input id="pLast" type="text" required /></div>
+            <div><label for="pMiddle">Middle Name</label><input id="pMiddle" type="text" /></div>
+            <div><label for="pPreferred">Preferred Name</label><input id="pPreferred" type="text" /></div>
+            <div><label for="pEmail">Email</label><input id="pEmail" type="email" required /></div>
+            <div><label for="pPhone">Phone</label><input id="pPhone" type="tel" required placeholder="+1 555 987 6543" /></div>
+            <div><label for="pAltPhone">Alternate Phone</label><input id="pAltPhone" type="tel" /></div>
+            <div><label for="pDob">Date of Birth</label><input id="pDob" type="date" /></div>
+            <div><label for="pGender">Gender</label><input id="pGender" type="text" placeholder="Male/Female/Other" /></div>
+            <div><label for="pMarital">Marital Status</label><input id="pMarital" type="text" /></div>
+            <div><label for="pStreet">Street Address</label><input id="pStreet" type="text" /></div>
+            <div><label for="pCity">City</label><input id="pCity" type="text" /></div>
+            <div><label for="pState">State/Prov</label><input id="pState" type="text" /></div>
+            <div><label for="pZip">ZIP/Postal</label><input id="pZip" type="text" /></div>
+            <div><label for="pCountry">Country</label><input id="pCountry" type="text" /></div>
+            <div><label for="pEmerName">Emergency Contact</label><input id="pEmerName" type="text" /></div>
+            <div><label for="pEmerRel">Relationship</label><input id="pEmerRel" type="text" /></div>
+            <div><label for="pEmerPhone">Emergency Phone</label><input id="pEmerPhone" type="tel" /></div>
+            <div><label for="pInsProvider">Insurance Provider</label><input id="pInsProvider" type="text" /></div>
+            <div><label for="pInsPolicy">Policy #</label><input id="pInsPolicy" type="text" /></div>
+            <div><label for="pInsGroup">Group #</label><input id="pInsGroup" type="text" /></div>
+            <div><label for="pPolicyHolder">Policy Holder Name</label><input id="pPolicyHolder" type="text" /></div>
+            <div><label for="pPolicyDob">Policy Holder DOB</label><input id="pPolicyDob" type="date" /></div>
+            <div><label for="pPolicyRel">Policy Holder Relationship</label><input id="pPolicyRel" type="text" /></div>
+            <div><label for="pPhysician">Physician Name</label><input id="pPhysician" type="text" /></div>
+            <div><label for="pPhysPhone">Physician Phone</label><input id="pPhysPhone" type="tel" /></div>
+            <div style="grid-column:1/-1;">
+              <label for="pMeds">Current Medications</label>
+              <input id="pMeds" type="text" placeholder="List medications" />
             </div>
-            <div>
-              <label for="patientEmail">Email</label>
-              <input id="patientEmail" type="email" placeholder="patient@example.com" />
-            </div>
-            <div>
-              <label for="patientPhone">Phone</label>
-              <input id="patientPhone" type="tel" placeholder="+1 555 987 6543" />
-            </div>
-            <div>
-              <label for="patientDoctor">Doctor</label>
-              <input id="patientDoctor" type="text" placeholder="Assigned doctor" />
+            <div style="grid-column:1/-1;">
+              <label for="pAllergies">Allergies</label>
+              <input id="pAllergies" type="text" placeholder="Allergies" />
             </div>
           </div>
           <button type="button" id="addPatientBtn" style="margin-top:8px;">Add Patient</button>
           <ul id="patientList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
         </section>
 
-        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+        <section id="users" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
           <h3 style="margin:0 0 10px;">Users</h3>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
             <div>
@@ -167,7 +219,49 @@
           <ul id="userList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
         </section>
 
-        <section style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+        <section id="dentalUsers" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+          <h3 style="margin:0 0 10px;">Dental Management Users</h3>
+          <p class="sub" style="margin:0 0 12px;">Assign roles for dental operations (front desk, hygienist, dentist, billing).</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div><label for="dmName">Name</label><input id="dmName" type="text" placeholder="Front Desk User" /></div>
+            <div><label for="dmEmail">Email</label><input id="dmEmail" type="email" placeholder="user@clinic.com" /></div>
+            <div>
+              <label for="dmRole">Role</label>
+              <select id="dmRole">
+                <option value="front_desk">Front Desk</option>
+                <option value="hygienist">Hygienist</option>
+                <option value="dentist">Dentist</option>
+                <option value="billing">Billing</option>
+                <option value="manager">Manager</option>
+              </select>
+            </div>
+            <div><label for="dmPhone">Phone</label><input id="dmPhone" type="tel" placeholder="+1 555 222 3333" /></div>
+          </div>
+          <button type="button" id="addDmUserBtn" style="margin-top:8px;">Add Dental User</button>
+          <ul id="dmUserList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
+        </section>
+
+        <section id="accounting" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+          <h3 style="margin:0 0 10px;">Accounting</h3>
+          <p class="sub" style="margin:0 0 12px;">Track invoices and payments. (Submit to backend when endpoints available.)</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div><label for="accPatient">Patient</label><input id="accPatient" type="text" placeholder="Patient name" /></div>
+            <div><label for="accAmount">Amount (PHP)</label><input id="accAmount" type="number" placeholder="0.00" /></div>
+            <div>
+              <label for="accStatus">Status</label>
+              <select id="accStatus">
+                <option value="pending">Pending</option>
+                <option value="partial">Partial</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            <div><label for="accNotes">Notes</label><input id="accNotes" type="text" placeholder="e.g., cleaning, crown, insurance pending" /></div>
+          </div>
+          <button type="button" id="addAccBtn" style="margin-top:8px;">Add Entry</button>
+          <ul id="accList" style="list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;"></ul>
+        </section>
+
+        <section id="documents" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
           <h3 style="margin:0 0 10px;">Document Scanning & Upload</h3>
           <p class="sub" style="margin:0 0 12px;">Scan/upload patient documents (uses dental API).</p>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
@@ -232,15 +326,25 @@
     const statusBox = document.getElementById('status');
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const navBar = document.getElementById('navBar');
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const sidebar = document.getElementById('sidebar');
     const doctorList = document.getElementById('doctorList');
     const patientList = document.getElementById('patientList');
     const userList = document.getElementById('userList');
+    const dmUserList = document.getElementById('dmUserList');
+    const accList = document.getElementById('accList');
     const addDoctorBtn = document.getElementById('addDoctorBtn');
     const addPatientBtn = document.getElementById('addPatientBtn');
     const addUserBtn = document.getElementById('addUserBtn');
+    const addDmUserBtn = document.getElementById('addDmUserBtn');
+    const addAccBtn = document.getElementById('addAccBtn');
+    const sections = ['doctors','patients','users','dentalUsers','accounting','documents'];
 
-    const API_BASE = `${window.location.protocol}//${window.location.hostname}:5010/api`;
-    const DENTAL_API = `${window.location.protocol}//${window.location.hostname}:5013/api`;
+    // Use explicit URLs to avoid posting to the static host
+    // Hit backend APIs directly; adjust if you want to proxy via nginx
+    const API_BASE = 'http://localhost:5010/api';
+    const DENTAL_API = 'http://localhost:5013/api';
     let authToken = null;
 
     const setStatus = (msg, ok = false) => {
@@ -271,10 +375,14 @@
           loginForm.reset();
           loginView.style.display = 'none';
           adminView.style.display = 'block';
+          navBar.style.display = 'flex';
+          sidebar.style.display = 'block';
+          setActiveSection('doctors');
           loadPatients();
+          loadDoctors();
           loadDocuments();
         } else {
-          setStatus(data.message || 'Login failed');
+          setStatus(data.message || `Login failed (status ${res.status})`);
         }
       } catch (err) {
         setStatus('Error connecting to auth service');
@@ -286,8 +394,30 @@
     logoutBtn.addEventListener('click', () => {
       adminView.style.display = 'none';
       loginView.style.display = 'block';
+      navBar.style.display = 'none';
+      sidebar.style.display = 'none';
       statusBox.textContent = '';
       statusBox.className = '';
+      authToken = null;
+    });
+
+    const setActiveSection = (targetId) => {
+      navButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === targetId);
+      });
+      sections.forEach(sec => {
+        const el = document.getElementById(sec);
+        if (el) el.style.display = sec === targetId ? 'block' : 'none';
+      });
+    };
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        setActiveSection(target);
+        const el = document.getElementById(target);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
 
     const addListItem = (listEl, text) => {
@@ -300,32 +430,122 @@
       listEl.prepend(li);
     };
 
-    addDoctorBtn.addEventListener('click', () => {
-      const name = document.getElementById('doctorName').value.trim();
-      const spec = document.getElementById('doctorSpecialty').value.trim();
-      const email = document.getElementById('doctorEmail').value.trim();
-      const phone = document.getElementById('doctorPhone').value.trim();
-      if (!name) return setStatus('Doctor name is required');
-      addListItem(doctorList, `${name} — ${spec || 'General'} — ${email || 'no email'} — ${phone || 'no phone'}`);
-      document.getElementById('doctorName').value = '';
-      document.getElementById('doctorSpecialty').value = '';
-      document.getElementById('doctorEmail').value = '';
-      document.getElementById('doctorPhone').value = '';
-      setStatus('Doctor added (local only)', true);
+    const renderDoctors = (doctors = []) => {
+      doctorList.innerHTML = '';
+      if (!doctors.length) {
+        doctorList.innerHTML = '<li style="color:#94a3b8;">No doctors found</li>';
+        return;
+      }
+      doctors.forEach(d => {
+        const name = d.full_name || `${d.first_name || ''} ${d.last_name || ''}`.trim();
+        addListItem(doctorList, `${name} — ${d.specialization || 'General'} — ${d.email || 'no email'} — ${d.phone || 'no phone'}`);
+      });
+    };
+
+    const loadDoctors = async () => {
+      if (!authToken) return;
+      try {
+        const res = await authedFetch(`${DENTAL_API}/dental/dentists`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.dentists)) {
+          renderDoctors(data.dentists);
+        } else {
+          renderDoctors([]);
+        }
+      } catch {
+        setStatus('Could not load doctors', false);
+        renderDoctors([]);
+      }
+    };
+
+    addDoctorBtn.addEventListener('click', async () => {
+      if (!authToken) return setStatus('Login first');
+      const payload = {
+        first_name: document.getElementById('doctorName').value.trim(),
+        last_name: document.getElementById('doctorLast') ? document.getElementById('doctorLast').value.trim() : '',
+        email: document.getElementById('doctorEmail').value.trim(),
+        phone: document.getElementById('doctorPhone').value.trim(),
+        specialization: document.getElementById('doctorSpecialty').value.trim(),
+        license_number: document.getElementById('doctorLicense') ? document.getElementById('doctorLicense').value.trim() : ''
+      };
+      if (!payload.first_name && !payload.last_name) return setStatus('Doctor name is required');
+      try {
+        addDoctorBtn.disabled = true;
+        const res = await authedFetch(`${DENTAL_API}/dental/dentists`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setStatus('Doctor added', true);
+          ['doctorName','doctorLast','doctorEmail','doctorPhone','doctorSpecialty','doctorLicense'].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+          loadDoctors();
+        } else {
+          setStatus(data.message || 'Failed to add doctor');
+        }
+      } catch {
+        setStatus('Error connecting to dental service');
+      } finally {
+        addDoctorBtn.disabled = false;
+      }
     });
 
-    addPatientBtn.addEventListener('click', () => {
-      const name = document.getElementById('patientName').value.trim();
-      const email = document.getElementById('patientEmail').value.trim();
-      const phone = document.getElementById('patientPhone').value.trim();
-      const doc = document.getElementById('patientDoctor').value.trim();
-      if (!name) return setStatus('Patient name is required');
-      addListItem(patientList, `${name} — ${email || 'no email'} — ${phone || 'no phone'} — Doctor: ${doc || 'Unassigned'}`);
-      document.getElementById('patientName').value = '';
-      document.getElementById('patientEmail').value = '';
-      document.getElementById('patientPhone').value = '';
-      document.getElementById('patientDoctor').value = '';
-      setStatus('Patient added (local only)', true);
+    addPatientBtn.addEventListener('click', async () => {
+      if (!authToken) return setStatus('Login first');
+      const payload = {
+        first_name: document.getElementById('pFirst').value.trim(),
+        last_name: document.getElementById('pLast').value.trim(),
+        middle_name: document.getElementById('pMiddle').value.trim(),
+        preferred_name: document.getElementById('pPreferred').value.trim(),
+        email: document.getElementById('pEmail').value.trim(),
+        phone: document.getElementById('pPhone').value.trim(),
+        alternate_phone: document.getElementById('pAltPhone').value.trim(),
+        date_of_birth: document.getElementById('pDob').value,
+        gender: document.getElementById('pGender').value.trim(),
+        marital_status: document.getElementById('pMarital').value.trim(),
+        street_address: document.getElementById('pStreet').value.trim(),
+        city: document.getElementById('pCity').value.trim(),
+        state: document.getElementById('pState').value.trim(),
+        zip_code: document.getElementById('pZip').value.trim(),
+        country: document.getElementById('pCountry').value.trim(),
+        emergency_contact_name: document.getElementById('pEmerName').value.trim(),
+        emergency_contact_relationship: document.getElementById('pEmerRel').value.trim(),
+        emergency_contact_phone: document.getElementById('pEmerPhone').value.trim(),
+        insurance_provider: document.getElementById('pInsProvider').value.trim(),
+        insurance_policy_number: document.getElementById('pInsPolicy').value.trim(),
+        insurance_group_number: document.getElementById('pInsGroup').value.trim(),
+        policy_holder_name: document.getElementById('pPolicyHolder').value.trim(),
+        policy_holder_dob: document.getElementById('pPolicyDob').value,
+        policy_holder_relationship: document.getElementById('pPolicyRel').value.trim(),
+        physician_name: document.getElementById('pPhysician').value.trim(),
+        physician_phone: document.getElementById('pPhysPhone').value.trim(),
+        current_medications: document.getElementById('pMeds').value.trim(),
+        allergies: document.getElementById('pAllergies').value.trim(),
+      };
+      if (!payload.first_name || !payload.last_name || !payload.email || !payload.phone) {
+        return setStatus('First name, last name, email, and phone are required');
+      }
+      try {
+        addPatientBtn.disabled = true;
+        const res = await authedFetch(`${DENTAL_API}/dental/patients`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setStatus('Patient created successfully', true);
+          ['pFirst','pLast','pMiddle','pPreferred','pEmail','pPhone','pAltPhone','pDob','pGender','pMarital','pStreet','pCity','pState','pZip','pCountry','pEmerName','pEmerRel','pEmerPhone','pInsProvider','pInsPolicy','pInsGroup','pPolicyHolder','pPolicyDob','pPolicyRel','pPhysician','pPhysPhone','pMeds','pAllergies'].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+          loadPatients();
+        } else {
+          setStatus(data.message || 'Failed to create patient');
+        }
+      } catch {
+        setStatus('Error connecting to dental service');
+      } finally {
+        addPatientBtn.disabled = false;
+      }
     });
 
     addUserBtn.addEventListener('click', () => {
@@ -340,11 +560,72 @@
       setStatus('User added (local only)', true);
     });
 
+    addDmUserBtn.addEventListener('click', () => {
+      const name = document.getElementById('dmName').value.trim();
+      const email = document.getElementById('dmEmail').value.trim();
+      const role = document.getElementById('dmRole').value;
+      const phone = document.getElementById('dmPhone').value.trim();
+      if (!name) return setStatus('Dental user name is required');
+      addListItem(dmUserList, `${name} — ${role} — ${email || 'no email'} — ${phone || 'no phone'}`);
+      document.getElementById('dmName').value = '';
+      document.getElementById('dmEmail').value = '';
+      document.getElementById('dmRole').value = 'front_desk';
+      document.getElementById('dmPhone').value = '';
+      setStatus('Dental user added (local only)', true);
+    });
+
+    addAccBtn.addEventListener('click', () => {
+      const patient = document.getElementById('accPatient').value.trim();
+      const amount = document.getElementById('accAmount').value;
+      const status = document.getElementById('accStatus').value;
+      const notes = document.getElementById('accNotes').value.trim();
+      if (!patient || !amount) return setStatus('Patient and amount are required');
+      addListItem(accList, `${patient} — ₱${amount} — ${status} — ${notes || ''}`);
+      document.getElementById('accPatient').value = '';
+      document.getElementById('accAmount').value = '';
+      document.getElementById('accStatus').value = 'pending';
+      document.getElementById('accNotes').value = '';
+      setStatus('Accounting entry added (local only)', true);
+    });
+
     // ===== Dental fetch helpers =====
     const authedFetch = async (url, options = {}) => {
       const headers = options.headers || {};
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
       return fetch(url, { ...options, headers });
+    };
+
+    const renderPatients = (patients = []) => {
+      patientList.innerHTML = '';
+      docPatient.innerHTML = '';
+      if (!patients.length) {
+        patientList.innerHTML = '<li style="color:#94a3b8;">No patients found</li>';
+        return;
+      }
+      patients.forEach(p => {
+        const name = p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim();
+        addListItem(patientList, `${name} — ${p.email || 'no email'} — ${p.phone || 'no phone'}`);
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = name || `Patient ${p.id}`;
+        docPatient.appendChild(opt);
+      });
+    };
+
+    const loadPatients = async () => {
+      if (!authToken) return;
+      try {
+        const res = await authedFetch(`${DENTAL_API}/dental/patients`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.patients)) {
+          renderPatients(data.patients);
+        } else {
+          renderPatients([]);
+        }
+      } catch {
+        setStatus('Could not load patients', false);
+        renderPatients([]);
+      }
     };
 
     const docPatientSelect = (() => {
