@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary brand colors for dark mode -->
+    <color name="colorPrimary">#42A5F5</color>
+    <color name="colorPrimaryDark">#1E88E5</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <!-- Background colors for dark mode -->
+    <color name="background">#121212</color>
+    <color name="surface">#1E1E1E</color>
+
+    <!-- Text colors for dark mode -->
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textSecondary">#B0B0B0</color>
+
+    <!-- Status bar for dark mode -->
+    <color name="statusBarColor">#000000</color>
+
+    <!-- Splash screen for dark mode -->
+    <color name="splashBackground">#121212</color>
+</resources>
