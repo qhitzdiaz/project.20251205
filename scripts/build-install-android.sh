@@ -32,7 +32,7 @@ pick_device() {
     return
   fi
   local first_device
-  first_device="$(adb devices | awk 'NR>1 && $2==\"device\" {print $1; exit}')" || true
+  first_device="$(adb devices | awk 'NR>1 && $2=="device" {print $1; exit}')" || true
   if [ -z "$first_device" ]; then
     echo "Error: no running emulator/device found for adb install." >&2
     exit 1
