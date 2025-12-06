@@ -112,7 +112,7 @@ services:
     depends_on:
       postgres-auth:
         condition: service_healthy
-    command: python app.py
+    command: gunicorn -w 2 -b 0.0.0.0:5010 app:app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -137,7 +137,7 @@ services:
     depends_on:
       postgres-media:
         condition: service_healthy
-    command: python media_server.py
+    command: gunicorn -w 2 -b 0.0.0.0:5011 media_server:app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -162,7 +162,7 @@ services:
     depends_on:
       postgres-cloud:
         condition: service_healthy
-    command: python cloud_server.py
+    command: gunicorn -w 2 -b 0.0.0.0:5012 cloud_server:app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -187,7 +187,7 @@ services:
     depends_on:
       postgres-dental:
         condition: service_healthy
-    command: python dental_app.py
+    command: gunicorn -w 2 -b 0.0.0.0:5013 dental_app:app
     networks:
       - qhitz-network
     restart: unless-stopped

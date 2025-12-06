@@ -23,6 +23,7 @@ import {
   Typography,
   Divider,
   Box,
+  Alert,
 } from '@mui/material';
 
 const steps = ['Personal Information', 'Emergency Contact & Insurance', 'Medical History', 'Dental History', 'Consent & Signature'];

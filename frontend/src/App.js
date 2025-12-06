@@ -56,11 +56,11 @@ import {
 import DentalApp from './pages/DentalApp';
 import MediaPlayerApp from './pages/MediaPlayerApp';
 import CloudStorageApp from './pages/CloudStorageApp';
+import NewPatientForm from './pages/NewPatientForm';
 import AboutUs from './pages/AboutUs';
 import Documentation from './pages/Documentation';
 import Support from './pages/Support';
-
-const API_URL = process.env.REACT_APP_AUTH_API_URL || 'http://localhost:5010/api';
+import { API_URL } from './config/apiConfig';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -83,7 +83,7 @@ function AppContent() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [appsMenuAnchor, setAppsMenuAnchor] = useState(null);
 
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginForm, setLoginForm] = useState({ identifier: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ username: '', email: '', password: '' });
 
   // Create theme based on mode
@@ -155,7 +155,12 @@ function AppContent() {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm),
+        // Send identifier as both email and username so either works server-side
+        body: JSON.stringify({
+          email: loginForm.identifier,
+          username: loginForm.identifier,
+          password: loginForm.password,
+        }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -164,7 +169,7 @@ function AppContent() {
         setIsLoggedIn(true);
         setLoginDialogOpen(false);
         showSnackbar('Login successful!', 'success');
-        setLoginForm({ email: '', password: '' });
+        setLoginForm({ identifier: '', password: '' });
       } else {
         showSnackbar(data.message || 'Login failed', 'error');
       }
@@ -563,15 +568,15 @@ function AppContent() {
                   <Box sx={{ textAlign: 'center', color: 'white' }}>
                     <Typography variant="h2" gutterBottom sx={{ fontWeight: 700 }}>Welcome to Qhitz</Typography>
                     <Typography variant="h5" color="rgba(255,255,255,0.85)" paragraph>Complete Business Management System</Typography>
-                    <Typography variant="body1" color="rgba(255,255,255,0.85)" paragraph sx={{ maxWidth: 640, mx: 'auto', mb: 4 }}>
-                      Manage your dental practice, multimedia files, and cloud storage all in one place.
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                      <Button variant="contained" size="large" startIcon={<LoginIcon />} onClick={() => setLoginDialogOpen(true)}>Login</Button>
-                      <Button variant="outlined" size="large" startIcon={<PersonAddIcon />} onClick={() => setRegisterDialogOpen(true)} sx={{ color: 'white', borderColor: 'white' }}>Sign Up</Button>
-                    </Box>
+                  <Typography variant="body1" color="rgba(255,255,255,0.85)" paragraph sx={{ maxWidth: 640, mx: 'auto', mb: 4 }}>
+                    Manage your dental practice, multimedia files, and cloud storage all in one place.
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                    <Button variant="contained" size="large" startIcon={<LoginIcon />} onClick={() => setLoginDialogOpen(true)}>Login</Button>
+                    <Button variant="outlined" size="large" startIcon={<PersonAddIcon />} onClick={() => setRegisterDialogOpen(true)} sx={{ color: 'white', borderColor: 'white' }}>Sign Up</Button>
                   </Box>
-                ) : (
+                </Box>
+              ) : (
                   <Box>
                     <Typography variant="h4" gutterBottom sx={{ mb: 4, color: 'white' }}>Your Applications</Typography>
                     <Grid container spacing={3}>
@@ -609,6 +614,7 @@ function AppContent() {
           <Route path="/cloud" element={isLoggedIn ? <CloudStorageApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           
           {/* Info Pages */}
+          <Route path="/new-patient" element={<NewPatientForm />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/documentation" element={<Documentation />} />
           <Route path="/support" element={<Support />} />
@@ -658,7 +664,7 @@ function AppContent() {
       <Dialog open={loginDialogOpen} onClose={() => setLoginDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle><Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><Typography variant="h5" sx={{ fontWeight: 700 }}>Login</Typography><IconButton onClick={() => setLoginDialogOpen(false)}><CloseIcon /></IconButton></Box></DialogTitle>
         <DialogContent>
-          <TextField fullWidth label="Username or Email" margin="normal" value={loginForm.email} onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })} />
+          <TextField fullWidth label="Username or Email" helperText="Use either your username or email to sign in" margin="normal" value={loginForm.identifier} onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })} />
           <TextField fullWidth label="Password" type="password" margin="normal" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>

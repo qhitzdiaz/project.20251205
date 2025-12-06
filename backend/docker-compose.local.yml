@@ -1,0 +1,117 @@
+services:
+  # Main Authentication API (Port 5010)
+  backend-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-api-local
+    ports:
+      - "5010:5010"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=192.168.2.98
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=auth_db
+      - CORS_ORIGINS=*
+    networks:
+      - qhitz-network-local
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5010 app:app
+
+  # Media Server API (Port 5011)
+  backend-media:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-media-local
+    ports:
+      - "5011:5011"
+    environment:
+      - FLASK_APP=media_server.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=192.168.2.98
+      - POSTGRES_PORT=5433
+      - POSTGRES_DB=media_db
+      - UPLOAD_FOLDER=/app/uploads/media
+      - CORS_ORIGINS=*
+    volumes:
+      - media-uploads-local:/app/uploads/media
+    networks:
+      - qhitz-network-local
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5011 media_server:app
+
+  # Cloud Storage API (Port 5012)
+  backend-cloud:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-cloud-local
+    ports:
+      - "5012:5012"
+    environment:
+      - FLASK_APP=cloud_server.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=192.168.2.98
+      - POSTGRES_PORT=5434
+      - POSTGRES_DB=cloud_db
+      - UPLOAD_FOLDER=/app/uploads/cloud
+      - CORS_ORIGINS=*
+    volumes:
+      - cloud-storage-local:/app/uploads/cloud
+    networks:
+      - qhitz-network-local
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5012 cloud_server:app
+
+  # Dental Management API (Port 5013)
+  backend-dental:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-dental-local
+    ports:
+      - "5013:5013"
+    environment:
+      - FLASK_APP=dental_app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=192.168.2.98
+      - POSTGRES_PORT=5435
+      - POSTGRES_DB=dental_db
+      - UPLOAD_FOLDER=/app/uploads/dental
+      - CORS_ORIGINS=*
+    volumes:
+      - dental-scanned-docs-local:/app/uploads/dental
+    networks:
+      - qhitz-network-local
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5013 dental_app:app
+
+networks:
+  qhitz-network-local:
+    driver: bridge
+
+volumes:
+  media-uploads-local:
+    driver: local
+  cloud-storage-local:
+    driver: local
+  dental-scanned-docs-local:
+    driver: local

@@ -26,5 +26,7 @@ RUN mkdir -p /app/uploads /app/storage /app/scanned_documents
 # Expose ports (will be overridden by docker-compose)
 EXPOSE 5010 5011 5012 5013
 
-# Default command (will be overridden by docker-compose)
-CMD ["python", "app.py"]
+# Default command uses Gunicorn; overridden per service in docker-compose
+ENV APP_MODULE=app:app
+ENV APP_PORT=5010
+CMD ["sh", "-c", "gunicorn -w 2 -b 0.0.0.0:${APP_PORT} ${APP_MODULE}"]

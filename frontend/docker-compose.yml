@@ -7,8 +7,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_AUTH_API_URL=http://192.168.2.98:5010/api
-      - REACT_APP_MEDIA_API_URL=http://192.168.2.98:5011/api
-      - REACT_APP_CLOUD_API_URL=http://192.168.2.98:5012/api
-      - REACT_APP_DENTAL_API_URL=http://192.168.2.98:5013/api
+      # Use localhost so the browser can reach services on the host
+      - REACT_APP_AUTH_API_URL=http://localhost:5010/api
+      - REACT_APP_MEDIA_API_URL=http://localhost:5011/api
+      - REACT_APP_CLOUD_API_URL=http://localhost:5012/api
+      - REACT_APP_DENTAL_API_URL=http://localhost:5013/api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped

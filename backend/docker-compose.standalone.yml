@@ -1,0 +1,225 @@
+services:
+  # PostgreSQL Database for Authentication (Port 7432)
+  postgres-auth-standalone:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-auth-standalone
+    environment:
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: devpass123
+      POSTGRES_DB: auth_db
+    ports:
+      - "7432:5432"
+    volumes:
+      - postgres-auth-data-standalone:/var/lib/postgresql/data
+    networks:
+      - qhitz-network-standalone
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Database for Media (Port 7433)
+  postgres-media-standalone:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-media-standalone
+    environment:
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: devpass123
+      POSTGRES_DB: media_db
+    ports:
+      - "7433:5432"
+    volumes:
+      - postgres-media-data-standalone:/var/lib/postgresql/data
+    networks:
+      - qhitz-network-standalone
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d media_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Database for Cloud Storage (Port 7434)
+  postgres-cloud-standalone:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-cloud-standalone
+    environment:
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: devpass123
+      POSTGRES_DB: cloud_db
+    ports:
+      - "7434:5432"
+    volumes:
+      - postgres-cloud-data-standalone:/var/lib/postgresql/data
+    networks:
+      - qhitz-network-standalone
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d cloud_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Database for Dental (Port 7435)
+  postgres-dental-standalone:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-dental-standalone
+    environment:
+      POSTGRES_USER: qhitz_user
+      POSTGRES_PASSWORD: devpass123
+      POSTGRES_DB: dental_db
+    ports:
+      - "7435:5432"
+    volumes:
+      - postgres-dental-data-standalone:/var/lib/postgresql/data
+    networks:
+      - qhitz-network-standalone
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d dental_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Main Authentication API (Port 6010)
+  backend-api-standalone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-api-standalone
+    ports:
+      - "6010:5010"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key_standalone
+      - DATABASE_URL=postgresql://qhitz_user:devpass123@postgres-auth-standalone:5432/auth_db
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=postgres-auth-standalone
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=auth_db
+      - CORS_ORIGINS=*
+    networks:
+      - qhitz-network-standalone
+    depends_on:
+      postgres-auth-standalone:
+        condition: service_healthy
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5010 app:app
+
+  # Media Server API (Port 6011)
+  backend-media-standalone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-media-standalone
+    ports:
+      - "6011:5011"
+    environment:
+      - FLASK_APP=media_server.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key_standalone
+      - MEDIA_DATABASE_URL=postgresql://qhitz_user:devpass123@postgres-media-standalone:5432/media_db
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=postgres-media-standalone
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=media_db
+      - UPLOAD_FOLDER=/app/uploads/media
+      - CORS_ORIGINS=*
+    volumes:
+      - media-uploads-standalone:/app/uploads/media
+    networks:
+      - qhitz-network-standalone
+    depends_on:
+      postgres-media-standalone:
+        condition: service_healthy
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5011 media_server:app
+
+  # Cloud Storage API (Port 6012)
+  backend-cloud-standalone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-cloud-standalone
+    ports:
+      - "6012:5012"
+    environment:
+      - FLASK_APP=cloud_server.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key_standalone
+      - CLOUD_DATABASE_URL=postgresql://qhitz_user:devpass123@postgres-cloud-standalone:5432/cloud_db
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=postgres-cloud-standalone
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=cloud_db
+      - UPLOAD_FOLDER=/app/uploads/cloud
+      - CORS_ORIGINS=*
+    volumes:
+      - cloud-storage-standalone:/app/uploads/cloud
+    networks:
+      - qhitz-network-standalone
+    depends_on:
+      postgres-cloud-standalone:
+        condition: service_healthy
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5012 cloud_server:app
+
+  # Dental Management API (Port 6013)
+  backend-dental-standalone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-dental-standalone
+    ports:
+      - "6013:5013"
+    environment:
+      - FLASK_APP=dental_app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - SECRET_KEY=dev_secret_key_standalone
+      - DENTAL_DATABASE_URL=postgresql://qhitz_user:devpass123@postgres-dental-standalone:5432/dental_db
+      - POSTGRES_USER=qhitz_user
+      - POSTGRES_PASSWORD=devpass123
+      - POSTGRES_HOST=postgres-dental-standalone
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=dental_db
+      - UPLOAD_FOLDER=/app/uploads/dental
+      - CORS_ORIGINS=*
+    volumes:
+      - dental-scanned-docs-standalone:/app/uploads/dental
+    networks:
+      - qhitz-network-standalone
+    depends_on:
+      postgres-dental-standalone:
+        condition: service_healthy
+    restart: unless-stopped
+    command: gunicorn -w 2 -b 0.0.0.0:5013 dental_app:app
+
+networks:
+  qhitz-network-standalone:
+    driver: bridge
+
+volumes:
+  postgres-auth-data-standalone:
+    driver: local
+  postgres-media-data-standalone:
+    driver: local
+  postgres-cloud-data-standalone:
+    driver: local
+  postgres-dental-data-standalone:
+    driver: local
+  media-uploads-standalone:
+    driver: local
+  cloud-storage-standalone:
+    driver: local
+  dental-scanned-docs-standalone:
+    driver: local

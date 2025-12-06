@@ -38,8 +38,9 @@ import {
   ViewList as ListViewIcon,
 } from '@mui/icons-material';
 import FilePreviewList from '../components/FilePreviewList';
+import { API_URLS } from '../config/apiConfig';
 
-const API_URL = process.env.REACT_APP_MEDIA_API_URL || 'http://localhost:5011/api';
+const API_URL = API_URLS.MEDIA;
 
 function MediaPlayerApp() {
   const [videos, setVideos] = useState([]);

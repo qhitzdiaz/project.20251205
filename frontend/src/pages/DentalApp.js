@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatPHP } from '../utils/currency';
 import {
   Box,
@@ -50,8 +51,9 @@ import {
 } from '@mui/icons-material';
 import FilePreviewList from '../components/FilePreviewList';
 import PatientRegistrationDialog from '../components/PatientRegistrationDialog';
+import { API_URLS } from '../config/apiConfig';
 
-const API_URL = process.env.REACT_APP_DENTAL_API_URL || 'http://localhost:5013/api';
+const API_URL = API_URLS.DENTAL;
 
 function TabPanel({ children, value, index }) {
   return (
@@ -62,6 +64,7 @@ function TabPanel({ children, value, index }) {
 }
 
 function DentalApp() {
+  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -222,7 +225,6 @@ function DentalApp() {
       date_of_birth: '', street_address: '', city: '', state: '', zip_code: '', country: '',
       insurance_provider: '', allergies: ''
     });
-    setUsePhilippineAddress(false);
   };
 
   // ==================== APPOINTMENTS ====================
@@ -557,6 +559,9 @@ function DentalApp() {
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
           Dentist Management Application
         </Typography>
+        <Button variant="contained" color="secondary" onClick={() => navigate('/new-patient')}>
+          New Patient Form
+        </Button>
       </Box>
 
       {/* Statistics Cards */}

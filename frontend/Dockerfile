@@ -12,6 +12,17 @@ RUN npm ci --legacy-peer-deps
 # Copy application files
 COPY . .
 
+# Set build-time environment variables for API URLs
+ARG REACT_APP_AUTH_API_URL=http://localhost:5010/api
+ARG REACT_APP_MEDIA_API_URL=http://localhost:5011/api
+ARG REACT_APP_CLOUD_API_URL=http://localhost:5012/api
+ARG REACT_APP_DENTAL_API_URL=http://localhost:5013/api
+
+ENV REACT_APP_AUTH_API_URL=$REACT_APP_AUTH_API_URL
+ENV REACT_APP_MEDIA_API_URL=$REACT_APP_MEDIA_API_URL
+ENV REACT_APP_CLOUD_API_URL=$REACT_APP_CLOUD_API_URL
+ENV REACT_APP_DENTAL_API_URL=$REACT_APP_DENTAL_API_URL
+
 # Build the app
 RUN npm run build
 

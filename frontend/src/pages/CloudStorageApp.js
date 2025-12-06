@@ -41,8 +41,9 @@ import {
   CloudQueue as CloudIcon,
 } from '@mui/icons-material';
 import FilePreviewList from '../components/FilePreviewList';
+import { API_URLS } from '../config/apiConfig';
 
-const API_URL = process.env.REACT_APP_CLOUD_API_URL || 'http://localhost:5012/api';
+const API_URL = API_URLS.CLOUD;
 
 function CloudStorageApp() {
   const [loading, setLoading] = useState(false);

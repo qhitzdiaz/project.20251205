@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import os
 import uuid
 import ocr_utils
+from sqlalchemy import JSON
 
 app = Flask(__name__)
 
@@ -91,6 +92,69 @@ class Patient(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'is_active': self.is_active
+        }
+
+class NewPatientRequest(db.Model):
+    """Simple lead capture for public new-patient form"""
+    __tablename__ = 'new_patient_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100))
+    email = db.Column(db.String(120), nullable=False)
+    phone_number = db.Column(db.String(50))
+    message = db.Column(db.Text)
+    full_name = db.Column(db.String(255))
+    sex = db.Column(db.String(20))
+    address = db.Column(db.String(255))
+    city = db.Column(db.String(100))
+    province = db.Column(db.String(100))
+    postal_code = db.Column(db.String(20))
+    date_of_birth = db.Column(db.Date)
+    home_phone = db.Column(db.String(50))
+    cell_phone = db.Column(db.String(50))
+    payment_method = db.Column(db.String(50))
+    financial_responsible = db.Column(db.String(50))
+    emergency_contact_name = db.Column(db.String(255))
+    emergency_contact_phone = db.Column(db.String(50))
+    family_doctor = db.Column(db.String(255))
+    family_doctor_phone = db.Column(db.String(50))
+    referring_doctor = db.Column(db.String(255))
+    referring_doctor_phone = db.Column(db.String(50))
+    dental_history = db.Column(JSON)
+    medical_history = db.Column(JSON)
+    consent = db.Column(JSON)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'email': self.email,
+            'phone_number': self.phone_number,
+            'message': self.message,
+            'full_name': self.full_name,
+            'sex': self.sex,
+            'address': self.address,
+            'city': self.city,
+            'province': self.province,
+            'postal_code': self.postal_code,
+            'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
+            'home_phone': self.home_phone,
+            'cell_phone': self.cell_phone,
+            'payment_method': self.payment_method,
+            'financial_responsible': self.financial_responsible,
+            'emergency_contact_name': self.emergency_contact_name,
+            'emergency_contact_phone': self.emergency_contact_phone,
+            'family_doctor': self.family_doctor,
+            'family_doctor_phone': self.family_doctor_phone,
+            'referring_doctor': self.referring_doctor,
+            'referring_doctor_phone': self.referring_doctor_phone,
+            'dental_history': self.dental_history,
+            'medical_history': self.medical_history,
+            'consent': self.consent,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 class Dentist(db.Model):
@@ -390,7 +454,8 @@ def api_info():
                 'delete': 'DELETE /api/dental/document/<id>',
                 'types': 'GET /api/dental/documents/types'
             },
-            'statistics': 'GET /api/dental/stats'
+            'statistics': 'GET /api/dental/stats',
+            'new_patient_request': 'POST /api/dental/new-patient-request'
         }
     }), 200
 
@@ -454,6 +519,60 @@ def create_patient():
     return jsonify({
         'message': 'Patient created successfully',
         'patient': patient.to_dict()
+    }), 201
+
+@app.route('/api/dental/new-patient-request', methods=['POST'])
+def create_new_patient_request():
+    """Capture a lightweight new patient request (public form)"""
+    data = request.get_json() or {}
+
+    # Require core contact info to mirror the public form
+    required = ['full_name', 'sex', 'address', 'city', 'province', 'postal_code', 'email']
+    if not all(data.get(field) for field in required):
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    # Parse optional date
+    dob = None
+    if data.get('date_of_birth'):
+        try:
+            dob = datetime.fromisoformat(data['date_of_birth']).date()
+        except Exception:
+            pass
+
+    new_request = NewPatientRequest(
+        first_name=data.get('first_name') or data.get('full_name'),
+        last_name=data.get('last_name'),
+        email=data.get('email'),
+        phone_number=data.get('phone_number'),
+        message=data.get('message'),
+        full_name=data.get('full_name'),
+        sex=data.get('sex'),
+        address=data.get('address'),
+        city=data.get('city'),
+        province=data.get('province'),
+        postal_code=data.get('postal_code'),
+        date_of_birth=dob,
+        home_phone=data.get('home_phone'),
+        cell_phone=data.get('cell_phone'),
+        payment_method=data.get('payment_method'),
+        financial_responsible=data.get('financial_responsible'),
+        emergency_contact_name=data.get('emergency_contact_name'),
+        emergency_contact_phone=data.get('emergency_contact_phone'),
+        family_doctor=data.get('family_doctor'),
+        family_doctor_phone=data.get('family_doctor_phone'),
+        referring_doctor=data.get('referring_doctor'),
+        referring_doctor_phone=data.get('referring_doctor_phone'),
+        dental_history=data.get('dental_history'),
+        medical_history=data.get('medical_history'),
+        consent=data.get('consent')
+    )
+
+    db.session.add(new_request)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'New patient request received',
+        'request': new_request.to_dict()
     }), 201
 
 @app.route('/api/dental/patients', methods=['GET'])
