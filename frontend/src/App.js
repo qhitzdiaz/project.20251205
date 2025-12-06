@@ -42,6 +42,7 @@ import {
   Close as CloseIcon,
   CloudUpload as CloudIcon,
   Image as MediaIcon,
+  Apartment as PropertyIcon,
   Info as InfoIcon,
   Description as DocIcon,
   Support as SupportIcon,
@@ -53,6 +54,7 @@ import {
 // Import page components
 import MediaPlayerApp from './pages/MediaPlayerApp';
 import CloudStorageApp from './pages/CloudStorageApp';
+import PropertyApp from './pages/PropertyApp';
 import AboutUs from './pages/AboutUs';
 import Documentation from './pages/Documentation';
 import Support from './pages/Support';
@@ -215,6 +217,15 @@ function AppContent() {
       path: '/cloud',
       features: ['Folder Management', 'File Sharing', 'Storage Quotas', 'Secure Links']
     },
+    {
+      id: 'property',
+      title: 'Property Management',
+      description: 'Manage properties, tenants, leases, and maintenance',
+      icon: <PropertyIcon sx={{ fontSize: 60, color: '#1976d2' }} />,
+      color: '#1976d2',
+      path: '/property',
+      features: ['Properties', 'Tenants', 'Maintenance', 'Leases']
+    },
   ];
 
   const heroImage = themeMode === 'dark'
@@ -350,6 +361,10 @@ function AppContent() {
                 <ListItemIcon><CloudIcon fontSize="small" /></ListItemIcon>
                 Cloud Storage
               </MenuItem>
+              <MenuItem onClick={() => handleAppNavigation('/property')}>
+                <ListItemIcon><PropertyIcon fontSize="small" /></ListItemIcon>
+                Property Management
+              </MenuItem>
             </Menu>
 
             <Button
@@ -457,6 +472,10 @@ function AppContent() {
                 <ListItemIcon><CloudIcon /></ListItemIcon>
                 <ListItemText primary="Cloud Storage" />
               </ListItemButton>
+              <ListItemButton onClick={() => { handleAppNavigation('/property'); setDrawerOpen(false); }}>
+                <ListItemIcon><PropertyIcon /></ListItemIcon>
+                <ListItemText primary="Property Management" />
+              </ListItemButton>
               <Divider sx={{ my: 1 }} />
               <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
                 <ListItemIcon><DocIcon /></ListItemIcon>
@@ -557,6 +576,7 @@ function AppContent() {
           {/* Application Pages */}
           <Route path="/media" element={isLoggedIn ? <MediaPlayerApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/cloud" element={isLoggedIn ? <CloudStorageApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property" element={isLoggedIn ? <PropertyApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           
           {/* Info Pages */}
           <Route path="/about" element={<AboutUs />} />
