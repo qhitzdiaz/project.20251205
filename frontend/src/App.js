@@ -42,7 +42,6 @@ import {
   Close as CloseIcon,
   CloudUpload as CloudIcon,
   Image as MediaIcon,
-  CalendarMonth as DentalIcon,
   Info as InfoIcon,
   Description as DocIcon,
   Support as SupportIcon,
@@ -52,10 +51,8 @@ import {
 } from '@mui/icons-material';
 
 // Import page components
-import DentalApp from './pages/DentalApp';
 import MediaPlayerApp from './pages/MediaPlayerApp';
 import CloudStorageApp from './pages/CloudStorageApp';
-import NewPatientForm from './pages/NewPatientForm';
 import AboutUs from './pages/AboutUs';
 import Documentation from './pages/Documentation';
 import Support from './pages/Support';
@@ -201,15 +198,6 @@ function AppContent() {
 
   const applications = [
     {
-      id: 'dental',
-      title: 'Dental Appointments',
-      description: 'Manage patients, appointments, and scan medical records',
-      icon: <DentalIcon sx={{ fontSize: 60, color: theme.palette.primary.main }} />,
-      color: '#1976d2',
-      path: '/dental',
-      features: ['Patient Records', 'Appointments', 'Document Scanning', 'Treatment Plans']
-    },
-    {
       id: 'mediaplayer',
       title: 'Media Player',
       description: 'Play videos and music directly in your browser',
@@ -354,10 +342,6 @@ function AppContent() {
                 }
               }}
             >
-              <MenuItem onClick={() => handleAppNavigation('/dental')}>
-                <ListItemIcon><DentalIcon fontSize="small" /></ListItemIcon>
-                Dental
-              </MenuItem>
               <MenuItem onClick={() => handleAppNavigation('/media')}>
                 <ListItemIcon><MediaIcon fontSize="small" /></ListItemIcon>
                 Media Player
@@ -465,10 +449,6 @@ function AppContent() {
                 <ListItemText primary="About Us" />
               </ListItemButton>
               <Divider sx={{ my: 1 }} />
-              <ListItemButton onClick={() => { handleAppNavigation('/dental'); setDrawerOpen(false); }}>
-                <ListItemIcon><DentalIcon /></ListItemIcon>
-                <ListItemText primary="Dental" />
-              </ListItemButton>
               <ListItemButton onClick={() => { handleAppNavigation('/media'); setDrawerOpen(false); }}>
                 <ListItemIcon><MediaIcon /></ListItemIcon>
                 <ListItemText primary="Media Player" />
@@ -575,12 +555,10 @@ function AppContent() {
           } />
           
           {/* Application Pages */}
-          <Route path="/dental" element={isLoggedIn ? <DentalApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/media" element={isLoggedIn ? <MediaPlayerApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/cloud" element={isLoggedIn ? <CloudStorageApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           
           {/* Info Pages */}
-          <Route path="/new-patient" element={<NewPatientForm />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/documentation" element={<Documentation />} />
           <Route path="/support" element={<Support />} />
