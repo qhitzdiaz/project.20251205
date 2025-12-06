@@ -63,40 +63,56 @@ log "Syncing Capacitor Android project"
 log "Building Android release artifacts (APK & AAB)"
 (cd "$ANDROID_DIR" && ./gradlew clean assembleRelease bundleRelease)
 
+log "Building Android debug APK (signed with debug keystore)"
+(cd "$ANDROID_DIR" && ./gradlew assembleDebug)
+
 log "Packaging artifacts"
 DIST_DIR="$FRONTEND_DIR/android/dist"
 PACKAGE_DIR="$ROOT_DIR/package/android"
 mkdir -p "$DIST_DIR"
 mkdir -p "$PACKAGE_DIR"
 
-STAMP="$(date +%Y%m%d-%H%M%S)"
+BASE_NAME="qhitz-android-package"
 APK_SRC="$ANDROID_DIR/app/build/outputs/apk/release/app-release.apk"
 APK_UNSIGNED_SRC="$ANDROID_DIR/app/build/outputs/apk/release/app-release-unsigned.apk"
+APK_DEBUG_SRC="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
 AAB_SRC="$ANDROID_DIR/app/build/outputs/bundle/release/app-release.aab"
 APK_FINAL=""
 
 if [ -f "$APK_SRC" ]; then
-  APK_DEST="$DIST_DIR/qhitz-${STAMP}.apk"
-  cp "$APK_SRC" "$APK_DEST"
+  APK_DEST="$DIST_DIR/${BASE_NAME}.apk"
+  cp -f "$APK_SRC" "$APK_DEST"
   log "APK packaged: $APK_DEST"
 elif [ -f "$APK_UNSIGNED_SRC" ]; then
-  APK_DEST="$DIST_DIR/qhitz-${STAMP}-unsigned.apk"
-  cp "$APK_UNSIGNED_SRC" "$APK_DEST"
+  APK_DEST="$DIST_DIR/${BASE_NAME}-unsigned.apk"
+  cp -f "$APK_UNSIGNED_SRC" "$APK_DEST"
   log "Unsigned APK packaged: $APK_DEST (sign before distribution)"
 else
   log "APK not found at $APK_SRC or $APK_UNSIGNED_SRC"
   APK_DEST=""
 fi
 
+if [ -f "$APK_DEBUG_SRC" ]; then
+  APK_DEBUG_DEST="$DIST_DIR/${BASE_NAME}-debug.apk"
+  cp -f "$APK_DEBUG_SRC" "$APK_DEBUG_DEST"
+  log "Debug APK packaged: $APK_DEBUG_DEST (debug-signed)"
+fi
+
 if [ -n "${APK_DEST:-}" ] && [ -f "$APK_DEST" ]; then
   APK_FINAL="$PACKAGE_DIR/$(basename "$APK_DEST")"
-  cp "$APK_DEST" "$APK_FINAL"
+  cp -f "$APK_DEST" "$APK_FINAL"
   log "APK copied to package directory: $APK_FINAL"
 fi
 
+if [ -n "${APK_DEBUG_DEST:-}" ] && [ -f "$APK_DEBUG_DEST" ]; then
+  APK_DEBUG_FINAL="$PACKAGE_DIR/$(basename "$APK_DEBUG_DEST")"
+  cp -f "$APK_DEBUG_DEST" "$APK_DEBUG_FINAL"
+  log "Debug APK copied to package directory: $APK_DEBUG_FINAL"
+fi
+
 if [ -f "$AAB_SRC" ]; then
-  AAB_DEST="$DIST_DIR/qhitz-${STAMP}.aab"
-  cp "$AAB_SRC" "$AAB_DEST"
+  AAB_DEST="$DIST_DIR/${BASE_NAME}.aab"
+  cp -f "$AAB_SRC" "$AAB_DEST"
   log "AAB packaged: $AAB_DEST"
 else
   log "AAB not found at $AAB_SRC"

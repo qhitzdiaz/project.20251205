@@ -250,10 +250,28 @@ function AppContent() {
     },
   ];
 
+  const heroImage = themeMode === 'dark'
+    ? '/images/qhitz-skyline-night.jpg'
+    : '/images/qhitz-skyline-day.jpg';
+
+  const pageBackground = themeMode === 'dark'
+    ? `linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0.75)), url(${heroImage})`
+    : `url(${heroImage})`;
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          backgroundImage: pageBackground,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
         <AppBar position="sticky" elevation={2}>
         <Toolbar>
           <IconButton edge="start" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ mr: 2 }}>
@@ -373,48 +391,65 @@ function AppContent() {
         <Routes>
           {/* Home Page */}
           <Route path="/" element={
-            <Container sx={{ py: 4 }}>
-              {!isLoggedIn ? (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <Typography variant="h2" gutterBottom sx={{ fontWeight: 700 }}>Welcome to Qhitz</Typography>
-                  <Typography variant="h5" color="text.secondary" paragraph>Complete Business Management System</Typography>
-                  <Typography variant="body1" color="text.secondary" paragraph sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
-                    Manage your dental practice, multimedia files, and cloud storage all in one place.
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                    <Button variant="contained" size="large" startIcon={<LoginIcon />} onClick={() => setLoginDialogOpen(true)}>Login</Button>
-                    <Button variant="outlined" size="large" startIcon={<PersonAddIcon />} onClick={() => setRegisterDialogOpen(true)}>Sign Up</Button>
+            <Box
+              sx={{
+                position: 'relative',
+                minHeight: '70vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                backgroundImage: themeMode === 'dark'
+                  ? `linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.7)), url(${heroImage})`
+                  : `url(${heroImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+              }}
+            >
+              <Container sx={{ py: 8 }}>
+                {!isLoggedIn ? (
+                  <Box sx={{ textAlign: 'center', color: 'white' }}>
+                    <Typography variant="h2" gutterBottom sx={{ fontWeight: 700 }}>Welcome to Qhitz</Typography>
+                    <Typography variant="h5" color="rgba(255,255,255,0.85)" paragraph>Complete Business Management System</Typography>
+                    <Typography variant="body1" color="rgba(255,255,255,0.85)" paragraph sx={{ maxWidth: 640, mx: 'auto', mb: 4 }}>
+                      Manage your dental practice, multimedia files, and cloud storage all in one place.
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                      <Button variant="contained" size="large" startIcon={<LoginIcon />} onClick={() => setLoginDialogOpen(true)}>Login</Button>
+                      <Button variant="outlined" size="large" startIcon={<PersonAddIcon />} onClick={() => setRegisterDialogOpen(true)} sx={{ color: 'white', borderColor: 'white' }}>Sign Up</Button>
+                    </Box>
                   </Box>
-                </Box>
-              ) : (
-                <Box>
-                  <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>Your Applications</Typography>
-                  <Grid container spacing={3}>
-                    {applications.map((app) => (
-                      <Grid item xs={12} md={4} key={app.id}>
-                        <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 } }}>
-                          <CardContent sx={{ flexGrow: 1 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>{app.icon}</Box>
-                            <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>{app.title}</Typography>
-                            <Typography variant="body2" color="text.secondary" paragraph sx={{ textAlign: 'center' }}>{app.description}</Typography>
-                            <Divider sx={{ my: 2 }} />
-                            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>Features:</Typography>
-                            <Box component="ul" sx={{ pl: 2, mt: 1 }}>
-                              {app.features.map((feature, idx) => (
-                                <Typography component="li" variant="body2" key={idx} sx={{ mb: 0.5 }}>{feature}</Typography>
-                              ))}
-                            </Box>
-                          </CardContent>
-                          <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
-                            <Button variant="contained" size="large" sx={{ backgroundColor: app.color }} onClick={() => navigate(app.path)}>Open Application</Button>
-                          </CardActions>
-                        </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-              )}
-            </Container>
+                ) : (
+                  <Box>
+                    <Typography variant="h4" gutterBottom sx={{ mb: 4, color: 'white' }}>Your Applications</Typography>
+                    <Grid container spacing={3}>
+                      {applications.map((app) => (
+                        <Grid item xs={12} md={4} key={app.id}>
+                          <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 } }}>
+                            <CardContent sx={{ flexGrow: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>{app.icon}</Box>
+                              <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>{app.title}</Typography>
+                              <Typography variant="body2" color="text.secondary" paragraph sx={{ textAlign: 'center' }}>{app.description}</Typography>
+                              <Divider sx={{ my: 2 }} />
+                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>Features:</Typography>
+                              <Box component="ul" sx={{ pl: 2, mt: 1 }}>
+                                {app.features.map((feature, idx) => (
+                                  <Typography component="li" variant="body2" key={idx} sx={{ mb: 0.5 }}>{feature}</Typography>
+                                ))}
+                              </Box>
+                            </CardContent>
+                            <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
+                              <Button variant="contained" size="large" sx={{ backgroundColor: app.color }} onClick={() => navigate(app.path)}>Open Application</Button>
+                            </CardActions>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                )}
+              </Container>
+            </Box>
           } />
           
           {/* Application Pages */}
