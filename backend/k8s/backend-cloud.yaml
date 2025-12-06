@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-cloud
+  namespace: qhitz-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-cloud
+  template:
+    metadata:
+      labels:
+        app: backend-cloud
+    spec:
+      containers:
+        - name: backend-cloud
+          image: qhitz/backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5012
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+          env:
+            - name: CLOUD_DATABASE_URL
+              value: postgresql://qhitz_user:devpass123@postgres-cloud:5432/cloud_db
+            - name: APP_MODULE
+              value: cloud_server:app
+            - name: APP_PORT
+              value: "5012"
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5012
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5012
+            initialDelaySeconds: 45
+            periodSeconds: 30
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: cloud-storage-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-cloud
+  namespace: qhitz-backend
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend-cloud
+  ports:
+    - name: http
+      port: 5012
+      targetPort: 5012

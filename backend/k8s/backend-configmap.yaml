@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: qhitz-backend
+data:
+  FLASK_ENV: production
+  FLASK_DEBUG: "0"
+  CORS_ORIGIN: "*"
+  GUNICORN_WORKERS: "3"
+  GUNICORN_THREADS: "2"
+  GUNICORN_TIMEOUT: "60"

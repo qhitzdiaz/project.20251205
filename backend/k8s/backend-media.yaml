@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-media
+  namespace: qhitz-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-media
+  template:
+    metadata:
+      labels:
+        app: backend-media
+    spec:
+      containers:
+        - name: backend-media
+          image: qhitz/backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5011
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+          env:
+            - name: MEDIA_DATABASE_URL
+              value: postgresql://qhitz_user:devpass123@postgres-media:5432/media_db
+            - name: APP_MODULE
+              value: media_server:app
+            - name: APP_PORT
+              value: "5011"
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5011
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5011
+            initialDelaySeconds: 45
+            periodSeconds: 30
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: media-uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-media
+  namespace: qhitz-backend
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend-media
+  ports:
+    - name: http
+      port: 5011
+      targetPort: 5011
