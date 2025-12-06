@@ -26,7 +26,6 @@ import {
   DialogActions,
   TextField,
   Avatar,
-  Chip,
   CircularProgress,
   Snackbar,
   Alert,
