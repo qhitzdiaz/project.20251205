@@ -272,26 +272,91 @@ function AppContent() {
           backgroundRepeat: 'no-repeat'
         }}
       >
-        <AppBar position="sticky" elevation={2}>
-        <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ mr: 2 }}>
+        <AppBar
+          position="fixed"
+          elevation={0}
+          sx={{
+            backdropFilter: 'blur(20px)',
+            backgroundColor: themeMode === 'dark'
+              ? 'rgba(18, 18, 18, 0.85)'
+              : 'rgba(255, 255, 255, 0.85)',
+            borderBottom: `1px solid ${themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+            boxShadow: themeMode === 'dark'
+              ? '0 4px 30px rgba(0, 0, 0, 0.3)'
+              : '0 4px 30px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+        <Toolbar sx={{ minHeight: { xs: 64, sm: 70 } }}>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={() => setDrawerOpen(true)}
+            sx={{
+              mr: 2,
+              color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+            }}
+          >
             <MenuIcon />
           </IconButton>
-          
-          <Typography variant="h6" component="div" sx={{ flexGrow: 0, fontWeight: 700, cursor: 'pointer', mr: 4 }} onClick={() => navigate('/')}>
-            Qhitz
+
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{
+              flexGrow: 0,
+              fontWeight: 700,
+              cursor: 'pointer',
+              mr: 4,
+              background: themeMode === 'dark'
+                ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
+                : 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+            }}
+            onClick={() => navigate('/')}
+          >
+            Qhitz Inc.
           </Typography>
 
           {/* Header Navigation */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 2 }}>
-            <Button color="inherit" onClick={() => navigate('/')}>Home</Button>
-            <Button color="inherit" onClick={() => navigate('/about')}>About</Button>
-            
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 1 }}>
+            <Button
+              color="inherit"
+              onClick={() => navigate('/')}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+              }}
+            >
+              Home
+            </Button>
+            <Button
+              color="inherit"
+              onClick={() => navigate('/about')}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+              }}
+            >
+              About
+            </Button>
+
             {/* Applications Dropdown */}
-            <Button 
-              color="inherit" 
+            <Button
+              color="inherit"
               endIcon={<ArrowDropDownIcon />}
               onClick={(e) => setAppsMenuAnchor(e.currentTarget)}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+              }}
             >
               Applications
             </Button>
@@ -299,6 +364,15 @@ function AppContent() {
               anchorEl={appsMenuAnchor}
               open={Boolean(appsMenuAnchor)}
               onClose={() => setAppsMenuAnchor(null)}
+              PaperProps={{
+                sx: {
+                  backdropFilter: 'blur(20px)',
+                  backgroundColor: themeMode === 'dark'
+                    ? 'rgba(30, 30, 30, 0.95)'
+                    : 'rgba(255, 255, 255, 0.95)',
+                  mt: 1,
+                }
+              }}
             >
               <MenuItem onClick={() => handleAppNavigation('/dental')}>
                 <ListItemIcon><DentalIcon fontSize="small" /></ListItemIcon>
@@ -314,75 +388,153 @@ function AppContent() {
               </MenuItem>
             </Menu>
 
-            <Button color="inherit" onClick={() => navigate('/documentation')}>Documentation</Button>
-            <Button color="inherit" onClick={() => navigate('/support')}>Support</Button>
+            <Button
+              color="inherit"
+              onClick={() => navigate('/documentation')}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+              }}
+            >
+              Documentation
+            </Button>
+            <Button
+              color="inherit"
+              onClick={() => navigate('/support')}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+              }}
+            >
+              Support
+            </Button>
           </Box>
 
           {/* Theme Toggle */}
-          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }} title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}>
+          <IconButton
+            color="inherit"
+            onClick={toggleTheme}
+            sx={{
+              color: themeMode === 'dark' ? '#ffd700' : theme.palette.primary.main,
+              '&:hover': {
+                backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+              },
+            }}
+            title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}
+          >
             {themeMode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
           </IconButton>
-
-          {/* User Section */}
-          {isLoggedIn ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Chip
-                avatar={<Avatar>{user?.username?.charAt(0).toUpperCase()}</Avatar>}
-                label={user?.username}
-                color="primary"
-                variant="outlined"
-                sx={{ color: 'white', borderColor: 'white' }}
-              />
-              <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button color="inherit" startIcon={<LoginIcon />} onClick={() => setLoginDialogOpen(true)}>Login</Button>
-              <Button color="inherit" startIcon={<PersonAddIcon />} onClick={() => setRegisterDialogOpen(true)} variant="outlined" sx={{ borderColor: 'white' }}>Sign Up</Button>
-            </Box>
-          )}
         </Toolbar>
       </AppBar>
 
+      {/* Spacer for fixed AppBar */}
+      <Toolbar sx={{ minHeight: { xs: 64, sm: 70 } }} />
+
       {/* Mobile Drawer */}
       <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <Box sx={{ width: 250, pt: 2 }}>
-          <Box sx={{ px: 2, pb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>Qhitz System</Typography>
+        <Box sx={{ width: 250, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Box sx={{ pt: 2 }}>
+            <Box sx={{ px: 2, pb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Qhitz Inc.</Typography>
+            </Box>
+            <Divider />
+
+            {/* User Section */}
+            {isLoggedIn ? (
+              <Box sx={{ px: 2, py: 2, bgcolor: 'action.hover' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                    {user?.username?.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user?.username}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                      {user?.email}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            ) : (
+              <Box sx={{ px: 2, py: 2 }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<LoginIcon />}
+                  onClick={() => { setLoginDialogOpen(true); setDrawerOpen(false); }}
+                  sx={{ mb: 1 }}
+                >
+                  Login
+                </Button>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<PersonAddIcon />}
+                  onClick={() => { setRegisterDialogOpen(true); setDrawerOpen(false); }}
+                >
+                  Sign Up
+                </Button>
+              </Box>
+            )}
+            <Divider />
+
+            <List>
+              <ListItemButton onClick={() => { navigate('/'); setDrawerOpen(false); }}>
+                <ListItemIcon><HomeIcon /></ListItemIcon>
+                <ListItemText primary="Home" />
+              </ListItemButton>
+              <ListItemButton onClick={() => { navigate('/about'); setDrawerOpen(false); }}>
+                <ListItemIcon><InfoIcon /></ListItemIcon>
+                <ListItemText primary="About Us" />
+              </ListItemButton>
+              <Divider sx={{ my: 1 }} />
+              <ListItemButton onClick={() => { handleAppNavigation('/dental'); setDrawerOpen(false); }}>
+                <ListItemIcon><DentalIcon /></ListItemIcon>
+                <ListItemText primary="Dental" />
+              </ListItemButton>
+              <ListItemButton onClick={() => { handleAppNavigation('/media'); setDrawerOpen(false); }}>
+                <ListItemIcon><MediaIcon /></ListItemIcon>
+                <ListItemText primary="Media Player" />
+              </ListItemButton>
+              <ListItemButton onClick={() => { handleAppNavigation('/cloud'); setDrawerOpen(false); }}>
+                <ListItemIcon><CloudIcon /></ListItemIcon>
+                <ListItemText primary="Cloud Storage" />
+              </ListItemButton>
+              <Divider sx={{ my: 1 }} />
+              <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
+                <ListItemIcon><DocIcon /></ListItemIcon>
+                <ListItemText primary="Documentation" />
+              </ListItemButton>
+              <ListItemButton onClick={() => { navigate('/support'); setDrawerOpen(false); }}>
+                <ListItemIcon><SupportIcon /></ListItemIcon>
+                <ListItemText primary="Support" />
+              </ListItemButton>
+            </List>
           </Box>
-          <Divider />
-          <List>
-            <ListItemButton onClick={() => { navigate('/'); setDrawerOpen(false); }}>
-              <ListItemIcon><HomeIcon /></ListItemIcon>
-              <ListItemText primary="Home" />
-            </ListItemButton>
-            <ListItemButton onClick={() => { navigate('/about'); setDrawerOpen(false); }}>
-              <ListItemIcon><InfoIcon /></ListItemIcon>
-              <ListItemText primary="About Us" />
-            </ListItemButton>
-            <Divider sx={{ my: 1 }} />
-            <ListItemButton onClick={() => { handleAppNavigation('/dental'); setDrawerOpen(false); }}>
-              <ListItemIcon><DentalIcon /></ListItemIcon>
-              <ListItemText primary="Dental" />
-            </ListItemButton>
-            <ListItemButton onClick={() => { handleAppNavigation('/media'); setDrawerOpen(false); }}>
-              <ListItemIcon><MediaIcon /></ListItemIcon>
-              <ListItemText primary="Media Player" />
-            </ListItemButton>
-            <ListItemButton onClick={() => { handleAppNavigation('/cloud'); setDrawerOpen(false); }}>
-              <ListItemIcon><CloudIcon /></ListItemIcon>
-              <ListItemText primary="Cloud Storage" />
-            </ListItemButton>
-            <Divider sx={{ my: 1 }} />
-            <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
-              <ListItemIcon><DocIcon /></ListItemIcon>
-              <ListItemText primary="Documentation" />
-            </ListItemButton>
-            <ListItemButton onClick={() => { navigate('/support'); setDrawerOpen(false); }}>
-              <ListItemIcon><SupportIcon /></ListItemIcon>
-              <ListItemText primary="Support" />
-            </ListItemButton>
-          </List>
+
+          {/* Logout at Bottom */}
+          {isLoggedIn && (
+            <>
+              <Box sx={{ flexGrow: 1 }} />
+              <Divider />
+              <Box sx={{ p: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  fullWidth
+                  startIcon={<LogoutIcon />}
+                  onClick={() => { handleLogout(); setDrawerOpen(false); }}
+                >
+                  Logout
+                </Button>
+              </Box>
+            </>
+          )}
         </Box>
       </Drawer>
 
@@ -507,7 +659,7 @@ function AppContent() {
       <Dialog open={loginDialogOpen} onClose={() => setLoginDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle><Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><Typography variant="h5" sx={{ fontWeight: 700 }}>Login</Typography><IconButton onClick={() => setLoginDialogOpen(false)}><CloseIcon /></IconButton></Box></DialogTitle>
         <DialogContent>
-          <TextField fullWidth label="Email" type="email" margin="normal" value={loginForm.email} onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })} />
+          <TextField fullWidth label="Username or Email" margin="normal" value={loginForm.email} onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })} />
           <TextField fullWidth label="Password" type="password" margin="normal" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>

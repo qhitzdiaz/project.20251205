@@ -181,12 +181,18 @@ def register():
 def login():
     """Login user and return JWT token"""
     data = request.get_json()
-    
-    if not data or not data.get('email') or not data.get('password'):
+
+    # Accept either 'email' or 'username' field
+    identifier = data.get('email') or data.get('username')
+
+    if not data or not identifier or not data.get('password'):
         return jsonify({'message': 'Missing credentials'}), 400
-    
-    user = User.query.filter_by(email=data['email']).first()
-    
+
+    # Try to find user by email first, then by username
+    user = User.query.filter_by(email=identifier).first()
+    if not user:
+        user = User.query.filter_by(username=identifier).first()
+
     if not user or not check_password_hash(user.password_hash, data['password']):
         return jsonify({'message': 'Invalid credentials'}), 401
     
