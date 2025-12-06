@@ -1,0 +1,28 @@
+services:
+  api:
+    build: .
+    container_name: supplychain-api
+    ports:
+      - "${APP_PORT:-5060}:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg2://supplychain:supplychain@db:5432/supplychain_db}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    container_name: supplychain-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-supplychain}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-supplychain}
+      POSTGRES_DB: ${POSTGRES_DB:-supplychain_db}
+    ports:
+      - "5470:5432"
+    volumes:
+      - supplychain-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  supplychain-data:
