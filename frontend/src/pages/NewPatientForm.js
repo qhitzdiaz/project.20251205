@@ -283,7 +283,14 @@ export default function NewPatientForm() {
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField label="Date of Birth *" type="date" InputLabelProps={{ shrink: true }} fullWidth value={form.date_of_birth} onChange={handleChange('date_of_birth')} />
+              <TextField
+                label="Date of Birth *"
+                placeholder="YYYY-MM-DD"
+                fullWidth
+                value={form.date_of_birth}
+                onChange={handleChange('date_of_birth')}
+                helperText="Enter date manually (YYYY-MM-DD)"
+              />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField label="Home Telephone No." fullWidth value={form.home_phone} onChange={handleChange('home_phone')} />

@@ -63,6 +63,10 @@ class MediaFile(db.Model):
     description = db.Column(db.Text)
     tags = db.Column(db.String(500))
     is_public = db.Column(db.Boolean, default=False)
+    artist = db.Column(db.String(255))
+    album = db.Column(db.String(255))
+    genre = db.Column(db.String(255))
+    artwork_url = db.Column(db.String(500))
     
     def to_dict(self):
         return {
@@ -78,7 +82,11 @@ class MediaFile(db.Model):
             'description': self.description,
             'tags': self.tags.split(',') if self.tags else [],
             'is_public': self.is_public,
-            'download_url': f'/api/media/download/{self.id}'
+            'download_url': f'/api/media/download/{self.id}',
+            'artist': self.artist,
+            'album': self.album,
+            'genre': self.genre,
+            'artwork_url': self.artwork_url
         }
 
 # ==================== HELPER FUNCTIONS ====================
@@ -103,6 +111,92 @@ def get_file_type(extension):
             return file_type
     return 'other'
 
+# Simple catalog of FM/online stations (Metro Manila & Toronto)
+RADIO_STATIONS = [
+    # Metro Manila, Philippines
+    {
+        'id': 'mm-magic89',
+        'name': 'Magic 89.9',
+        'city': 'Metro Manila',
+        'country': 'Philippines',
+        'genre': 'Pop/Top 40',
+        'url': 'https://stream.amfmph.com/radio/8000/magic'
+    },
+    {
+        'id': 'mm-rx931',
+        'name': 'Monster RX 93.1',
+        'city': 'Metro Manila',
+        'country': 'Philippines',
+        'genre': 'Pop/CHR',
+        'url': 'https://radio-stream.rx931.com/live'
+    },
+    {
+        'id': 'mm-jam883',
+        'name': 'Jam 88.3',
+        'city': 'Metro Manila',
+        'country': 'Philippines',
+        'genre': 'Alternative/Indie',
+        'url': 'https://stream.amfmph.com/radio/8000/jam'
+    },
+    {
+        'id': 'mm-dzfe985',
+        'name': 'DZFE 98.7 The Master’s Touch',
+        'city': 'Metro Manila',
+        'country': 'Philippines',
+        'genre': 'Classical',
+        'url': 'https://stream.dzfe.ph/stream'
+    },
+    {
+        'id': 'mm-dzrh666',
+        'name': 'DZRH News 666',
+        'city': 'Metro Manila',
+        'country': 'Philippines',
+        'genre': 'News/Talk',
+        'url': 'https://stream.amfmph.com/radio/8000/dzrh'
+    },
+    # Toronto, Canada
+    {
+        'id': 'to-cbc1',
+        'name': 'CBC Radio One 99.1',
+        'city': 'Toronto',
+        'country': 'Canada',
+        'genre': 'News/Talk',
+        'url': 'https://cbcradiolive1-lh.akamaihd.net/i/CBC_R1_TOR@382244/master.m3u8'
+    },
+    {
+        'id': 'to-1021edge',
+        'name': '102.1 The Edge',
+        'city': 'Toronto',
+        'country': 'Canada',
+        'genre': 'Alternative Rock',
+        'url': 'https://newcap.leanstream.co/CFNYFM-MP3'
+    },
+    {
+        'id': 'to-977hits',
+        'name': 'KiSS 92.5',
+        'city': 'Toronto',
+        'country': 'Canada',
+        'genre': 'Pop/Top 40',
+        'url': 'https://rogers-hls.leanstream.co/rogers/kis925.stream/playlist.m3u8'
+    },
+    {
+        'id': 'to-jazzfm91',
+        'name': 'JAZZ.FM91',
+        'city': 'Toronto',
+        'country': 'Canada',
+        'genre': 'Jazz',
+        'url': 'https://live.jazz.fm:8008/stream'
+    },
+    {
+        'id': 'to-classical963',
+        'name': 'Classical 96.3',
+        'city': 'Toronto',
+        'country': 'Canada',
+        'genre': 'Classical',
+        'url': 'https://d2ktlibtvvj8vp.cloudfront.net/CLASSICAL_128.mp3'
+    },
+]
+
 # ==================== HEALTH CHECK ====================
 
 @app.route('/', methods=['GET'])
@@ -117,7 +211,8 @@ def index():
             'health': '/api/health',
             'upload': '/api/media/upload',
             'files': '/api/media/files',
-            'stats': '/api/media/stats'
+            'stats': '/api/media/stats',
+            'radio': '/api/media/radio'
         }
     }), 200
 
@@ -305,12 +400,20 @@ def download_file(file_id):
     mime_type = mime_types.get(ext, 'application/octet-stream')
 
     # Stream for playback (not as attachment)
-    return send_from_directory(
+    response = send_from_directory(
         app.config['UPLOAD_FOLDER'],
         media_file.filename,
         mimetype=mime_type,
-        as_attachment=False
+        as_attachment=False,
+        conditional=True  # enable range requests for streaming
     )
+    response.headers['Accept-Ranges'] = 'bytes'
+    return response
+
+@app.route('/api/media/radio', methods=['GET'])
+def list_radio():
+    """List curated radio streams (Metro Manila & Toronto)"""
+    return jsonify({'stations': RADIO_STATIONS}), 200
 
 @app.route('/api/media/file/<int:file_id>', methods=['DELETE'])
 def delete_file(file_id):
