@@ -1,0 +1,10 @@
+{
+  "name": "property-management-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "echo \"Scaffold: add your dev server here\" && exit 1",
+    "build": "echo \"Scaffold: add your build command here\" && exit 1",
+    "test": "echo \"Scaffold: add your tests here\" && exit 1"
+  }
+}
