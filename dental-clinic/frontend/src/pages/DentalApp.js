@@ -45,7 +45,6 @@ import {
 } from '@mui/icons-material';
 import PatientRegistrationDialog from '../components/PatientRegistrationDialog';
 import { API_URLS } from '../config/apiConfig';
-import clinicLogo from '../images/Logo.jpg';
 
 const API_URL = API_URLS.DENTAL;
 
@@ -355,23 +354,10 @@ function DentalApp() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header with Logo */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <img
-            src={clinicLogo}
-            alt="Compleat Smile Dental Aesthetic"
-            style={{ height: '80px', width: 'auto', borderRadius: '8px' }}
-          />
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
-              Compleat Smile Dental Aesthetic
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              Practice Management System
-            </Typography>
-          </Box>
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Dentist Management Application
+        </Typography>
         <Button variant="contained" color="secondary" onClick={() => navigate('/new-patient')}>
           New Patient Form
         </Button>

@@ -4,7 +4,6 @@ import {
   ThemeProvider,
   createTheme,
   CssBaseline,
-  AppBar,
   Toolbar,
   Typography,
   Container,
@@ -16,9 +15,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Card,
-  CardContent,
-  CardActions,
   Grid,
   Dialog,
   DialogTitle,
@@ -30,8 +26,6 @@ import {
   Snackbar,
   Alert,
   Divider,
-  Menu,
-  MenuItem,
   useMediaQuery,
 } from '@mui/material';
 import {
@@ -40,28 +34,22 @@ import {
   Login as LoginIcon,
   Logout as LogoutIcon,
   Close as CloseIcon,
-  CloudUpload as CloudIcon,
-  Image as MediaIcon,
   CalendarMonth as DentalIcon,
   Info as InfoIcon,
   Description as DocIcon,
   Support as SupportIcon,
-  ArrowDropDown as ArrowDropDownIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
 } from '@mui/icons-material';
 
 // Import page components
+import WelcomePage from './pages/WelcomePage';
 import DentalApp from './pages/DentalApp';
-import MediaPlayerApp from './pages/MediaPlayerApp';
-import CloudStorageApp from './pages/CloudStorageApp';
 import NewPatientForm from './pages/NewPatientForm';
 import AboutUs from './pages/AboutUs';
 import Documentation from './pages/Documentation';
 import Support from './pages/Support';
-import WelcomePage from './pages/WelcomePage';
 import { API_URL } from './config/apiConfig';
-import clinicLogo from './images/Logo.jpg';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -82,7 +70,6 @@ function AppContent() {
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [appsMenuAnchor, setAppsMenuAnchor] = useState(null);
 
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' });
 
@@ -191,46 +178,6 @@ function AppContent() {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleAppNavigation = (path) => {
-    if (!isLoggedIn) {
-      setLoginDialogOpen(true);
-      showSnackbar('Please login to access applications', 'warning');
-    } else {
-      navigate(path);
-    }
-    setAppsMenuAnchor(null);
-  };
-
-  const applications = [
-    {
-      id: 'dental',
-      title: 'Dental Appointments',
-      description: 'Manage patients, appointments, and scan medical records',
-      icon: <DentalIcon sx={{ fontSize: 60, color: theme.palette.primary.main }} />,
-      color: '#1976d2',
-      path: '/dental',
-      features: ['Patient Records', 'Appointments', 'Document Scanning', 'Treatment Plans']
-    },
-    {
-      id: 'mediaplayer',
-      title: 'Media Player',
-      description: 'Play videos and music directly in your browser',
-      icon: <MediaIcon sx={{ fontSize: 60, color: theme.palette.secondary.main }} />,
-      color: '#dc004e',
-      path: '/media',
-      features: ['Video Player', 'Music Player', 'Upload Media', 'Playlist Support']
-    },
-    {
-      id: 'cloud',
-      title: 'Cloud Storage',
-      description: 'Store files in folders and share with secure links',
-      icon: <CloudIcon sx={{ fontSize: 60, color: '#4caf50' }} />,
-      color: '#4caf50',
-      path: '/cloud',
-      features: ['Folder Management', 'File Sharing', 'Storage Quotas', 'Secure Links']
-    },
-  ];
-
   const heroImage = themeMode === 'dark'
     ? '/images/qhitz-skyline-night.jpg'
     : '/images/qhitz-skyline-day.jpg';
@@ -253,207 +200,13 @@ function AppContent() {
           backgroundRepeat: 'no-repeat'
         }}
       >
-        <AppBar
-          position="fixed"
-          elevation={0}
-          sx={{
-            paddingTop: safeAreaTop,
-            backdropFilter: 'blur(20px)',
-            backgroundColor: themeMode === 'dark'
-              ? 'rgba(18, 18, 18, 0.85)'
-              : 'rgba(255, 255, 255, 0.85)',
-            borderBottom: `1px solid ${themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-            boxShadow: themeMode === 'dark'
-              ? '0 4px 30px rgba(0, 0, 0, 0.3)'
-              : '0 4px 30px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-        <Toolbar sx={{ minHeight: { xs: 64, sm: 70 } }}>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => setDrawerOpen(true)}
-            sx={{
-              mr: 2,
-              color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-
-          {/* Logo and Title */}
-          <Box
-            onClick={() => navigate('/')}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              cursor: 'pointer',
-              mr: 4,
-              flexGrow: 0,
-            }}
-          >
-            <img
-              src={clinicLogo}
-              alt="Compleat Smile Dental Aesthetic"
-              style={{
-                height: '50px',
-                width: 'auto',
-                borderRadius: '8px',
-                objectFit: 'contain',
-              }}
-            />
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{
-                fontWeight: 700,
-                display: { xs: 'none', sm: 'block' },
-                background: themeMode === 'dark'
-                  ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
-                  : 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontSize: { sm: '1.25rem', md: '1.5rem' },
-              }}
-            >
-              Compleat Smile Dental
-            </Typography>
-          </Box>
-
-          {/* Header Navigation */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 1 }}>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Home
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/about')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              About
-            </Button>
-
-            {/* Applications Dropdown */}
-            <Button
-              color="inherit"
-              endIcon={<ArrowDropDownIcon />}
-              onClick={(e) => setAppsMenuAnchor(e.currentTarget)}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Applications
-            </Button>
-            <Menu
-              anchorEl={appsMenuAnchor}
-              open={Boolean(appsMenuAnchor)}
-              onClose={() => setAppsMenuAnchor(null)}
-              PaperProps={{
-                sx: {
-                  backdropFilter: 'blur(20px)',
-                  backgroundColor: themeMode === 'dark'
-                    ? 'rgba(30, 30, 30, 0.95)'
-                    : 'rgba(255, 255, 255, 0.95)',
-                  mt: 1,
-                }
-              }}
-            >
-              <MenuItem onClick={() => handleAppNavigation('/dental')}>
-                <ListItemIcon><DentalIcon fontSize="small" /></ListItemIcon>
-                Dental
-              </MenuItem>
-              <MenuItem onClick={() => handleAppNavigation('/media')}>
-                <ListItemIcon><MediaIcon fontSize="small" /></ListItemIcon>
-                Media Player
-              </MenuItem>
-              <MenuItem onClick={() => handleAppNavigation('/cloud')}>
-                <ListItemIcon><CloudIcon fontSize="small" /></ListItemIcon>
-                Cloud Storage
-              </MenuItem>
-            </Menu>
-
-            <Button
-              color="inherit"
-              onClick={() => navigate('/documentation')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Documentation
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/support')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Support
-            </Button>
-          </Box>
-
-          {/* Theme Toggle */}
-          <IconButton
-            color="inherit"
-            onClick={toggleTheme}
-            sx={{
-              color: themeMode === 'dark' ? '#ffd700' : theme.palette.primary.main,
-              '&:hover': {
-                backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-              },
-            }}
-            title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}
-          >
-            {themeMode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      {/* Spacer for fixed AppBar */}
-      <Toolbar sx={{ minHeight: { xs: 'calc(64px + env(safe-area-inset-top))', sm: 'calc(70px + env(safe-area-inset-top))' } }} />
-
-      {/* Mobile Drawer */}
+        {/* Mobile Drawer */}
       <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Box sx={{ width: 250, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ pt: 2 }}>
-            <Box sx={{ px: 2, pb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <img
-                src={clinicLogo}
-                alt="Compleat Smile Dental Aesthetic"
-                style={{ height: '40px', width: 'auto', borderRadius: '6px' }}
-              />
-              <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                  Compleat Smile
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Dental Aesthetic
-                </Typography>
-              </Box>
+            <Box sx={{ px: 2, pb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Compleat Smile</Typography>
+              <Typography variant="caption" color="text.secondary">Dental Aesthetic</Typography>
             </Box>
             <Divider />
 
@@ -494,24 +247,15 @@ function AppContent() {
                 <ListItemIcon><HomeIcon /></ListItemIcon>
                 <ListItemText primary="Home" />
               </ListItemButton>
+              <ListItemButton onClick={() => { navigate('/dental'); setDrawerOpen(false); }}>
+                <ListItemIcon><DentalIcon /></ListItemIcon>
+                <ListItemText primary="Dental Portal" />
+              </ListItemButton>
+              <Divider sx={{ my: 1 }} />
               <ListItemButton onClick={() => { navigate('/about'); setDrawerOpen(false); }}>
                 <ListItemIcon><InfoIcon /></ListItemIcon>
-                <ListItemText primary="About Us" />
+                <ListItemText primary="About" />
               </ListItemButton>
-              <Divider sx={{ my: 1 }} />
-              <ListItemButton onClick={() => { handleAppNavigation('/dental'); setDrawerOpen(false); }}>
-                <ListItemIcon><DentalIcon /></ListItemIcon>
-                <ListItemText primary="Dental" />
-              </ListItemButton>
-              <ListItemButton onClick={() => { handleAppNavigation('/media'); setDrawerOpen(false); }}>
-                <ListItemIcon><MediaIcon /></ListItemIcon>
-                <ListItemText primary="Media Player" />
-              </ListItemButton>
-              <ListItemButton onClick={() => { handleAppNavigation('/cloud'); setDrawerOpen(false); }}>
-                <ListItemIcon><CloudIcon /></ListItemIcon>
-                <ListItemText primary="Cloud Storage" />
-              </ListItemButton>
-              <Divider sx={{ my: 1 }} />
               <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
                 <ListItemIcon><DocIcon /></ListItemIcon>
                 <ListItemText primary="Documentation" />
@@ -544,16 +288,34 @@ function AppContent() {
         </Box>
       </Drawer>
 
+      {/* Floating Menu Button */}
+      <IconButton
+        onClick={() => setDrawerOpen(true)}
+        sx={{
+          position: 'fixed',
+          top: 16,
+          left: 16,
+          zIndex: 1200,
+          backgroundColor: themeMode === 'dark' ? 'rgba(25, 118, 210, 0.9)' : 'rgba(25, 118, 210, 0.95)',
+          color: 'white',
+          boxShadow: '0 4px 20px rgba(25, 118, 210, 0.4)',
+          '&:hover': {
+            backgroundColor: themeMode === 'dark' ? 'rgba(25, 118, 210, 1)' : 'rgba(21, 101, 192, 1)',
+            boxShadow: '0 6px 25px rgba(25, 118, 210, 0.5)',
+          },
+        }}
+      >
+        <MenuIcon />
+      </IconButton>
+
       {/* Main Content */}
       <Box sx={{ flexGrow: 1 }}>
         <Routes>
-          {/* Home Page - Dental Clinic Welcome */}
+          {/* Home Page */}
           <Route path="/" element={<WelcomePage />} />
-          
+
           {/* Application Pages */}
           <Route path="/dental" element={isLoggedIn ? <DentalApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
-          <Route path="/media" element={isLoggedIn ? <MediaPlayerApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
-          <Route path="/cloud" element={isLoggedIn ? <CloudStorageApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           
           {/* Info Pages */}
           <Route path="/new-patient" element={<NewPatientForm />} />
@@ -574,15 +336,16 @@ function AppContent() {
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Qhitz Inc.</Typography>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Compleat Smile Dental Aesthetic</Typography>
               <Typography variant="body2" color="text.secondary">
-                Complete business management system with dental appointments, multimedia server, and cloud storage.
+                Your Premier Destination for Complete Dental Care. Professional dental services with state-of-the-art technology.
               </Typography>
             </Grid>
             <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Quick Links</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/')}>Home</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/dental')}>Patient Portal</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/about')}>About Us</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/documentation')}>Documentation</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/support')}>Support</Typography>
@@ -590,14 +353,14 @@ function AppContent() {
             </Grid>
             <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Contact</Typography>
-              <Typography variant="body2" color="text.secondary">Email: info@qhitz.com</Typography>
+              <Typography variant="body2" color="text.secondary">Email: info@compleatsmile.com</Typography>
               <Typography variant="body2" color="text.secondary">Phone: (555) 123-4567</Typography>
-              <Typography variant="body2" color="text.secondary">Address: 123 Business St, City, State 12345</Typography>
+              <Typography variant="body2" color="text.secondary">Address: 123 Dental Street, Suite 100, Your City, ST 12345</Typography>
             </Grid>
           </Grid>
           <Divider sx={{ my: 3 }} />
           <Typography variant="body2" color="text.secondary" align="center">
-            © {new Date().getFullYear()} Qhitz Inc. All rights reserved.
+            © {new Date().getFullYear()} Compleat Smile Dental Aesthetic. All rights reserved.
           </Typography>
         </Container>
       </Box>

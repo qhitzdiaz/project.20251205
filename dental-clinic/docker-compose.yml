@@ -1,72 +1,48 @@
-version: "3.9"
-
-networks:
-  dental-clinic-net:
-    driver: bridge
-
-volumes:
-  dental-clinic-db-data:
-    driver: local
-  dental-clinic-scanned-docs:
-    driver: local
-
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database for Dental Clinic
   postgres-dental-clinic:
     image: postgres:15-alpine
     container_name: dental-clinic-postgres
     environment:
-      POSTGRES_DB: dental_clinic_db
-      POSTGRES_USER: dental_clinic_user
-      POSTGRES_PASSWORD: ${DENTAL_CLINIC_DB_PASSWORD:-dentalpass123}
-    ports:
-      - "5440:5432"
+      POSTGRES_USER: dentaluser
+      POSTGRES_PASSWORD: dentalpass
+      POSTGRES_DB: dental_clinic
     volumes:
       - dental-clinic-db-data:/var/lib/postgresql/data
-    networks:
-      - dental-clinic-net
+    ports:
+      - "5440:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dental_clinic_user -d dental_clinic_db"]
+      test: ["CMD-SHELL", "pg_isready -U dentaluser -d dental_clinic"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    networks:
+      - dental-clinic-net
 
-  # Backend API Service
+  # Dental Clinic Backend API
   backend-dental-clinic:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: dental-clinic-backend
     environment:
-      - DENTAL_DATABASE_URL=postgresql://dental_clinic_user:${DENTAL_CLINIC_DB_PASSWORD:-dentalpass123}@postgres-dental-clinic:5432/dental_clinic_db
-      - FLASK_ENV=${FLASK_ENV:-development}
-      - FLASK_DEBUG=${FLASK_DEBUG:-1}
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
-      - CORS_ORIGIN=${CORS_ORIGIN:-*}
-      - DENTAL_CLINIC_NAME=${DENTAL_CLINIC_NAME:-Compleat Smile Dental Aesthetic}
-    ports:
-      - "5015:5013"
+      - DATABASE_URL=postgresql://dentaluser:dentalpass@postgres-dental-clinic:5432/dental_clinic
+      - FLASK_ENV=production
     volumes:
       - dental-clinic-scanned-docs:/app/scanned_documents
+    ports:
+      - "5015:5013"
     depends_on:
       postgres-dental-clinic:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5013 --timeout 90 dental_app:app
     networks:
       - dental-clinic-net
-    restart: unless-stopped
 
-  # Frontend React App
+  # Dental Clinic Frontend
   frontend-dental-clinic:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - REACT_APP_AUTH_API_URL=${REACT_APP_AUTH_API_URL:-http://localhost:5015/api}
-        - REACT_APP_MEDIA_API_URL=${REACT_APP_MEDIA_API_URL:-http://localhost:5015/api}
-        - REACT_APP_CLOUD_API_URL=${REACT_APP_CLOUD_API_URL:-http://localhost:5015/api}
-        - REACT_APP_DENTAL_API_URL=${REACT_APP_DENTAL_API_URL:-http://localhost:5015/api}
     container_name: dental-clinic-frontend
     ports:
       - "3001:80"
@@ -74,19 +50,25 @@ services:
       - backend-dental-clinic
     networks:
       - dental-clinic-net
-    restart: unless-stopped
 
   # Nginx Reverse Proxy
   nginx-dental-clinic:
     image: nginx:alpine
     container_name: dental-clinic-nginx
-    ports:
-      - "8081:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8081:80"
     depends_on:
       - frontend-dental-clinic
       - backend-dental-clinic
     networks:
       - dental-clinic-net
-    restart: unless-stopped
+
+volumes:
+  dental-clinic-db-data:
+  dental-clinic-scanned-docs:
+
+networks:
+  dental-clinic-net:
+    driver: bridge

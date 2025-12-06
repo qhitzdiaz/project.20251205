@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  postgres-pm:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: property_management_db
+      POSTGRES_USER: pm_user
+      POSTGRES_PASSWORD: ${PM_DB_PASSWORD:-pm_pass}
+    ports:
+      - "5450:5432"
+    volumes:
+      - pm-db-data:/var/lib/postgresql/data
+    networks:
+      - pm-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pm_user -d property_management_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend-pm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://pm_user:${PM_DB_PASSWORD:-pm_pass}@postgres-pm:5432/property_management_db
+      - APP_PORT=5050
+    ports:
+      - "5050:5050"
+    depends_on:
+      postgres-pm:
+        condition: service_healthy
+    command: uvicorn app:app --host 0.0.0.0 --port 5050
+    networks:
+      - pm-net
+    restart: unless-stopped
+
+volumes:
+  pm-db-data:
+    driver: local
+
+networks:
+  pm-net:
+    driver: bridge

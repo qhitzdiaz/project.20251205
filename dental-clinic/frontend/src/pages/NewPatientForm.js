@@ -24,7 +24,6 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { API_URLS } from '../config/apiConfig';
-import clinicLogo from '../images/Logo.jpg';
 
 const API_URL = API_URLS.DENTAL;
 
@@ -241,23 +240,9 @@ export default function NewPatientForm() {
             <CloseIcon />
           </IconButton>
 
-          {/* Clinic Logo and Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, pr: 6 }}>
-            <img
-              src={clinicLogo}
-              alt="Compleat Smile Dental Aesthetic"
-              style={{ height: '60px', width: 'auto', borderRadius: '8px' }}
-            />
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                New Patient Form
-              </Typography>
-              <Typography variant="subtitle2" color="primary">
-                Compleat Smile Dental Aesthetic
-              </Typography>
-            </Box>
-          </Box>
-
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, pr: 6 }}>
+            New Patient Form
+          </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
             Provide your details and our team will reach out to confirm your first visit.
           </Typography>

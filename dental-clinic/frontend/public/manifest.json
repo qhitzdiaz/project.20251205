@@ -1,7 +1,7 @@
 {
-  "short_name": "Compleat Smile",
-  "name": "Compleat Smile Dental Aesthetic",
-  "description": "Your Premier Destination for Complete Dental Care",
+  "short_name": "Qhitz",
+  "name": "Qhitz Inc. - Innovation & Excellence",
+  "description": "Leading the way in innovation and technology solutions",
   "icons": [
     {
       "src": "favicon.ico",
@@ -27,7 +27,7 @@
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
-  "categories": ["health", "medical"],
+  "categories": ["business", "productivity"],
   "screenshots": [
     {
       "src": "screenshot.png",
