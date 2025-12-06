@@ -41,11 +41,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Usage: $0 [--all|auth|media|cloud|dental]"
-      echo "  --all    Rebuild all backend services"
+      echo "  --all    Rebuild core backend services (auth, media, cloud)"
       echo "  auth     Rebuild auth API service (port 5010)"
       echo "  media    Rebuild media service (port 5011)"
       echo "  cloud    Rebuild cloud storage service (port 5012)"
-      echo "  dental   Rebuild dental service (port 5013)"
+      echo "  dental   Rebuild dental service (port 5013) [opt-in]"
       exit 1
       ;;
   esac
@@ -53,7 +53,7 @@ done
 
 # Default to rebuilding all services if none specified
 if [ "$REBUILD_ALL" = true ] || [ ${#SERVICES[@]} -eq 0 ]; then
-  SERVICES=("backend-api" "backend-media" "backend-cloud" "backend-dental")
+  SERVICES=("backend-api" "backend-media" "backend-cloud")
 fi
 
 cd "$BACKEND_DIR"
@@ -85,9 +85,6 @@ for service in "${SERVICES[@]}"; do
       ;;
     backend-cloud)
       echo "  Cloud:      http://localhost:5012 (http://192.168.2.98:5012)"
-      ;;
-    backend-dental)
-      echo "  Dental:     http://localhost:5013 (http://192.168.2.98:5013)"
       ;;
   esac
 done
