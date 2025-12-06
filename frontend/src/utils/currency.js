@@ -43,8 +43,10 @@ export const formatPHPInput = (amount) => {
   return formatPHP(amount, false);
 };
 
-export default {
+const currencyUtils = {
   formatPHP,
   parsePHP,
   formatPHPInput
 };
+
+export default currencyUtils;

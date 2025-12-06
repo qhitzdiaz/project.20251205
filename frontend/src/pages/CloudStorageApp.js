@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -71,20 +71,11 @@ function CloudStorageApp() {
 
   const userId = 1; // TODO: Get from auth
 
-  useEffect(() => {
-    loadContent();
-    loadStats();
-  }, [currentFolder]);
-
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const loadContent = async () => {
-    await Promise.all([loadFolders(), loadFiles()]);
-  };
-
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     try {
       const url = currentFolder 
         ? `${API_URL}/cloud/folders?user_id=${userId}&parent_id=${currentFolder}`
@@ -96,9 +87,9 @@ function CloudStorageApp() {
     } catch (error) {
       showSnackbar('Error loading folders', 'error');
     }
-  };
+  }, [currentFolder, userId]);
 
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     try {
       const url = currentFolder
         ? `${API_URL}/cloud/files?user_id=${userId}&folder_id=${currentFolder}`
@@ -110,9 +101,9 @@ function CloudStorageApp() {
     } catch (error) {
       showSnackbar('Error loading files', 'error');
     }
-  };
+  }, [currentFolder, userId]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/cloud/stats?user_id=${userId}`);
       const data = await response.json();
@@ -120,7 +111,16 @@ function CloudStorageApp() {
     } catch (error) {
       console.error('Error loading stats');
     }
-  };
+  }, [userId]);
+
+  const loadContent = useCallback(async () => {
+    await Promise.all([loadFolders(), loadFiles()]);
+  }, [loadFiles, loadFolders]);
+
+  useEffect(() => {
+    loadContent();
+    loadStats();
+  }, [loadContent, loadStats]);
 
   const handleCreateFolder = async () => {
     if (!folderName.trim()) {

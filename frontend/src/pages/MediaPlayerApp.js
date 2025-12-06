@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Fragment } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Container,
@@ -15,18 +15,12 @@ import {
   ListItemButton,
   ListItemText,
   ListItemIcon,
-  Tabs,
-  Tab,
   TextField,
   InputAdornment,
-  Chip,
-  LinearProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Checkbox,
-  Toolbar,
   Divider,
 } from '@mui/material';
 import {
@@ -36,12 +30,9 @@ import {
   SkipPrevious as PrevIcon,
   VolumeUp as VolumeIcon,
   VolumeOff as MuteIcon,
-  Movie as MovieIcon,
   MusicNote as MusicIcon,
-  Folder as FolderIcon,
   Search as SearchIcon,
   CloudUpload as UploadIcon,
-  Fullscreen as FullscreenIcon,
   Shuffle as ShuffleIcon,
   ViewModule as GridViewIcon,
   ViewList as ListViewIcon,
@@ -50,16 +41,7 @@ import FilePreviewList from '../components/FilePreviewList';
 
 const API_URL = process.env.REACT_APP_MEDIA_API_URL || 'http://localhost:5011/api';
 
-function TabPanel({ children, value, index }) {
-  return (
-    <div hidden={value !== index}>
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
 function MediaPlayerApp() {
-  const [tabValue, setTabValue] = useState(0);
   const [videos, setVideos] = useState([]);
   const [music, setMusic] = useState([]);
   const [currentMedia, setCurrentMedia] = useState(null);
@@ -73,14 +55,11 @@ function MediaPlayerApp() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isShuffle, setIsShuffle] = useState(false);
-  const [shuffledPlaylist, setShuffledPlaylist] = useState([]);
   const [playlist, setPlaylist] = useState([]);
-  const [selectedTracks, setSelectedTracks] = useState([]);
 
   const videoRef = useRef(null);
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
-  const analyserRef = useRef(null);
   const animationRef = useRef(null);
 
   useEffect(() => {
@@ -314,26 +293,6 @@ function MediaPlayerApp() {
     return shuffled;
   };
 
-  const toggleTrackSelection = (track) => {
-    setSelectedTracks(prev => {
-      const isSelected = prev.some(t => t.id === track.id);
-      if (isSelected) {
-        return prev.filter(t => t.id !== track.id);
-      } else {
-        return [...prev, track];
-      }
-    });
-  };
-
-  const playSelectedTracks = () => {
-    if (selectedTracks.length === 0) return;
-
-    const playlistToUse = isShuffle ? shuffleArray(selectedTracks) : selectedTracks;
-    setPlaylist(playlistToUse);
-    playMedia(playlistToUse[0], 'audio');
-    setSelectedTracks([]);
-  };
-
   const toggleShuffle = () => {
     const newShuffleState = !isShuffle;
     setIsShuffle(newShuffleState);
@@ -395,7 +354,7 @@ function MediaPlayerApp() {
     selectedFiles.forEach((file) => {
       formData.append('files', file);
     });
-    formData.append('type', tabValue === 0 ? 'video' : 'audio');
+    formData.append('type', 'audio');
 
     try {
       const response = await fetch(`${API_URL}/media/upload`, {
@@ -408,11 +367,7 @@ function MediaPlayerApp() {
       }
       setUploadDialog(false);
       setSelectedFiles([]);
-      if (tabValue === 0) {
-        loadVideos();
-      } else {
-        loadMusic();
-      }
+      loadMusic();
     } catch (error) {
       console.error('Error uploading files');
     }

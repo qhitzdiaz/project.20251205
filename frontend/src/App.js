@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import {
   ThemeProvider,
   createTheme,
@@ -31,7 +31,6 @@ import {
   Snackbar,
   Alert,
   Divider,
-  Paper,
   Menu,
   MenuItem,
   useMediaQuery,
@@ -46,7 +45,6 @@ import {
   CloudUpload as CloudIcon,
   Image as MediaIcon,
   CalendarMonth as DentalIcon,
-  Apps as AppsIcon,
   Info as InfoIcon,
   Description as DocIcon,
   Support as SupportIcon,
@@ -67,7 +65,6 @@ const API_URL = process.env.REACT_APP_AUTH_API_URL || 'http://localhost:5010/api
 
 function AppContent() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Detect system color scheme preference
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');

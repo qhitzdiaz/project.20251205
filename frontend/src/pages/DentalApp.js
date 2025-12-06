@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { formatPHP } from '../utils/currency';
 import {
@@ -44,7 +45,6 @@ import {
   Description as DocumentIcon,
   Download as DownloadIcon,
   Upload as UploadIcon,
-  Search as SearchIcon,
   TextFields as OcrIcon,
   AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
@@ -68,7 +68,6 @@ function DentalApp() {
   // Patients
   const [patients, setPatients] = useState([]);
   const [patientDialog, setPatientDialog] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientForm, setPatientForm] = useState({
     first_name: '', last_name: '', email: '', phone: '',
     date_of_birth: '', street_address: '', city: '', state: '', zip_code: '', country: '',
@@ -102,7 +101,6 @@ function DentalApp() {
   // Documents
   const [documents, setDocuments] = useState([]);
   const [documentDialog, setDocumentDialog] = useState(false);
-  const [scanDialog, setScanDialog] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [documentForm, setDocumentForm] = useState({
     patient_id: '', document_type: 'medical_history', document_title: ''
@@ -122,16 +120,10 @@ function DentalApp() {
   // Statistics
   const [stats, setStats] = useState({});
 
-  // Philippine Geographic Reference
-  const [phRegions, setPhRegions] = useState([]);
-  const [phProvinces, setPhProvinces] = useState([]);
-  const [phCities, setPhCities] = useState([]);
-  const [phStreets, setPhStreets] = useState([]);
-  const [selectedRegion, setSelectedRegion] = useState('');
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
   const [usePhilippineAddress, setUsePhilippineAddress] = useState(false);
 
+  // initial load
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadPatients();
     loadDentists();
@@ -140,7 +132,6 @@ function DentalApp() {
     loadDocuments();
     loadStats();
     loadDocumentTypes();
-    loadPhRegions();
   }, []);
 
   const showSnackbar = (message, severity = 'info') => {
@@ -189,12 +180,6 @@ function DentalApp() {
       insurance_provider: '', allergies: ''
     });
     setUsePhilippineAddress(false);
-    setSelectedRegion('');
-    setSelectedProvince('');
-    setSelectedCity('');
-    setPhProvinces([]);
-    setPhCities([]);
-    setPhStreets([]);
   };
 
   // ==================== APPOINTMENTS ====================
@@ -487,7 +472,6 @@ function DentalApp() {
           console.error('Scan errors:', data.errors);
         }
 
-        setScanDialog(false);
         loadDocuments();
         resetScanForm();
       } else {
@@ -523,106 +507,12 @@ function DentalApp() {
     }
   };
 
-  // ==================== PHILIPPINE GEOGRAPHIC REFERENCE ====================
-
-  const loadPhRegions = async () => {
-    try {
-      const response = await fetch(`${API_URL}/dental/ph/regions`);
-      const data = await response.json();
-      setPhRegions(data || []);
-    } catch (error) {
-      console.error('Error loading PH regions');
-    }
-  };
-
-  const loadPhProvinces = async (regionId) => {
-    try {
-      const url = regionId
-        ? `${API_URL}/dental/ph/provinces?region_id=${regionId}`
-        : `${API_URL}/dental/ph/provinces`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setPhProvinces(data || []);
-    } catch (error) {
-      console.error('Error loading PH provinces');
-    }
-  };
-
-  const loadPhCities = async (provinceId) => {
-    try {
-      const url = provinceId
-        ? `${API_URL}/dental/ph/cities?province_id=${provinceId}`
-        : `${API_URL}/dental/ph/cities`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setPhCities(data || []);
-    } catch (error) {
-      console.error('Error loading PH cities');
-    }
-  };
-
-  const loadPhStreets = async (cityId) => {
-    try {
-      const url = cityId
-        ? `${API_URL}/dental/ph/streets?city_id=${cityId}`
-        : `${API_URL}/dental/ph/streets`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setPhStreets(data || []);
-    } catch (error) {
-      console.error('Error loading PH streets');
-    }
-  };
-
-  const handleRegionChange = (regionId) => {
-    setSelectedRegion(regionId);
-    setSelectedProvince('');
-    setSelectedCity('');
-    setPhProvinces([]);
-    setPhCities([]);
-    setPhStreets([]);
-    if (regionId) {
-      loadPhProvinces(regionId);
-    }
-  };
-
-  const handleProvinceChange = (provinceId) => {
-    setSelectedProvince(provinceId);
-    setSelectedCity('');
-    setPhCities([]);
-    setPhStreets([]);
-    if (provinceId) {
-      loadPhCities(provinceId);
-      // Set province name to state field
-      const province = phProvinces.find(p => p.id === parseInt(provinceId));
-      if (province) {
-        setPatientForm({ ...patientForm, state: province.province_name });
-      }
-    }
-  };
-
-  const handleCityChange = (cityId) => {
-    setSelectedCity(cityId);
-    setPhStreets([]);
-    if (cityId) {
-      loadPhStreets(cityId);
-      // Set city name to city field
-      const city = phCities.find(c => c.id === parseInt(cityId));
-      if (city) {
-        setPatientForm({ ...patientForm, city: city.city_name });
-      }
-    }
-  };
-
   const handleCountryChange = (country) => {
     setPatientForm({ ...patientForm, country });
     if (country === 'Philippines') {
       setUsePhilippineAddress(true);
     } else {
       setUsePhilippineAddress(false);
-      setSelectedRegion('');
-      setSelectedProvince('');
-      setSelectedCity('');
     }
   };
 
