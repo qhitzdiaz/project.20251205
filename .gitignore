@@ -165,6 +165,9 @@ dist/
 *.aab
 .gradle/
 local.properties
+*.jks
+*.keystore
+network_security_config.xml
 
 # IDE
 .vscode/
