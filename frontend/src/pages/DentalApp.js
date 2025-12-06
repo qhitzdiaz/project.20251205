@@ -49,6 +49,7 @@ import {
   AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 import FilePreviewList from '../components/FilePreviewList';
+import PatientRegistrationDialog from '../components/PatientRegistrationDialog';
 
 const API_URL = process.env.REACT_APP_DENTAL_API_URL || 'http://localhost:5013/api';
 
@@ -69,9 +70,52 @@ function DentalApp() {
   const [patients, setPatients] = useState([]);
   const [patientDialog, setPatientDialog] = useState(false);
   const [patientForm, setPatientForm] = useState({
-    first_name: '', last_name: '', email: '', phone: '',
-    date_of_birth: '', street_address: '', city: '', state: '', zip_code: '', country: '',
-    insurance_provider: '', allergies: ''
+    // Personal Information
+    first_name: '', last_name: '', middle_name: '', preferred_name: '',
+    email: '', phone: '', alternate_phone: '',
+    date_of_birth: '', gender: '', marital_status: '',
+
+    // Address
+    street_address: '', city: '', state: '', zip_code: '', country: '',
+
+    // Emergency Contact
+    emergency_contact_name: '', emergency_contact_relationship: '', emergency_contact_phone: '',
+
+    // Insurance Information
+    insurance_provider: '', insurance_policy_number: '', insurance_group_number: '',
+    policy_holder_name: '', policy_holder_dob: '', policy_holder_relationship: '',
+
+    // Medical History
+    physician_name: '', physician_phone: '',
+    current_medications: '', allergies: '',
+    medical_conditions: {
+      heart_disease: false, high_blood_pressure: false, diabetes: false,
+      asthma: false, arthritis: false, bleeding_disorder: false,
+      cancer: false, hepatitis: false, hiv_aids: false,
+      kidney_disease: false, liver_disease: false, stroke: false,
+      thyroid_problem: false, tuberculosis: false, other: false
+    },
+    medical_conditions_other: '',
+    pregnant: '', nursing: '',
+    tobacco_use: '', alcohol_use: '',
+
+    // Dental History
+    previous_dentist_name: '', previous_dentist_phone: '',
+    last_dental_visit: '', last_cleaning: '',
+    last_xrays: '',
+    chief_complaint: '',
+    dental_concerns: {
+      bleeding_gums: false, sensitivity: false, jaw_pain: false,
+      grinding_teeth: false, bad_breath: false, clicking_jaw: false,
+      loose_teeth: false, dry_mouth: false, sores_in_mouth: false
+    },
+    dental_concerns_other: '',
+
+    // Consent
+    consent_treatment: false,
+    consent_privacy: false,
+    signature: '',
+    signature_date: ''
   });
 
   // Appointments
@@ -120,7 +164,6 @@ function DentalApp() {
   // Statistics
   const [stats, setStats] = useState({});
 
-  const [usePhilippineAddress, setUsePhilippineAddress] = useState(false);
 
   // initial load
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -507,14 +550,6 @@ function DentalApp() {
     }
   };
 
-  const handleCountryChange = (country) => {
-    setPatientForm({ ...patientForm, country });
-    if (country === 'Philippines') {
-      setUsePhilippineAddress(true);
-    } else {
-      setUsePhilippineAddress(false);
-    }
-  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -1058,195 +1093,15 @@ function DentalApp() {
         </Grid>
       </TabPanel>
 
-      {/* Patient Dialog */}
-      <Dialog open={patientDialog} onClose={() => setPatientDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>New Patient</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="First Name"
-                value={patientForm.first_name}
-                onChange={(e) => setPatientForm({...patientForm, first_name: e.target.value})}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Last Name"
-                value={patientForm.last_name}
-                onChange={(e) => setPatientForm({...patientForm, last_name: e.target.value})}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={patientForm.email}
-                onChange={(e) => setPatientForm({...patientForm, email: e.target.value})}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Phone"
-                value={patientForm.phone}
-                onChange={(e) => setPatientForm({...patientForm, phone: e.target.value})}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Date of Birth"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                value={patientForm.date_of_birth}
-                onChange={(e) => setPatientForm({...patientForm, date_of_birth: e.target.value})}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Insurance Provider"
-                value={patientForm.insurance_provider}
-                onChange={(e) => setPatientForm({...patientForm, insurance_provider: e.target.value})}
-              />
-            </Grid>
-
-            {/* Country Selection */}
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Country</InputLabel>
-                <Select
-                  value={patientForm.country}
-                  label="Country"
-                  onChange={(e) => handleCountryChange(e.target.value)}
-                >
-                  <MenuItem value="">Select Country</MenuItem>
-                  <MenuItem value="Philippines">Philippines</MenuItem>
-                  <MenuItem value="USA">USA</MenuItem>
-                  <MenuItem value="Canada">Canada</MenuItem>
-                  <MenuItem value="Other">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Philippine Address Form */}
-            {usePhilippineAddress && (
-              <>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Complete Street Address"
-                    value={patientForm.street_address}
-                    onChange={(e) => setPatientForm({...patientForm, street_address: e.target.value})}
-                    placeholder="House/Unit No., Building Name, Street Name"
-                    helperText="Enter complete address details"
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Barangay (Optional)"
-                    placeholder="Barangay name"
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="City/Municipality"
-                    value={patientForm.city}
-                    onChange={(e) => setPatientForm({...patientForm, city: e.target.value})}
-                    placeholder="e.g., Quezon City, Manila, Cebu City"
-                    required
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Province"
-                    value={patientForm.state}
-                    onChange={(e) => setPatientForm({...patientForm, state: e.target.value})}
-                    placeholder="e.g., Metro Manila, Cebu, Davao del Sur"
-                    required
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Postal/ZIP Code (Optional)"
-                    value={patientForm.zip_code}
-                    onChange={(e) => setPatientForm({...patientForm, zip_code: e.target.value})}
-                    placeholder="e.g., 1100, 6000"
-                  />
-                </Grid>
-              </>
-            )}
-
-            {/* Non-Philippine Address Form */}
-            {!usePhilippineAddress && patientForm.country && (
-              <>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Street Address"
-                    value={patientForm.street_address}
-                    onChange={(e) => setPatientForm({...patientForm, street_address: e.target.value})}
-                    placeholder="123 Main Street, Apt 4B"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="City"
-                    value={patientForm.city}
-                    onChange={(e) => setPatientForm({...patientForm, city: e.target.value})}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="State/Province"
-                    value={patientForm.state}
-                    onChange={(e) => setPatientForm({...patientForm, state: e.target.value})}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="ZIP/Postal Code"
-                    value={patientForm.zip_code}
-                    onChange={(e) => setPatientForm({...patientForm, zip_code: e.target.value})}
-                  />
-                </Grid>
-              </>
-            )}
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Allergies"
-                multiline
-                rows={2}
-                value={patientForm.allergies}
-                onChange={(e) => setPatientForm({...patientForm, allergies: e.target.value})}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPatientDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreatePatient} disabled={loading}>
-            Create Patient
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Patient Registration Dialog */}
+      <PatientRegistrationDialog
+        open={patientDialog}
+        onClose={() => setPatientDialog(false)}
+        patientForm={patientForm}
+        setPatientForm={setPatientForm}
+        onSubmit={handleCreatePatient}
+        loading={loading}
+      />
 
       {/* Treatment Plan Dialog */}
       <Dialog open={treatmentDialog} onClose={() => setTreatmentDialog(false)} maxWidth="md" fullWidth>
