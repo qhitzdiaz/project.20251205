@@ -269,6 +269,77 @@ def change_password(current_user):
     
     return jsonify({'message': 'Password changed successfully'}), 200
 
+# ==================== USER MANAGEMENT ROUTES ====================
+
+@app.route('/api/users', methods=['GET'])
+@token_required
+def list_users(current_user):
+    """List all users (requires authentication)"""
+    users = User.query.order_by(User.id.asc()).all()
+    return jsonify([user.to_dict() for user in users]), 200
+
+@app.route('/api/users', methods=['POST'])
+@token_required
+def create_user(current_user):
+    """Create a new user (requires authentication)"""
+    data = request.get_json() or {}
+
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+
+    if not username or not email or not password:
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({'message': 'Username already exists'}), 409
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'message': 'Email already exists'}), 409
+
+    new_user = User(
+        username=username,
+        email=email,
+        password_hash=generate_password_hash(password)
+    )
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message': 'User created successfully', 'user': new_user.to_dict()}), 201
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+@token_required
+def update_user(current_user, user_id):
+    """Update an existing user (requires authentication)"""
+    data = request.get_json() or {}
+    user = User.query.filter_by(id=user_id).first()
+
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    if data.get('username'):
+        existing_username = User.query.filter_by(username=data['username']).first()
+        if existing_username and existing_username.id != user.id:
+            return jsonify({'message': 'Username already exists'}), 409
+        user.username = data['username']
+
+    if data.get('email'):
+        existing_email = User.query.filter_by(email=data['email']).first()
+        if existing_email and existing_email.id != user.id:
+            return jsonify({'message': 'Email already exists'}), 409
+        user.email = data['email']
+
+    if data.get('password'):
+        user.password_hash = generate_password_hash(data['password'])
+
+    if 'is_active' in data:
+        user.is_active = bool(data['is_active'])
+
+    db.session.commit()
+
+    return jsonify({'message': 'User updated successfully', 'user': user.to_dict()}), 200
+
 # ==================== INITIALIZE DATABASE ====================
 
 def create_tables():

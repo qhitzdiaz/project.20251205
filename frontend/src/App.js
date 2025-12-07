@@ -42,6 +42,7 @@ import {
   Close as CloseIcon,
   CloudUpload as CloudIcon,
   Image as MediaIcon,
+  ManageAccounts as UsersIcon,
   Apartment as PropertyIcon,
   Info as InfoIcon,
   Description as DocIcon,
@@ -76,6 +77,7 @@ import PropertyDashboard from './pages/PropertyManagement/Dashboard';
 import PropertyProperties from './pages/PropertyManagement/Properties';
 import PropertyTenants from './pages/PropertyManagement/Tenants';
 import PropertyMaintenance from './pages/PropertyManagement/Maintenance';
+import UserManagement from './pages/UserManagement';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -462,6 +464,12 @@ function AppContent() {
                 <ListItemIcon><PropertyIcon /></ListItemIcon>
                 <ListItemText primary="Property Management" />
               </ListItemButton>
+              {isLoggedIn && (
+                <ListItemButton onClick={() => { navigate('/users'); setDrawerOpen(false); }}>
+                  <ListItemIcon><UsersIcon /></ListItemIcon>
+                  <ListItemText primary="User Management" />
+                </ListItemButton>
+              )}
               <ListItemButton onClick={() => { navigate('/supply-chain'); setDrawerOpen(false); }}>
                 <ListItemIcon><SupplyIcon /></ListItemIcon>
                 <ListItemText primary="Supply Chain" />
@@ -636,6 +644,7 @@ function AppContent() {
           <Route path="/property/:id" element={isLoggedIn ? <PropertyDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/tenants/:id" element={isLoggedIn ? <TenantDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/maintenance/:id" element={isLoggedIn ? <MaintenanceDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/users" element={isLoggedIn ? <UserManagement /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
 
           {/* Supply Chain Pages */}
           <Route path="/supply-chain" element={<SupplyChainDashboard />} />

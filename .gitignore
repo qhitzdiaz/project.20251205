@@ -154,6 +154,9 @@ ENV/
 build/
 dist/
 
+# Database backups
+backups/
+
 # macOS
 .DS_Store
 .AppleDouble
