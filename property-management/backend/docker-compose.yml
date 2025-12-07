@@ -1,0 +1,30 @@
+name: propertymgmt
+
+services:
+  api:
+    build: .
+    container_name: property-api
+    ports:
+      - "${APP_PORT:-5050}:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg2://property:property@db:5432/property_db}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    container_name: property-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-property}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-property}
+      POSTGRES_DB: ${POSTGRES_DB:-property_db}
+    ports:
+      - "5450:5432"
+    volumes:
+      - property-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  property-data:

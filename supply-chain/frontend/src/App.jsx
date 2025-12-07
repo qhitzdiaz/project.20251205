@@ -42,6 +42,7 @@ import {
   createPurchaseOrder,
   recordMovement,
 } from './api';
+import { API_BASE } from './api';
 
 const StatCard = ({ icon, label, value, color }) => (
   <Paper elevation={3} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -91,6 +92,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const [productForm, setProductForm] = useState({
     sku: '',
@@ -143,6 +145,7 @@ function App() {
       setSuppliers(s);
       setPurchaseOrders(o);
       setShipments(sh);
+      setLastUpdated(new Date());
     } catch (err) {
       setError('Unable to load supply chain data. Ensure the backend (port 5060) is running.');
     } finally {
@@ -260,11 +263,15 @@ function App() {
       </AppBar>
 
       <Container sx={{ py: 4 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+        <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: '#e8f4ff', border: '1px solid #c7e3ff' }}>
+          <Typography variant="body2" color="text.primary" sx={{ fontWeight: 600 }}>
+            API: {API_BASE}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Status: {error ? 'Unavailable' : 'Healthy'} {lastUpdated ? `• Last updated ${lastUpdated.toLocaleTimeString()}` : ''}
+          </Typography>
+          {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
+        </Paper>
 
         {dashboard && (
           <Grid container spacing={3} sx={{ mb: 2 }}>

@@ -12,6 +12,8 @@ import {
   ListItemText,
   Chip,
   Button,
+  TextField,
+  Stack,
 } from '@mui/material';
 import { API_URLS } from '../config/apiConfig';
 
@@ -27,27 +29,81 @@ const SupplyChainApp = () => {
   const [error, setError] = useState('');
   const [dashboard, setDashboard] = useState(null);
   const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [shipments, setShipments] = useState([]);
+  const [form, setForm] = useState({
+    sku: '',
+    name: '',
+    description: '',
+    supplier_id: '',
+    unit_cost: '',
+    reorder_level: '',
+    reorder_quantity: '',
+  });
+  const [formError, setFormError] = useState('');
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const [dRes, pRes, poRes, sRes] = await Promise.all([
+      const [dRes, pRes, poRes, sRes, supRes] = await Promise.all([
         fetch(`${API_URLS.SUPPLY}/dashboard`).then((r) => r.json()),
         fetch(`${API_URLS.SUPPLY}/products`).then((r) => r.json()),
         fetch(`${API_URLS.SUPPLY}/purchase-orders`).then((r) => r.json()),
         fetch(`${API_URLS.SUPPLY}/shipments`).then((r) => r.json()),
+        fetch(`${API_URLS.SUPPLY}/suppliers`).then((r) => r.json()),
       ]);
       setDashboard(dRes);
       setProducts(pRes);
       setPurchaseOrders(poRes);
       setShipments(sRes);
+      setSuppliers(supRes);
     } catch (err) {
       setError('Cannot reach Supply Chain API (port 5060). Make sure docker-compose in supply-chain/backend is running.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateProduct = async () => {
+    setFormError('');
+    if (!form.sku || !form.name) {
+      setFormError('SKU and Name are required.');
+      return;
+    }
+    try {
+      const resp = await fetch(`${API_URLS.SUPPLY}/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sku: form.sku,
+          name: form.name,
+          description: form.description,
+          supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
+          unit_cost: Number(form.unit_cost || 0),
+          unit: 'pcs',
+          reorder_level: Number(form.reorder_level || 0),
+          reorder_quantity: Number(form.reorder_quantity || 0),
+        }),
+      });
+      if (!resp.ok) {
+        const msg = (await resp.json())?.detail || 'Failed to create product';
+        setFormError(msg);
+        return;
+      }
+      setForm({
+        sku: '',
+        name: '',
+        description: '',
+        supplier_id: '',
+        unit_cost: '',
+        reorder_level: '',
+        reorder_quantity: '',
+      });
+      await load();
+    } catch {
+      setFormError('Failed to create product');
     }
   };
 
@@ -102,6 +158,33 @@ const SupplyChainApp = () => {
               ))}
               {!products.length && <Typography color="text.secondary">No products yet.</Typography>}
             </List>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Add Product</Typography>
+            {formError && <Alert severity="error" sx={{ mb: 1 }}>{formError}</Alert>}
+            <Stack spacing={1.5}>
+              <TextField label="SKU *" size="small" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+              <TextField label="Name *" size="small" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <TextField label="Description" size="small" multiline minRows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <TextField
+                select
+                SelectProps={{ native: true }}
+                label="Supplier"
+                size="small"
+                value={form.supplier_id}
+                onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
+              >
+                <option value="">Select supplier</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </TextField>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                <TextField label="Unit Cost" type="number" size="small" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} />
+                <TextField label="Reorder Level" type="number" size="small" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} />
+                <TextField label="Reorder Qty" type="number" size="small" value={form.reorder_quantity} onChange={(e) => setForm({ ...form, reorder_quantity: e.target.value })} />
+              </Stack>
+              <Button variant="contained" onClick={handleCreateProduct}>Save Product</Button>
+            </Stack>
           </Paper>
         </Grid>
 

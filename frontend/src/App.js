@@ -618,7 +618,7 @@ function AppContent() {
             <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Qhitz Inc.</Typography>
               <Typography variant="body2" color="text.secondary">
-                Complete business management system with dental appointments, multimedia server, and cloud storage.
+                Complete business management system with multimedia, cloud storage, property, and supply chain modules.
               </Typography>
             </Grid>
             <Grid item xs={12} md={4}>

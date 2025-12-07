@@ -1,9 +1,3 @@
-# Complete System with 4 Databases + Backend APIs
-# Main API (auth_db) - Port 5010 (changed from 5000 to avoid macOS AirPlay conflict)
-# Media Server (media_db) - Port 5011 (changed from 5001)
-# Cloud Storage (cloud_db) - Port 5012 (changed from 5002)
-# Dental App (dental_db) - Port 5013 (changed from 5003)
-
 services:
   # ==================== DATABASES ====================
 

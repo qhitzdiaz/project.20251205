@@ -57,8 +57,20 @@ else
   echo ""
 fi
 
-# Step 5: Wait for databases to be healthy
-echo -e "${YELLOW}[5/8] Waiting for databases to be healthy...${NC}"
+# Step 5: Start Property Management backend (separate stack)
+if [ -d "$SCRIPT_DIR/property-management/backend" ]; then
+  echo -e "${YELLOW}[5/8] Starting Property Management backend...${NC}"
+  cd "$SCRIPT_DIR/property-management/backend"
+  docker compose up -d --build
+  echo -e "${GREEN}✓ Property API started (port 5050)${NC}"
+  echo ""
+else
+  echo -e "${YELLOW}[5/8] Skipping Property backend (directory not found)${NC}"
+  echo ""
+fi
+
+# Step 6: Wait for databases to be healthy
+echo -e "${YELLOW}[6/8] Waiting for databases to be healthy...${NC}"
 sleep 5
 for i in {1..30}; do
     if docker ps --filter "name=qhitz-postgres" --filter "health=healthy" | grep -q "healthy"; then
@@ -70,24 +82,24 @@ for i in {1..30}; do
 done
 echo ""
 
-# Step 6: Rebuild frontend
-echo -e "${YELLOW}[6/8] Rebuilding frontend application...${NC}"
+# Step 7: Rebuild frontend
+echo -e "${YELLOW}[7/8] Rebuilding frontend application...${NC}"
 cd "$FRONTEND_DIR"
 docker compose up -d --build
 sleep 3
 echo -e "${GREEN}✓ Frontend rebuilt and started${NC}"
 echo ""
 
-# Step 7: Copy frontend build and start reverse proxy
-echo -e "${YELLOW}[7/8] Setting up reverse proxy...${NC}"
+# Step 8: Copy frontend build and start reverse proxy
+echo -e "${YELLOW}[8/8] Setting up reverse proxy...${NC}"
 docker cp qhitz-frontend:/usr/share/nginx/html/. "$FRONTEND_DIR/build/"
 cd "$REVERSE_PROXY_DIR"
 docker compose up -d
 echo -e "${GREEN}✓ Reverse proxy started${NC}"
 echo ""
 
-# Step 8: Sync Capacitor for mobile app
-echo -e "${YELLOW}[8/8] Syncing Capacitor for mobile app...${NC}"
+# Sync Capacitor for mobile app
+echo -e "${YELLOW}[Extra] Syncing Capacitor for mobile app...${NC}"
 cd "$FRONTEND_DIR"
 npx cap sync android
 echo -e "${GREEN}✓ Capacitor synced${NC}"
@@ -126,6 +138,12 @@ if curl -s http://localhost:5060/health > /dev/null; then
     echo -e "${GREEN}✓ Supply Chain API (5060) - Healthy${NC}"
 else
     echo -e "${RED}✗ Supply Chain API (5060) - Not responding${NC}"
+fi
+
+if curl -s http://localhost:5050/health > /dev/null; then
+    echo -e "${GREEN}✓ Property API (5050) - Healthy${NC}"
+else
+    echo -e "${RED}✗ Property API (5050) - Not responding${NC}"
 fi
 
 # Test frontend

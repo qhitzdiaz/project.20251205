@@ -267,35 +267,121 @@ def seed_data():
     """Populate with minimal demo data so the UI isn't empty."""
     db = SessionLocal()
     try:
-        supplier_exists = db.scalar(select(func.count()).select_from(Supplier)) > 0
-        if supplier_exists:
-            return
+        def get_or_create_supplier(name, **kwargs):
+            existing = db.scalar(select(Supplier).where(Supplier.name == name))
+            if existing:
+                return existing
+            supplier = Supplier(name=name, **kwargs)
+            db.add(supplier)
+            db.flush()
+            return supplier
 
-        acme = Supplier(name="Acme Components", contact_name="Riley Smith", phone="555-111-2222", email="parts@acme.com", address="101 Industry Rd, Toronto")
-        north = Supplier(name="Northern Freight", contact_name="Sam Patel", phone="555-333-4444", email="ops@northernfreight.com", address="12 Harbor St, Hamilton")
-        db.add_all([acme, north])
-        db.flush()
+        def get_or_create_product(sku, **kwargs):
+            existing = db.scalar(select(Product).where(Product.sku == sku))
+            if existing:
+                return existing
+            product = Product(sku=sku, **kwargs)
+            db.add(product)
+            db.flush()
+            return product
 
-        widget = Product(sku="WID-1000", name="Widget Core", description="Primary widget core", supplier=acme, unit_cost=12.5, unit="pcs", reorder_level=20, reorder_quantity=50)
-        plate = Product(sku="PLT-240", name="Mounting Plate", description="Steel mounting plate", supplier=acme, unit_cost=4.2, unit="pcs", reorder_level=40, reorder_quantity=100)
-        db.add_all([widget, plate])
-        db.flush()
+        def ensure_po(reference, supplier, status, expected_date=None, notes=None, items=None):
+            existing = db.scalar(select(PurchaseOrder).where(PurchaseOrder.reference == reference))
+            if existing:
+                return existing
+            order = PurchaseOrder(reference=reference, supplier_id=supplier.id if supplier else None, status=status, expected_date=expected_date, notes=notes)
+            db.add(order)
+            db.flush()
+            total = 0
+            for it in items or []:
+                db_item = PurchaseOrderItem(
+                    purchase_order_id=order.id,
+                    product_id=it["product"].id,
+                    quantity=it["quantity"],
+                    unit_cost=it["unit_cost"],
+                )
+                total += it["quantity"] * it["unit_cost"]
+                db.add(db_item)
+            order.total_amount = total
+            return order
 
-        po = PurchaseOrder(reference="PO-2024-001", supplier=acme, status=PurchaseStatus.ordered, expected_date=date.today())
-        db.add(po)
-        db.flush()
+        def ensure_shipment(po, carrier, tracking_number, eta, status):
+            existing = db.scalar(select(Shipment).where(Shipment.tracking_number == tracking_number))
+            if existing:
+                return existing
+            shipment = Shipment(purchase_order_id=po.id if po else None, carrier=carrier, tracking_number=tracking_number, eta=eta, status=status)
+            db.add(shipment)
+            return shipment
 
-        item1 = PurchaseOrderItem(purchase_order=po, product=widget, quantity=80, unit_cost=12.5)
-        item2 = PurchaseOrderItem(purchase_order=po, product=plate, quantity=150, unit_cost=4.1)
-        db.add_all([item1, item2])
-        po.total_amount = (item1.quantity * item1.unit_cost) + (item2.quantity * item2.unit_cost)
+        # Suppliers
+        acme = get_or_create_supplier("Acme Components", contact_name="Riley Smith", phone="555-111-2222", email="parts@acme.com", address="101 Industry Rd, Toronto")
+        north = get_or_create_supplier("Northern Freight", contact_name="Sam Patel", phone="555-333-4444", email="ops@northernfreight.com", address="12 Harbor St, Hamilton")
+        global_parts = get_or_create_supplier("Global Parts Co.", contact_name="Jamie Lee", phone="555-222-9090", email="sales@globalparts.com", address="22 Supply Pkwy, Mississauga")
+        blue_logistics = get_or_create_supplier("Blue River Logistics", contact_name="Jordan Wu", phone="555-777-4545", email="support@blueriverlogistics.com", address="9 Port Ln, Oshawa")
 
-        inbound1 = InventoryMovement(product=widget, movement_type=MovementType.inbound, quantity=35, reason="Initial stock", reference="SEED")
-        inbound2 = InventoryMovement(product=plate, movement_type=MovementType.inbound, quantity=60, reason="Initial stock", reference="SEED")
-        db.add_all([inbound1, inbound2])
+        # Products
+        widget = get_or_create_product("WID-1000", name="Widget Core", description="Primary widget core", supplier=acme, unit_cost=12.5, unit="pcs", reorder_level=20, reorder_quantity=50)
+        plate = get_or_create_product("PLT-240", name="Mounting Plate", description="Steel mounting plate", supplier=acme, unit_cost=4.2, unit="pcs", reorder_level=40, reorder_quantity=100)
+        cable = get_or_create_product("CAB-900", name="Signal Cable", description="Shielded 3m signal cable", supplier=global_parts, unit_cost=7.9, unit="pcs", reorder_level=30, reorder_quantity=80)
+        bolt = get_or_create_product("BLT-550", name="Grade-8 Bolt Pack", description="Industrial fasteners (pack of 50)", supplier=global_parts, unit_cost=18.0, unit="pack", reorder_level=10, reorder_quantity=25)
 
-        shipment = Shipment(purchase_order=po, carrier="Northern Freight", tracking_number="NF1234567", eta=date.today(), status=ShipmentStatus.in_transit)
-        db.add(shipment)
+        # Initial stock movements (avoid duplicates)
+        def ensure_movement(product, movement_type, quantity, reason, reference):
+            exists = db.scalar(
+                select(InventoryMovement).where(
+                    InventoryMovement.product_id == product.id,
+                    InventoryMovement.reference == reference,
+                    InventoryMovement.movement_type == movement_type,
+                )
+            )
+            if exists:
+                return
+            db.add(InventoryMovement(product_id=product.id, movement_type=movement_type, quantity=quantity, reason=reason, reference=reference))
+
+        ensure_movement(widget, MovementType.inbound, 35, "Initial stock", "SEED-WID")
+        ensure_movement(plate, MovementType.inbound, 60, "Initial stock", "SEED-PLT")
+        ensure_movement(cable, MovementType.inbound, 50, "Initial stock", "SEED-CAB")
+        ensure_movement(bolt, MovementType.inbound, 20, "Initial stock", "SEED-BLT")
+
+        # Purchase orders
+        po1 = ensure_po(
+            "PO-2024-001",
+            supplier=acme,
+            status=PurchaseStatus.ordered,
+            expected_date=date.today(),
+            items=[
+                {"product": widget, "quantity": 80, "unit_cost": 12.5},
+                {"product": plate, "quantity": 150, "unit_cost": 4.1},
+            ],
+        )
+
+        po2 = ensure_po(
+            "PO-2024-002",
+            supplier=global_parts,
+            status=PurchaseStatus.received,
+            expected_date=date.today(),
+            notes="Bulk replenishment",
+            items=[
+                {"product": cable, "quantity": 120, "unit_cost": 7.8},
+                {"product": bolt, "quantity": 40, "unit_cost": 18.0},
+            ],
+        )
+
+        po3 = ensure_po(
+            "PO-2024-003",
+            supplier=acme,
+            status=PurchaseStatus.draft,
+            expected_date=date.today(),
+            notes="Draft PO for next sprint",
+            items=[
+                {"product": widget, "quantity": 50, "unit_cost": 12.4},
+            ],
+        )
+
+        # Shipments
+        ensure_shipment(po1, carrier="Northern Freight", tracking_number="NF1234567", eta=date.today(), status=ShipmentStatus.in_transit)
+        ensure_shipment(po2, carrier="Blue River Logistics", tracking_number="BRL-88844", eta=date.today(), status=ShipmentStatus.delivered)
+        ensure_shipment(po3, carrier="Northern Freight", tracking_number="NF-PO3-DRAFT", eta=date.today(), status=ShipmentStatus.pending)
 
         db.commit()
     finally:
