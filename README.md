@@ -153,15 +153,40 @@ npm install
 
 ## 📝 Features
 
-- ✅ Complete backend API services
-- ✅ React PWA frontend
-- ✅ PostgreSQL databases
-- ✅ Media streaming (MP3, MP4, FLAC)
-- ✅ Dental management with OCR
-- ✅ Document scanning
-- ✅ Auto-generated patient IDs
-- ✅ Philippine geographic data
+### Core Services
+- ✅ Complete backend API services (Flask + FastAPI)
+- ✅ React PWA frontend with Material-UI
+- ✅ PostgreSQL databases for each service
+- ✅ JWT authentication and authorization
 - ✅ Hot reload for development
+
+### Media Management
+- ✅ Media streaming (MP3, MP4, FLAC)
+- ✅ Music player with cassette visualization
+- ✅ Video player support
+- ✅ Album art and metadata
+
+### Business Applications
+- ✅ Property Management (FastAPI)
+  - Property and tenant tracking
+  - Lease management
+  - Maintenance requests
+- ✅ Supply Chain Management (FastAPI)
+  - Supplier and product management
+  - Purchase orders and shipments
+  - Inventory tracking
+- ✅ Dental Clinic (separate app)
+  - Patient management with OCR
+  - Appointment scheduling
+  - Treatment records
+  - Philippine geographic data
+  - Document scanning
+
+### Cloud & Storage
+- ✅ Cloud file storage
+- ✅ Folder organization
+- ✅ File sharing
+- ✅ Document management
 
 ## 🎨 Development
 
@@ -188,11 +213,16 @@ SELECT * FROM patients;
 
 ## 📚 API Documentation
 
-See individual service files for endpoint documentation:
+**Complete API documentation is available in [API_DOCUMENTATION.md](API_DOCUMENTATION.md)**
+
+For quick reference, see individual service files:
 - `backend/app.py` - Auth endpoints
 - `backend/media_server.py` - Media endpoints
 - `backend/cloud_server.py` - Cloud endpoints
-- `backend/dental_app.py` - Dental endpoints
+- `backend/dental_app.py` - Dental endpoints (legacy)
+- `property-management/backend/app.py` - Property management endpoints
+- `supply-chain/backend/app.py` - Supply chain endpoints
+- `dental-clinic/backend/dental_app.py` - Dental clinic endpoints (separate app)
 
 ## 🔒 Environment Variables
 
@@ -205,11 +235,18 @@ See individual service files for endpoint documentation:
 ### Frontend `.env.development`
 - `REACT_APP_*_API_URL` - API endpoints
 
+## 📚 Additional Documentation
+
+- [API Documentation](API_DOCUMENTATION.md) - Complete API reference for all services
+- [Deployment Instructions](DEPLOYMENT_INSTRUCTIONS.md) - Production deployment guide
+- [Rebuild Guide](REBUILD-GUIDE.md) - Build and rebuild instructions
+
 ## 📞 Support
 
-- Version: 2.0.0
+- Version: 2.1.0
 - Platform: macOS
-- Build Date: December 2, 2025
+- Build Date: December 7, 2025
+- Email: qhitz@qhitz.com
 
 ---
 
