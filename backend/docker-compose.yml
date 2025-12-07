@@ -64,27 +64,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Dental App Database
-  postgres-dental:
-    image: postgres:15-alpine
-    container_name: qhitz-postgres-dental
-    environment:
-      POSTGRES_DB: dental_db
-      POSTGRES_USER: qhitz_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass123}
-    ports:
-      - "5435:5432"
-    volumes:
-      - postgres-dental-data:/var/lib/postgresql/data
-    networks:
-      - qhitz-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d dental_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   # ==================== API SERVICES ====================
 
   # Main API Server (Auth)
@@ -161,31 +140,6 @@ services:
       - qhitz-network
     restart: unless-stopped
 
-  # Dental Appointment System
-  backend-dental:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: qhitz-backend-dental
-    ports:
-      - "0.0.0.0:5013:5013"
-    volumes:
-      - .:/app:z
-      - dental-scanned-docs:/app/scanned_documents
-    environment:
-      - DENTAL_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-dental:5432/dental_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
-      - CORS_ORIGIN=${CORS_ORIGIN:-*}
-    depends_on:
-      postgres-dental:
-        condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5013 dental_app:app
-    networks:
-      - qhitz-network
-    restart: unless-stopped
-
 volumes:
   postgres-auth-data:
     driver: local
@@ -193,13 +147,9 @@ volumes:
     driver: local
   postgres-cloud-data:
     driver: local
-  postgres-dental-data:
-    driver: local
   media-uploads:
     driver: local
   cloud-storage:
-    driver: local
-  dental-scanned-docs:
     driver: local
 
 networks:

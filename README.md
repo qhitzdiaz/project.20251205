@@ -46,10 +46,11 @@ bash setup-macos.sh
 - **Auth API**: http://localhost:5010
 - **Media API**: http://localhost:5011
 - **Cloud API**: http://localhost:5012
-- ~~**Dental API**~~ (optional/legacy): http://localhost:5013
 - **Property API**: http://localhost:5050
 - **Supply Chain API**: http://localhost:5060
 - **Reverse Proxy**: http://localhost (routes `/api/auth`, `/api/media`, `/api/cloud`, `/api/property`, `/api/supply`)
+
+**Note:** The Dental Clinic application has been separated into its own standalone package. See the `dental-clinic-package` directory for the independent dental clinic management system.
 
 ### Start/Stop Property & Supply stacks
 
@@ -73,13 +74,13 @@ Use the helper scripts in `scripts/`:
 
 ```
 qhitz-dev-macos/
-├── backend/                  # Flask APIs: auth, media, cloud (dental code retained but not default)
-│   ├── app.py
-│   ├── media_server.py
-│   ├── cloud_server.py
-│   ├── dental_app.py
+├── backend/                  # Flask APIs: auth, media, cloud
+│   ├── app.py                # Authentication service
+│   ├── media_server.py       # Media management service
+│   ├── cloud_server.py       # Cloud storage service
+│   ├── dental_app.py         # Legacy dental code (deprecated)
 │   ├── requirements.txt
-│   └── docker-compose.yml
+│   └── docker-compose.yml    # Core services only
 ├── frontend/                 # React application
 │   ├── src/
 │   ├── public/
@@ -87,9 +88,9 @@ qhitz-dev-macos/
 ├── reverse-proxy/            # Nginx reverse proxy
 ├── property-management/      # Property management app (FastAPI + Postgres)
 ├── supply-chain/             # Supply chain app (FastAPI + Postgres)
-├── dental-clinic/            # Separate dental clinic app (branch)
+├── dental-clinic/            # Dental clinic reference (use standalone package instead)
 ├── user-admin/               # Admin UI
-├── scripts/                  # Helper scripts (start/stop/restart property+supply; cleanup .DS_Store)
+├── scripts/                  # Helper scripts
 ├── logs/
 ├── start-backend.sh
 ├── start-frontend.sh
@@ -97,6 +98,9 @@ qhitz-dev-macos/
 ├── status.sh
 └── README.md
 ```
+
+**Standalone Packages:**
+- `dental-clinic-package/` - Complete standalone dental clinic management system (separate from main app)
 
 ## 🔧 Manual Setup (if needed)
 
@@ -175,12 +179,13 @@ npm install
   - Supplier and product management
   - Purchase orders and shipments
   - Inventory tracking
-- ✅ Dental Clinic (separate app)
+- ✅ Dental Clinic (**now available as standalone package**)
   - Patient management with OCR
   - Appointment scheduling
   - Treatment records
   - Philippine geographic data
   - Document scanning
+  - See `dental-clinic-package/` for independent deployment
 
 ### Cloud & Storage
 - ✅ Cloud file storage
@@ -219,10 +224,10 @@ For quick reference, see individual service files:
 - `backend/app.py` - Auth endpoints
 - `backend/media_server.py` - Media endpoints
 - `backend/cloud_server.py` - Cloud endpoints
-- `backend/dental_app.py` - Dental endpoints (legacy)
 - `property-management/backend/app.py` - Property management endpoints
 - `supply-chain/backend/app.py` - Supply chain endpoints
-- `dental-clinic/backend/dental_app.py` - Dental clinic endpoints (separate app)
+
+**Note:** Dental clinic endpoints have been moved to a standalone package. See `dental-clinic-package/` directory.
 
 ## 🔒 Environment Variables
 
