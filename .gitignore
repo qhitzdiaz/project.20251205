@@ -175,3 +175,9 @@ network_security_config.xml
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# iOS build files
+frontend/ios/build-sim/
+frontend/ios/build/
+*.xcworkspace
+*.xcuserdata
