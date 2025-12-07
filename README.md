@@ -1,4 +1,4 @@
-# Qhitz Development Package for macOS v2.0.0
+# Qhitz Development Package for macOS v2.1.0
 
 Complete development environment for macOS.
 
@@ -13,7 +13,7 @@ Complete development environment for macOS.
 
 ```bash
 # Extract the package
-tar -xzf qhitz-dev-macos-v2.0.0.tar.gz
+tar -xzf qhitz-dev-macos-v2.1.0.tar.gz
 cd qhitz-dev-macos
 
 # Run setup script
