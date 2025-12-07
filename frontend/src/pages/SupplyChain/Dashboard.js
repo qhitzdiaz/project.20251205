@@ -91,7 +91,6 @@ const Dashboard = () => {
 
   const quickActions = [
     { label: 'Add Supplier', path: '/supply-chain/suppliers/add', color: '#7c4dff' },
-    { label: 'Add Product', path: '/supply-chain/products/add', color: '#00acc1' },
     { label: 'Create Purchase Order', path: '/supply-chain/purchase-orders/add', color: '#fb8c00' },
     { label: 'View All Suppliers', path: '/supply-chain/suppliers', color: '#512da8' },
     { label: 'View All Products', path: '/supply-chain/products', color: '#0097a7' },
