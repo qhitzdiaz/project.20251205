@@ -17,9 +17,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 REVERSE_PROXY_DIR="$SCRIPT_DIR/reverse-proxy"
-CORE_PROJECT="qhitz-core"
-SUPPLY_PROJECT="qhitz-supply"
-PROPERTY_PROJECT="qhitz-property"
+# Use stable project names so volumes reuse existing data.
+CORE_PROJECT="backend"
+SUPPLY_PROJECT="backend"
+PROPERTY_PROJECT="backend"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Qhitz Inc - Complete Rebuild Script${NC}"
