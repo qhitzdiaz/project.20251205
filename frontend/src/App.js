@@ -49,12 +49,14 @@ import {
   ArrowDropDown as ArrowDropDownIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  LocalShipping as SupplyIcon,
 } from '@mui/icons-material';
 
 // Import page components
 import MediaPlayerApp from './pages/MediaPlayerApp';
 import CloudStorageApp from './pages/CloudStorageApp';
 import PropertyApp from './pages/PropertyApp';
+import SupplyChainApp from './pages/SupplyChainApp';
 import AboutUs from './pages/AboutUs';
 import Documentation from './pages/Documentation';
 import Support from './pages/Support';
@@ -226,6 +228,15 @@ function AppContent() {
       path: '/property',
       features: ['Properties', 'Tenants', 'Maintenance', 'Leases']
     },
+    {
+      id: 'supply',
+      title: 'Supply Chain',
+      description: 'Suppliers, purchase orders, inventory, and shipments',
+      icon: <SupplyIcon sx={{ fontSize: 60, color: '#6d4c41' }} />,
+      color: '#6d4c41',
+      path: '/supply-chain',
+      features: ['Dashboard', 'Purchase Orders', 'Inventory', 'Shipments']
+    },
   ];
 
   const heroImage = themeMode === 'dark'
@@ -365,6 +376,10 @@ function AppContent() {
                 <ListItemIcon><PropertyIcon fontSize="small" /></ListItemIcon>
                 Property Management
               </MenuItem>
+              <MenuItem onClick={() => handleAppNavigation('/supply-chain')}>
+                <ListItemIcon><SupplyIcon fontSize="small" /></ListItemIcon>
+                Supply Chain
+              </MenuItem>
             </Menu>
 
             <Button
@@ -476,6 +491,10 @@ function AppContent() {
                 <ListItemIcon><PropertyIcon /></ListItemIcon>
                 <ListItemText primary="Property Management" />
               </ListItemButton>
+              <ListItemButton onClick={() => { handleAppNavigation('/supply-chain'); setDrawerOpen(false); }}>
+                <ListItemIcon><SupplyIcon /></ListItemIcon>
+                <ListItemText primary="Supply Chain" />
+              </ListItemButton>
               <Divider sx={{ my: 1 }} />
               <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
                 <ListItemIcon><DocIcon /></ListItemIcon>
@@ -577,6 +596,7 @@ function AppContent() {
           <Route path="/media" element={isLoggedIn ? <MediaPlayerApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/cloud" element={isLoggedIn ? <CloudStorageApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property" element={isLoggedIn ? <PropertyApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain" element={isLoggedIn ? <SupplyChainApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           
           {/* Info Pages */}
           <Route path="/about" element={<AboutUs />} />
@@ -598,7 +618,7 @@ function AppContent() {
             <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Qhitz Inc.</Typography>
               <Typography variant="body2" color="text.secondary">
-                Complete business management system with dental appointments, multimedia server, and cloud storage.
+                Complete business management system with multimedia, cloud storage, property, and supply chain modules.
               </Typography>
             </Grid>
             <Grid item xs={12} md={4}>

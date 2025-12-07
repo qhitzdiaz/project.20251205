@@ -20,6 +20,7 @@ export const API_URLS = {
   MEDIA: `http://${baseHost}:5011/api`,
   CLOUD: `http://${baseHost}:5012/api`,
   DENTAL: `http://${baseHost}:5013/api`,
+  SUPPLY: `http://${baseHost}:5060/api`,
 };
 
 // Backwards compatibility

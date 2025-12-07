@@ -33,11 +33,6 @@ function Documentation() {
       items: ['Quick Start Guide', 'Installation', 'First Steps', 'User Account Setup']
     },
     {
-      title: 'Dental Application',
-      icon: <DocIcon sx={{ fontSize: 50, color: 'secondary.main' }} />,
-      items: ['Patient Management', 'Appointments', 'Document Scanning', 'Treatment Records']
-    },
-    {
       title: 'Multimedia Library',
       icon: <VideoIcon sx={{ fontSize: 50, color: 'success.main' }} />,
       items: ['Upload Media', 'Organize Files', 'Video Management', 'Gallery Views']
@@ -47,13 +42,19 @@ function Documentation() {
       icon: <CodeIcon sx={{ fontSize: 50, color: 'warning.main' }} />,
       items: ['Create Folders', 'File Sharing', 'Security Settings', 'Storage Limits']
     },
+    {
+      title: 'Property Management',
+      icon: <DocIcon sx={{ fontSize: 50, color: 'secondary.main' }} />,
+      items: ['Properties & Units', 'Tenants & Leases', 'Maintenance Tickets', 'Rent Tracking']
+    },
+    {
+      title: 'Supply Chain',
+      icon: <DocIcon sx={{ fontSize: 50, color: 'info.main' }} />,
+      items: ['Suppliers', 'Purchase Orders', 'Inventory Movements', 'Shipments & Alerts']
+    },
   ];
 
   const faqs = [
-    {
-      question: 'How do I upload documents to the Dental app?',
-      answer: 'Navigate to the Dental application, click on the Documents tab, then click "Upload Document". Select a PDF file, choose the patient and document type, and click upload.'
-    },
     {
       question: 'What file formats are supported in Multimedia?',
       answer: 'Images (PNG, JPG, GIF, WebP), Videos (MP4, AVI, MOV, WebM), Audio (MP3, WAV, OGG), and Documents (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX).'
@@ -68,11 +69,19 @@ function Documentation() {
     },
     {
       question: 'What is the maximum file size I can upload?',
-      answer: 'Media files: 100MB, Cloud Storage: 500MB, Dental documents (PDF): 50MB per file.'
+      answer: 'Media files: 100MB, Cloud Storage: 500MB per file.'
     },
     {
       question: 'Can I access the application offline?',
       answer: 'The frontend is a Progressive Web App (PWA) with offline capabilities for cached content. However, new data requires an internet connection.'
+    },
+    {
+      question: 'How do I track inventory and purchase orders?',
+      answer: 'Open Supply Chain, review the dashboard, and create purchase orders with line items. Inventory movements (inbound/outbound/adjust) update stock on hand automatically.'
+    },
+    {
+      question: 'Where do I manage tenants and leases?',
+      answer: 'Use the Property Management app to add properties, units, tenants, and lease details. Maintenance tickets can be logged and tracked from the same view.'
     },
   ];
 
@@ -155,8 +164,16 @@ function Documentation() {
           <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
-                <Typography variant="h6" color="warning.main">Dental API</Typography>
-                <Typography variant="body2" color="text.secondary">Port 5013</Typography>
+                <Typography variant="h6" color="secondary">Property API</Typography>
+                <Typography variant="body2" color="text.secondary">Port 5050</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" color="info.main">Supply Chain API</Typography>
+                <Typography variant="body2" color="text.secondary">Port 5060</Typography>
               </CardContent>
             </Card>
           </Grid>
