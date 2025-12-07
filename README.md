@@ -43,10 +43,24 @@ bash setup-macos.sh
 ### Access the Application
 
 - **Frontend**: http://localhost:3000
-- **Auth API**: http://localhost:5000
-- **Media API**: http://localhost:5001
-- **Cloud API**: http://localhost:5002
-- **Dental API**: http://localhost:5003
+- **Auth API**: http://localhost:5010
+- **Media API**: http://localhost:5011
+- **Cloud API**: http://localhost:5012
+- ~~**Dental API**~~ (optional/legacy): http://localhost:5013
+- **Property API**: http://localhost:5050
+- **Supply Chain API**: http://localhost:5060
+- **Reverse Proxy**: http://localhost (routes `/api/auth`, `/api/media`, `/api/cloud`, `/api/property`, `/api/supply`)
+
+### Start/Stop Property & Supply stacks
+
+Use the helper scripts in `scripts/`:
+
+```bash
+./scripts/start-property-supply.sh          # start property + supply stacks
+./scripts/start-property-supply.sh --build  # rebuild then start
+./scripts/stop-property-supply.sh           # stop both stacks
+./scripts/restart-property-supply.sh        # stop then start (use --build to rebuild)
+```
 
 ### Other Commands
 
