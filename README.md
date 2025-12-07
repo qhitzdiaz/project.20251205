@@ -59,24 +59,29 @@ bash setup-macos.sh
 
 ```
 qhitz-dev-macos/
-├── backend/              # Flask API services
-│   ├── app.py           # Auth service
-│   ├── media_server.py  # Media service
-│   ├── cloud_server.py  # Cloud service
-│   ├── dental_app.py    # Dental service
-│   ├── requirements.txt # Python dependencies
+├── backend/                  # Flask APIs: auth, media, cloud (dental code retained but not default)
+│   ├── app.py
+│   ├── media_server.py
+│   ├── cloud_server.py
+│   ├── dental_app.py
+│   ├── requirements.txt
 │   └── docker-compose.yml
-├── frontend/             # React application
+├── frontend/                 # React application
 │   ├── src/
 │   ├── public/
 │   └── package.json
-├── logs/                 # Application logs
-├── setup-macos.sh       # Setup script
-├── start-backend.sh     # Backend starter
-├── start-frontend.sh    # Frontend starter
-├── stop-all.sh          # Stop all services
-├── status.sh            # Check status
-└── README.md            # This file
+├── reverse-proxy/            # Nginx reverse proxy
+├── property-management/      # Property management app (FastAPI + Postgres)
+├── supply-chain/             # Supply chain app (FastAPI + Postgres)
+├── dental-clinic/            # Separate dental clinic app (branch)
+├── user-admin/               # Admin UI
+├── scripts/                  # Helper scripts (start/stop/restart property+supply; cleanup .DS_Store)
+├── logs/
+├── start-backend.sh
+├── start-frontend.sh
+├── stop-all.sh
+├── status.sh
+└── README.md
 ```
 
 ## 🔧 Manual Setup (if needed)
