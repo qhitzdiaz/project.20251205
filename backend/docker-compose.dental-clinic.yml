@@ -1,0 +1,52 @@
+version: "3.9"
+
+networks:
+  dental-clinic-net:
+    driver: bridge
+
+volumes:
+  dental-clinic-db-data:
+    driver: local
+
+services:
+  postgres-dental-clinic:
+    image: postgres:15-alpine
+    container_name: dental-clinic-postgres
+    environment:
+      POSTGRES_DB: dental_clinic_db
+      POSTGRES_USER: dental_clinic_user
+      POSTGRES_PASSWORD: ${DENTAL_CLINIC_DB_PASSWORD:-dentalpass123}
+    ports:
+      - "5440:5432"
+    volumes:
+      - dental-clinic-db-data:/var/lib/postgresql/data
+    networks:
+      - dental-clinic-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dental_clinic_user -d dental_clinic_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend-dental-clinic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dental-clinic-backend
+    environment:
+      - DENTAL_DATABASE_URL=postgresql://dental_clinic_user:${DENTAL_CLINIC_DB_PASSWORD:-dentalpass123}@postgres-dental-clinic:5432/dental_clinic_db
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - DENTAL_CLINIC_NAME="Compleat Smile Dental Aesthetic"
+    ports:
+      - "0.0.0.0:5015:5013"
+    depends_on:
+      postgres-dental-clinic:
+        condition: service_healthy
+    command: gunicorn -w 2 -b 0.0.0.0:5013 dental_app:app
+    networks:
+      - dental-clinic-net
+    restart: unless-stopped
