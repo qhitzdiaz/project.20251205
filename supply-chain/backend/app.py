@@ -23,7 +23,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-pro
 
 # CORS Configuration
 cors_origin = os.getenv('CORS_ORIGIN', '*')
-CORS(app, resources={r"/api/*": {"origins": cors_origin}})
+CORS(app, resources={r"/*": {"origins": cors_origin}})
 
 # Database
 db = SQLAlchemy(app)

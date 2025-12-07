@@ -21,7 +21,7 @@ import {
   Warning as WarningIcon,
   CheckCircle as CheckIcon,
 } from '@mui/icons-material';
-import { API_URLS } from '../config/apiConfig';
+import { API_URLS } from '../../config/apiConfig';
 
 const Dashboard = () => {
   const theme = useTheme();

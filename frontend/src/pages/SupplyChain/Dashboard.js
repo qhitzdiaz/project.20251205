@@ -8,20 +8,21 @@ import {
   CardContent,
   Typography,
   Button,
+  Stack,
   Chip,
   useTheme,
   CircularProgress,
   Alert,
 } from '@mui/material';
 import {
-  Apartment as PropertyIcon,
-  People as TenantsIcon,
-  Build as MaintenanceIcon,
+  LocalShipping as SupplierIcon,
+  Inventory2 as InventoryIcon,
+  ShoppingCart as PurchaseIcon,
   TrendingUp as TrendingIcon,
   Warning as WarningIcon,
   CheckCircle as CheckIcon,
 } from '@mui/icons-material';
-import { API_URLS } from '../config/apiConfig';
+import { API_URLS } from '../../config/apiConfig';
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -31,11 +32,12 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({
-    totalProperties: 0,
-    totalTenants: 0,
-    activeLeases: 0,
-    maintenanceRequests: 0,
-    pendingMaintenance: 0,
+    totalSuppliers: 0,
+    activeSuppliers: 0,
+    totalProducts: 0,
+    lowStockProducts: 0,
+    pendingOrders: 0,
+    totalOrders: 0,
   });
 
   useEffect(() => {
@@ -46,31 +48,12 @@ const Dashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const [propertiesRes, tenantsRes, leasesRes, maintenanceRes] = await Promise.all([
-        fetch(`${API_URLS.PROPERTY}/properties`),
-        fetch(`${API_URLS.PROPERTY}/tenants`),
-        fetch(`${API_URLS.PROPERTY}/leases`),
-        fetch(`${API_URLS.PROPERTY}/maintenance`),
-      ]);
-
-      if (!propertiesRes.ok || !tenantsRes.ok || !leasesRes.ok || !maintenanceRes.ok) {
-        throw new Error('Failed to load dashboard data');
-      }
-
-      const properties = await propertiesRes.json();
-      const tenants = await tenantsRes.json();
-      const leases = await leasesRes.json();
-      const maintenance = await maintenanceRes.json();
-
-      setStats({
-        totalProperties: properties.length,
-        totalTenants: tenants.length,
-        activeLeases: leases.filter(l => l.status === 'active').length,
-        maintenanceRequests: maintenance.length,
-        pendingMaintenance: maintenance.filter(m => m.status === 'pending' || m.status === 'in_progress').length,
-      });
+      const response = await fetch(`${API_URLS.SUPPLY}/dashboard`);
+      if (!response.ok) throw new Error('Failed to load dashboard data');
+      const data = await response.json();
+      setStats(data);
     } catch (err) {
-      setError('Unable to connect to Property Management API. Please ensure the backend is running.');
+      setError('Unable to connect to Supply Chain API. Please ensure the backend is running.');
     } finally {
       setLoading(false);
     }
@@ -78,41 +61,41 @@ const Dashboard = () => {
 
   const statCards = [
     {
-      title: 'Total Properties',
-      value: stats.totalProperties,
-      subtitle: 'Managed properties',
-      icon: <PropertyIcon sx={{ fontSize: 40 }} />,
-      color: '#1976d2',
-      bgColor: isDark ? 'rgba(25,118,210,0.15)' : 'rgba(25,118,210,0.1)',
-      action: () => navigate('/property/properties'),
+      title: 'Total Suppliers',
+      value: stats.totalSuppliers,
+      subtitle: `${stats.activeSuppliers} active`,
+      icon: <SupplierIcon sx={{ fontSize: 40 }} />,
+      color: '#7c4dff',
+      bgColor: isDark ? 'rgba(124,77,255,0.15)' : 'rgba(124,77,255,0.1)',
+      action: () => navigate('/supply-chain/suppliers'),
     },
     {
-      title: 'Active Tenants',
-      value: stats.totalTenants,
-      subtitle: `${stats.activeLeases} active leases`,
-      icon: <TenantsIcon sx={{ fontSize: 40 }} />,
-      color: '#2e7d32',
-      bgColor: isDark ? 'rgba(46,125,50,0.15)' : 'rgba(46,125,50,0.1)',
-      action: () => navigate('/property/tenants'),
+      title: 'Products in Stock',
+      value: stats.totalProducts,
+      subtitle: `${stats.lowStockProducts} low stock`,
+      icon: <InventoryIcon sx={{ fontSize: 40 }} />,
+      color: '#00acc1',
+      bgColor: isDark ? 'rgba(0,172,193,0.15)' : 'rgba(0,172,193,0.1)',
+      action: () => navigate('/supply-chain/products'),
     },
     {
-      title: 'Maintenance',
-      value: stats.maintenanceRequests,
-      subtitle: `${stats.pendingMaintenance} pending`,
-      icon: <MaintenanceIcon sx={{ fontSize: 40 }} />,
-      color: '#ed6c02',
-      bgColor: isDark ? 'rgba(237,108,2,0.15)' : 'rgba(237,108,2,0.1)',
-      action: () => navigate('/property/maintenance'),
+      title: 'Purchase Orders',
+      value: stats.totalOrders,
+      subtitle: `${stats.pendingOrders} pending`,
+      icon: <PurchaseIcon sx={{ fontSize: 40 }} />,
+      color: '#fb8c00',
+      bgColor: isDark ? 'rgba(251,140,0,0.15)' : 'rgba(251,140,0,0.1)',
+      action: () => navigate('/supply-chain/purchase-orders'),
     },
   ];
 
   const quickActions = [
-    { label: 'Add Property', path: '/property/add', color: '#1976d2' },
-    { label: 'Add Tenant', path: '/property/tenants', color: '#2e7d32' },
-    { label: 'Create Lease', path: '/property/properties', color: '#9c27b0' },
-    { label: 'Log Maintenance', path: '/property/maintenance', color: '#ed6c02' },
-    { label: 'View All Properties', path: '/property/properties', color: '#0288d1' },
-    { label: 'View All Tenants', path: '/property/tenants', color: '#388e3c' },
+    { label: 'Add Supplier', path: '/supply-chain/suppliers/add', color: '#7c4dff' },
+    { label: 'Add Product', path: '/supply-chain/products/add', color: '#00acc1' },
+    { label: 'Create Purchase Order', path: '/supply-chain/purchase-orders/add', color: '#fb8c00' },
+    { label: 'View All Suppliers', path: '/supply-chain/suppliers', color: '#512da8' },
+    { label: 'View All Products', path: '/supply-chain/products', color: '#0097a7' },
+    { label: 'View All Orders', path: '/supply-chain/purchase-orders', color: '#f57c00' },
   ];
 
   if (loading) {
@@ -128,7 +111,7 @@ const Dashboard = () => {
       sx={{
         minHeight: '100vh',
         background: isDark
-          ? 'radial-gradient(circle at 10% 20%, rgba(25,118,210,0.08), transparent 25%), radial-gradient(circle at 90% 10%, rgba(46,125,50,0.1), transparent 25%), linear-gradient(180deg, #0b1021 0%, #0f1a30 40%, #0e172b 100%)'
+          ? 'radial-gradient(circle at 10% 20%, rgba(124,77,255,0.08), transparent 25%), radial-gradient(circle at 90% 10%, rgba(0,172,193,0.1), transparent 25%), linear-gradient(180deg, #0b1021 0%, #0f1a30 40%, #0e172b 100%)'
           : 'linear-gradient(180deg, #f5f7fa 0%, #e8ecf1 50%, #dce3eb 100%)',
         py: 4,
       }}
@@ -137,11 +120,11 @@ const Dashboard = () => {
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Chip
-            label="Property Management"
+            label="Supply Chain Management"
             sx={{
               mb: 2,
-              backgroundColor: isDark ? 'rgba(25,118,210,0.2)' : 'rgba(25,118,210,0.15)',
-              color: isDark ? '#90caf9' : '#1976d2',
+              backgroundColor: isDark ? 'rgba(124,77,255,0.2)' : 'rgba(124,77,255,0.15)',
+              color: isDark ? '#b39dff' : '#7c4dff',
               fontWeight: 600,
               fontSize: '0.875rem',
             }}
@@ -160,7 +143,7 @@ const Dashboard = () => {
             variant="body1"
             sx={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }}
           >
-            Manage properties, tenants, leases, and maintenance requests.
+            Manage suppliers, inventory, and purchase orders from one central workspace.
           </Typography>
         </Box>
 
@@ -177,7 +160,9 @@ const Dashboard = () => {
               <Card
                 elevation={isDark ? 0 : 2}
                 sx={{
-                  background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                  background: isDark
+                    ? 'rgba(255,255,255,0.05)'
+                    : 'white',
                   border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
@@ -247,7 +232,9 @@ const Dashboard = () => {
                       fontWeight: 600,
                       '&:hover': {
                         borderColor: action.color,
-                        backgroundColor: isDark ? `${action.color}20` : `${action.color}15`,
+                        backgroundColor: isDark
+                          ? `${action.color}20`
+                          : `${action.color}15`,
                       },
                     }}
                     onClick={() => navigate(action.path)}
@@ -272,33 +259,39 @@ const Dashboard = () => {
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
               System Status
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <CheckIcon sx={{ color: '#4caf50' }} />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  Property Management API Connected
-                </Typography>
-                <Typography variant="body2" sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }}>
-                  All systems operational
-                </Typography>
-              </Box>
-            </Box>
-            {stats.pendingMaintenance > 0 && (
+            <Stack spacing={2}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <WarningIcon sx={{ color: '#ed6c02' }} />
+                <CheckIcon sx={{ color: '#4caf50' }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {stats.pendingMaintenance} Pending Maintenance Request(s)
+                    Supply Chain API Connected
                   </Typography>
                   <Typography variant="body2" sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }}>
-                    Review and assign maintenance tasks
+                    All systems operational
                   </Typography>
                 </Box>
-                <Button size="small" variant="outlined" onClick={() => navigate('/property/maintenance')}>
-                  View
-                </Button>
               </Box>
-            )}
+              {stats.lowStockProducts > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <WarningIcon sx={{ color: '#fb8c00' }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                      {stats.lowStockProducts} Product(s) Low on Stock
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }}>
+                      Review inventory levels
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => navigate('/supply-chain/products')}
+                  >
+                    View
+                  </Button>
+                </Box>
+              )}
+            </Stack>
           </CardContent>
         </Card>
       </Container>

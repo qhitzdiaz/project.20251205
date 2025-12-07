@@ -83,11 +83,33 @@ qhitz-dev-macos/
 │   └── docker-compose.yml    # Core services only
 ├── frontend/                 # React application
 │   ├── src/
+│   │   ├── pages/
+│   │   │   ├── PropertyManagement/  # Property Management pages
+│   │   │   │   ├── Dashboard.js     # Property dashboard
+│   │   │   │   ├── Properties.js    # Properties CRUD
+│   │   │   │   ├── Tenants.js       # Tenants CRUD
+│   │   │   │   └── Maintenance.js   # Maintenance CRUD
+│   │   │   └── SupplyChain/         # Supply Chain pages
+│   │   │       ├── Dashboard.js     # Supply Chain dashboard
+│   │   │       ├── Suppliers.js     # Suppliers CRUD
+│   │   │       ├── Products.js      # Products CRUD
+│   │   │       └── PurchaseOrders.js # Purchase Orders CRUD
+│   │   ├── config/
+│   │   │   └── apiConfig.js         # Centralized API URLs
+│   │   └── App.js                   # Main app with modern UI
 │   ├── public/
 │   └── package.json
 ├── reverse-proxy/            # Nginx reverse proxy
-├── property-management/      # Property management app (FastAPI + Postgres)
-├── supply-chain/             # Supply chain app (FastAPI + Postgres)
+├── property-management/      # Property management backend (FastAPI + Postgres)
+│   └── backend/
+│       ├── app.py            # FastAPI application
+│       ├── docker-compose.yml
+│       └── requirements.txt
+├── supply-chain/             # Supply chain backend (FastAPI + Postgres)
+│   └── backend/
+│       ├── app.py            # FastAPI application
+│       ├── docker-compose.yml
+│       └── requirements.txt
 ├── dental-clinic/            # Dental clinic reference (use standalone package instead)
 ├── user-admin/               # Admin UI
 ├── scripts/                  # Helper scripts
@@ -163,6 +185,9 @@ npm install
 - ✅ PostgreSQL databases for each service
 - ✅ JWT authentication and authorization
 - ✅ Hot reload for development
+- ✅ Modern, responsive UI with dark/light theme support
+- ✅ Organized sidebar navigation with application sections
+- ✅ Clean, minimalist header design
 
 ### Media Management
 - ✅ Media streaming (MP3, MP4, FLAC)
@@ -171,15 +196,24 @@ npm install
 - ✅ Album art and metadata
 
 ### Business Applications
-- ✅ Property Management (FastAPI)
-  - Property and tenant tracking
-  - Lease management
-  - Maintenance requests
-- ✅ Supply Chain Management (FastAPI)
-  - Supplier and product management
-  - Purchase orders and shipments
-  - Inventory tracking
-- ✅ Dental Clinic (**now available as standalone package**)
+- ✅ **Property Management (FastAPI + React)**
+  - Modern dashboard with real-time statistics
+  - Full CRUD for properties, tenants, and maintenance
+  - Property and tenant tracking with detailed forms
+  - Lease management with active/inactive status
+  - Maintenance request tracking with priority levels
+  - Theme-aware UI with responsive design
+
+- ✅ **Supply Chain Management (FastAPI + React)**
+  - Comprehensive dashboard with inventory insights
+  - Supplier management with rating system
+  - Product catalog with SKU and stock level tracking
+  - Purchase order lifecycle management
+  - Auto-generated order numbers
+  - Stock status indicators (In Stock, Low, Critical, Out of Stock)
+  - Theme-aware UI with responsive design
+
+- ✅ **Dental Clinic** (**now available as standalone package**)
   - Patient management with OCR
   - Appointment scheduling
   - Treatment records
@@ -192,6 +226,33 @@ npm install
 - ✅ Folder organization
 - ✅ File sharing
 - ✅ Document management
+
+## 🎨 User Interface
+
+### Modern Design
+- **Clean Header**: Minimalist design with logo, theme toggle, and login/logout button
+- **Organized Sidebar**: Section-based navigation with Applications and Resources categories
+- **Dark/Light Themes**: Full theme support across all pages with smooth transitions
+- **Responsive Layout**: Mobile-first design that adapts to all screen sizes
+- **Material-UI Components**: Professional, accessible UI components
+
+### Application Navigation
+- **Applications Section**:
+  - Media Player
+  - Cloud Storage
+  - Property Management
+  - Supply Chain
+
+- **Resources Section**:
+  - Documentation
+  - Support
+
+### Dashboard Features
+Each application includes a dedicated dashboard with:
+- Real-time statistics cards
+- Quick action buttons
+- System status indicators
+- Visual data representation with color-coded metrics
 
 ## 🎨 Development
 
@@ -248,10 +309,22 @@ For quick reference, see individual service files:
 
 ## 📞 Support
 
-- Version: 2.1.0
+- Version: 2.2.0
 - Platform: macOS
 - Build Date: December 7, 2025
+- Last Updated: December 7, 2025
 - Email: qhitz@qhitz.com
+
+## 🎉 Recent Updates (v2.2.0)
+
+- ✨ Modernized UI with clean header and organized sidebar
+- ✨ Complete Property Management application with full CRUD operations
+- ✨ Complete Supply Chain Management application with full CRUD operations
+- ✨ Enhanced dark/light theme support across all pages
+- ✨ Responsive design improvements for mobile devices
+- ✨ Centralized API configuration for easier maintenance
+- 🔧 Fixed CORS configuration for Supply Chain API
+- 🔧 Improved navigation structure with section headers
 
 ---
 

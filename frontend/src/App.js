@@ -56,8 +56,6 @@ import {
 import MediaPlayerApp from './pages/MediaPlayerApp';
 import CloudStorageApp from './pages/CloudStorageApp';
 import PropertyApp from './pages/PropertyApp';
-import SupplyChainPage from './pages/SupplyChainApp';
-import AddProductPage from './pages/AddProductPage';
 import AddPropertyPage from './pages/AddPropertyPage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
 import TenantDetailPage from './pages/TenantDetailPage';
@@ -66,6 +64,18 @@ import AboutUs from './pages/AboutUs';
 import Documentation from './pages/Documentation';
 import Support from './pages/Support';
 import { API_URL } from './config/apiConfig';
+
+// Supply Chain pages
+import SupplyChainDashboard from './pages/SupplyChain/Dashboard';
+import SupplyChainSuppliers from './pages/SupplyChain/Suppliers';
+import SupplyChainProducts from './pages/SupplyChain/Products';
+import SupplyChainPurchaseOrders from './pages/SupplyChain/PurchaseOrders';
+
+// Property Management pages
+import PropertyDashboard from './pages/PropertyManagement/Dashboard';
+import PropertyProperties from './pages/PropertyManagement/Properties';
+import PropertyTenants from './pages/PropertyManagement/Tenants';
+import PropertyMaintenance from './pages/PropertyManagement/Maintenance';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -298,10 +308,9 @@ function AppContent() {
             variant="h6"
             component="div"
             sx={{
-              flexGrow: 0,
+              flexGrow: 1,
               fontWeight: 700,
               cursor: 'pointer',
-              mr: 4,
               background: themeMode === 'dark'
                 ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
                 : 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
@@ -313,113 +322,6 @@ function AppContent() {
           >
             Qhitz Inc.
           </Typography>
-
-          {/* Header Navigation */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 1 }}>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Home
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/about')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              About
-            </Button>
-
-            {/* Applications Dropdown */}
-            <Button
-              color="inherit"
-              endIcon={<ArrowDropDownIcon />}
-              onClick={(e) => setAppsMenuAnchor(e.currentTarget)}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Applications
-            </Button>
-            <Menu
-              anchorEl={appsMenuAnchor}
-              open={Boolean(appsMenuAnchor)}
-              onClose={() => setAppsMenuAnchor(null)}
-              PaperProps={{
-                sx: {
-                  backdropFilter: 'blur(20px)',
-                  backgroundColor: themeMode === 'dark'
-                    ? 'rgba(30, 30, 30, 0.95)'
-                    : 'rgba(255, 255, 255, 0.95)',
-                  mt: 1,
-                }
-              }}
-            >
-              <MenuItem onClick={() => handleAppNavigation('/media')}>
-                <ListItemIcon><MediaIcon fontSize="small" /></ListItemIcon>
-                Media Player
-              </MenuItem>
-              <MenuItem onClick={() => handleAppNavigation('/cloud')}>
-                <ListItemIcon><CloudIcon fontSize="small" /></ListItemIcon>
-                Cloud Storage
-              </MenuItem>
-              <MenuItem onClick={() => handleAppNavigation('/property')}>
-                <ListItemIcon><PropertyIcon fontSize="small" /></ListItemIcon>
-                Property Management
-              </MenuItem>
-            </Menu>
-
-            <Button
-              color="inherit"
-              onClick={() => navigate('/supply-chain')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Supply Chain
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/documentation')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Documentation
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/support')}
-              sx={{
-                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
-                },
-              }}
-            >
-              Support
-            </Button>
-          </Box>
 
           {/* Theme Toggle */}
           <IconButton
@@ -435,6 +337,57 @@ function AppContent() {
           >
             {themeMode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
           </IconButton>
+
+          {/* Login/Logout Button */}
+          {isLoggedIn ? (
+            <Button
+              color="inherit"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+                ml: 1,
+                display: { xs: 'none', md: 'flex' },
+              }}
+            >
+              Logout
+            </Button>
+          ) : (
+            <Button
+              color="inherit"
+              startIcon={<LoginIcon />}
+              onClick={() => setLoginDialogOpen(true)}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+                ml: 1,
+                display: { xs: 'none', md: 'flex' },
+              }}
+            >
+              Login
+            </Button>
+          )}
+
+          {/* User Avatar (Desktop) */}
+          {isLoggedIn && (
+            <Box sx={{ ml: 2, display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: theme.palette.primary.main,
+                  cursor: 'pointer',
+                }}
+              >
+                {user?.username?.charAt(0).toUpperCase()}
+              </Avatar>
+            </Box>
+          )}
         </Toolbar>
       </AppBar>
 
@@ -491,7 +444,12 @@ function AppContent() {
                 <ListItemIcon><InfoIcon /></ListItemIcon>
                 <ListItemText primary="About Us" />
               </ListItemButton>
+
               <Divider sx={{ my: 1 }} />
+              <Typography variant="overline" sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 600 }}>
+                Applications
+              </Typography>
+
               <ListItemButton onClick={() => { handleAppNavigation('/media'); setDrawerOpen(false); }}>
                 <ListItemIcon><MediaIcon /></ListItemIcon>
                 <ListItemText primary="Media Player" />
@@ -504,18 +462,19 @@ function AppContent() {
                 <ListItemIcon><PropertyIcon /></ListItemIcon>
                 <ListItemText primary="Property Management" />
               </ListItemButton>
-              <ListItemButton onClick={() => { navigate('/property/add'); setDrawerOpen(false); }}>
-                <ListItemIcon><PropertyIcon /></ListItemIcon>
-                <ListItemText primary="Add Property" />
-              </ListItemButton>
-              <Divider sx={{ my: 1 }} />
-              <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
-                <ListItemIcon><DocIcon /></ListItemIcon>
-                <ListItemText primary="Documentation" />
-              </ListItemButton>
               <ListItemButton onClick={() => { navigate('/supply-chain'); setDrawerOpen(false); }}>
                 <ListItemIcon><SupplyIcon /></ListItemIcon>
                 <ListItemText primary="Supply Chain" />
+              </ListItemButton>
+
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="overline" sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 600 }}>
+                Resources
+              </Typography>
+
+              <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
+                <ListItemIcon><DocIcon /></ListItemIcon>
+                <ListItemText primary="Documentation" />
               </ListItemButton>
               <ListItemButton onClick={() => { navigate('/support'); setDrawerOpen(false); }}>
                 <ListItemIcon><SupportIcon /></ListItemIcon>
@@ -667,14 +626,26 @@ function AppContent() {
           {/* Application Pages */}
           <Route path="/media" element={isLoggedIn ? <MediaPlayerApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/cloud" element={isLoggedIn ? <CloudStorageApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
-          <Route path="/property" element={isLoggedIn ? <PropertyApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+
+          {/* Property Management Pages */}
+          <Route path="/property" element={isLoggedIn ? <PropertyDashboard /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/properties" element={isLoggedIn ? <PropertyProperties /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/tenants" element={isLoggedIn ? <PropertyTenants /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/maintenance" element={isLoggedIn ? <PropertyMaintenance /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/add" element={isLoggedIn ? <AddPropertyPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/:id" element={isLoggedIn ? <PropertyDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/tenants/:id" element={isLoggedIn ? <TenantDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/maintenance/:id" element={isLoggedIn ? <MaintenanceDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
-          <Route path="/supply-chain" element={<SupplyChainPage />} />
-          <Route path="/supply-chain/add-product" element={<AddProductPage />} />
-          
+
+          {/* Supply Chain Pages */}
+          <Route path="/supply-chain" element={<SupplyChainDashboard />} />
+          <Route path="/supply-chain/suppliers" element={<SupplyChainSuppliers />} />
+          <Route path="/supply-chain/suppliers/add" element={<SupplyChainSuppliers />} />
+          <Route path="/supply-chain/products" element={<SupplyChainProducts />} />
+          <Route path="/supply-chain/products/add" element={<SupplyChainProducts />} />
+          <Route path="/supply-chain/purchase-orders" element={<SupplyChainPurchaseOrders />} />
+          <Route path="/supply-chain/purchase-orders/add" element={<SupplyChainPurchaseOrders />} />
+
           {/* Info Pages */}
           <Route path="/about" element={<AboutUs />} />
           <Route path="/documentation" element={<Documentation />} />
