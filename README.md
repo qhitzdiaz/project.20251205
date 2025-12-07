@@ -47,7 +47,7 @@ bash setup-macos.sh
 - **Media API**: http://localhost:5011
 - **Cloud API**: http://localhost:5012
 - **Property API**: http://localhost:5050
-- **Supply Chain API**: http://localhost:5060
+- **Supply Chain API**: http://localhost:5070
 - **Reverse Proxy**: http://localhost (routes `/api/auth`, `/api/media`, `/api/cloud`, `/api/property`, `/api/supply`)
 
 **Note:** The Dental Clinic application has been separated into its own standalone package. See the `dental-clinic-package` directory for the independent dental clinic management system.

@@ -56,7 +56,12 @@ import {
 import MediaPlayerApp from './pages/MediaPlayerApp';
 import CloudStorageApp from './pages/CloudStorageApp';
 import PropertyApp from './pages/PropertyApp';
-import SupplyChainApp from './pages/SupplyChainApp';
+import SupplyChainPage from './pages/SupplyChainApp';
+import AddProductPage from './pages/AddProductPage';
+import AddPropertyPage from './pages/AddPropertyPage';
+import PropertyDetailPage from './pages/PropertyDetailPage';
+import TenantDetailPage from './pages/TenantDetailPage';
+import MaintenanceDetailPage from './pages/MaintenanceDetailPage';
 import AboutUs from './pages/AboutUs';
 import Documentation from './pages/Documentation';
 import Support from './pages/Support';
@@ -230,12 +235,12 @@ function AppContent() {
     },
     {
       id: 'supply',
-      title: 'Supply Chain',
-      description: 'Suppliers, purchase orders, inventory, and shipments',
-      icon: <SupplyIcon sx={{ fontSize: 60, color: '#6d4c41' }} />,
-      color: '#6d4c41',
+      title: 'Supply Chain Workspace',
+      description: 'Curated playbook for suppliers, purchasing, and inventory truth.',
+      icon: <SupplyIcon sx={{ fontSize: 60, color: '#512da8' }} />,
+      color: '#512da8',
       path: '/supply-chain',
-      features: ['Dashboard', 'Purchase Orders', 'Inventory', 'Shipments']
+      features: ['Add products fast', 'Supplier visibility', 'Execution playbooks', 'Exception routing']
     },
   ];
 
@@ -376,12 +381,20 @@ function AppContent() {
                 <ListItemIcon><PropertyIcon fontSize="small" /></ListItemIcon>
                 Property Management
               </MenuItem>
-              <MenuItem onClick={() => handleAppNavigation('/supply-chain')}>
-                <ListItemIcon><SupplyIcon fontSize="small" /></ListItemIcon>
-                Supply Chain
-              </MenuItem>
             </Menu>
 
+            <Button
+              color="inherit"
+              onClick={() => navigate('/supply-chain')}
+              sx={{
+                color: themeMode === 'dark' ? '#fff' : theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+                },
+              }}
+            >
+              Supply Chain
+            </Button>
             <Button
               color="inherit"
               onClick={() => navigate('/documentation')}
@@ -491,14 +504,18 @@ function AppContent() {
                 <ListItemIcon><PropertyIcon /></ListItemIcon>
                 <ListItemText primary="Property Management" />
               </ListItemButton>
-              <ListItemButton onClick={() => { handleAppNavigation('/supply-chain'); setDrawerOpen(false); }}>
-                <ListItemIcon><SupplyIcon /></ListItemIcon>
-                <ListItemText primary="Supply Chain" />
+              <ListItemButton onClick={() => { navigate('/property/add'); setDrawerOpen(false); }}>
+                <ListItemIcon><PropertyIcon /></ListItemIcon>
+                <ListItemText primary="Add Property" />
               </ListItemButton>
               <Divider sx={{ my: 1 }} />
               <ListItemButton onClick={() => { navigate('/documentation'); setDrawerOpen(false); }}>
                 <ListItemIcon><DocIcon /></ListItemIcon>
                 <ListItemText primary="Documentation" />
+              </ListItemButton>
+              <ListItemButton onClick={() => { navigate('/supply-chain'); setDrawerOpen(false); }}>
+                <ListItemIcon><SupplyIcon /></ListItemIcon>
+                <ListItemText primary="Supply Chain" />
               </ListItemButton>
               <ListItemButton onClick={() => { navigate('/support'); setDrawerOpen(false); }}>
                 <ListItemIcon><SupportIcon /></ListItemIcon>
@@ -566,21 +583,76 @@ function AppContent() {
                     <Grid container spacing={3}>
                       {applications.map((app) => (
                         <Grid item xs={12} md={4} key={app.id}>
-                          <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 } }}>
+                          <Card
+                            elevation={4}
+                            sx={{
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              transition: 'transform 0.2s, box-shadow 0.2s',
+                              '&:hover': { transform: 'translateY(-4px)', boxShadow: 8 },
+                            }}
+                          >
                             <CardContent sx={{ flexGrow: 1 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>{app.icon}</Box>
-                              <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>{app.title}</Typography>
-                              <Typography variant="body2" color="text.secondary" paragraph sx={{ textAlign: 'center' }}>{app.description}</Typography>
+                              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                                {app.id === 'supply' ? (
+                                  <Box
+                                    sx={{
+                                      width: 84,
+                                      height: 84,
+                                      borderRadius: '50%',
+                                      display: 'grid',
+                                      placeItems: 'center',
+                                      background: 'radial-gradient(circle at 30% 30%, #7c4dff, #311b92)',
+                                      boxShadow: '0 10px 30px rgba(81,45,168,0.35)',
+                                    }}
+                                  >
+                                    {app.icon}
+                                  </Box>
+                                ) : (
+                                  app.icon
+                                )}
+                              </Box>
+                              <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 700 }}>
+                                {app.title}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" paragraph sx={{ textAlign: 'center' }}>
+                                {app.description}
+                              </Typography>
                               <Divider sx={{ my: 2 }} />
-                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>Features:</Typography>
+                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 700 }}>Features:</Typography>
                               <Box component="ul" sx={{ pl: 2, mt: 1 }}>
                                 {app.features.map((feature, idx) => (
-                                  <Typography component="li" variant="body2" key={idx} sx={{ mb: 0.5 }}>{feature}</Typography>
+                                  <Typography component="li" variant="body2" key={idx} sx={{ mb: 0.5 }}>
+                                    {feature}
+                                  </Typography>
                                 ))}
                               </Box>
                             </CardContent>
-                            <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
-                              <Button variant="contained" size="large" sx={{ backgroundColor: app.color }} onClick={() => navigate(app.path)}>Open Application</Button>
+                            <CardActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
+                              {app.id === 'supply' ? (
+                                <>
+                                  <Button
+                                    variant="contained"
+                                    size="medium"
+                                    sx={{ backgroundColor: app.color }}
+                                    onClick={() => navigate(app.path)}
+                                  >
+                                    Open workspace
+                                  </Button>
+                                  <Button
+                                    variant="outlined"
+                                    size="medium"
+                                    onClick={() => navigate('/supply-chain/add-product')}
+                                  >
+                                    Add product
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button variant="contained" size="large" sx={{ backgroundColor: app.color }} onClick={() => navigate(app.path)}>
+                                  Open Application
+                                </Button>
+                              )}
                             </CardActions>
                           </Card>
                         </Grid>
@@ -596,7 +668,12 @@ function AppContent() {
           <Route path="/media" element={isLoggedIn ? <MediaPlayerApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/cloud" element={isLoggedIn ? <CloudStorageApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property" element={isLoggedIn ? <PropertyApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
-          <Route path="/supply-chain" element={isLoggedIn ? <SupplyChainApp /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/add" element={isLoggedIn ? <AddPropertyPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/:id" element={isLoggedIn ? <PropertyDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/tenants/:id" element={isLoggedIn ? <TenantDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/maintenance/:id" element={isLoggedIn ? <MaintenanceDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain" element={<SupplyChainPage />} />
+          <Route path="/supply-chain/add-product" element={<AddProductPage />} />
           
           {/* Info Pages */}
           <Route path="/about" element={<AboutUs />} />
@@ -618,7 +695,7 @@ function AppContent() {
             <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Qhitz Inc.</Typography>
               <Typography variant="body2" color="text.secondary">
-                Complete business management system with multimedia, cloud storage, property, and supply chain modules.
+                Complete business management system with multimedia, cloud storage, property, and a dedicated supply chain workspace.
               </Typography>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -626,6 +703,8 @@ function AppContent() {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/')}>Home</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/about')}>About Us</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/supply-chain')}>Supply Chain</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/property/add')}>Add Property</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/documentation')}>Documentation</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/support')}>Support</Typography>
               </Box>

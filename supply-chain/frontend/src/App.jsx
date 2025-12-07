@@ -147,7 +147,7 @@ function App() {
       setShipments(sh);
       setLastUpdated(new Date());
     } catch (err) {
-      setError('Unable to load supply chain data. Ensure the backend (port 5060) is running.');
+      setError('Unable to load supply chain data. Ensure the backend (port 5070) is running.');
     } finally {
       setLoading(false);
     }

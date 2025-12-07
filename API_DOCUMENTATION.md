@@ -32,7 +32,7 @@ The Qhitz application consists of multiple microservices, each running independe
 | Cloud Storage | 5012 | cloud_db | Flask | File storage and sharing |
 | Dental Clinic | 5015 | dental_clinic | Flask | Dental practice management |
 | Property Management | 5050 | property_db | FastAPI | Property and lease management |
-| Supply Chain | 5060 | supplychain_db | FastAPI | Supply chain and inventory |
+| Supply Chain | 5070 | supplychain_db | FastAPI | Supply chain and inventory |
 
 ### Base URLs
 
@@ -42,7 +42,7 @@ The Qhitz application consists of multiple microservices, each running independe
 - Cloud: `http://localhost:5012/api`
 - Dental: `http://localhost:5015/api`
 - Property: `http://localhost:5050/api`
-- Supply Chain: `http://localhost:5060/api`
+- Supply Chain: `http://localhost:5070/api`
 
 **Production (example):**
 - Auth: `http://192.168.2.98:5010/api`
@@ -50,7 +50,7 @@ The Qhitz application consists of multiple microservices, each running independe
 - Cloud: `http://192.168.2.98:5012/api`
 - Dental: `http://192.168.2.98:5015/api`
 - Property: `http://192.168.2.98:5050/api`
-- Supply Chain: `http://192.168.2.98:5060/api`
+- Supply Chain: `http://192.168.2.98:5070/api`
 
 ---
 
@@ -1349,7 +1349,7 @@ GET /api/dashboard
 
 ## Supply Chain Service
 
-**Base URL:** `http://localhost:5060/api`
+**Base URL:** `http://localhost:5070/api`
 **Database:** supplychain_db
 **Technology:** FastAPI + PostgreSQL
 

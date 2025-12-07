@@ -1,236 +1,402 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  Grid,
-  Paper,
-  Typography,
-  CircularProgress,
-  Alert,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
+  Card,
+  CardContent,
   Chip,
-  Button,
-  TextField,
+  Container,
+  Divider,
+  Grid,
   Stack,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
 } from '@mui/material';
+import {
+  LocalShipping as LocalShippingIcon,
+  Inventory2 as InventoryIcon,
+  Timeline as TimelineIcon,
+  Verified as VerifiedIcon,
+  Bolt as BoltIcon,
+  Insights as InsightsIcon,
+  Add as AddIcon,
+} from '@mui/icons-material';
 import { API_URLS } from '../config/apiConfig';
 
-const Card = ({ title, value, accent }) => (
-  <Paper elevation={3} sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-    <Typography variant="subtitle2" color="text.secondary">{title}</Typography>
-    <Chip label={value} color={accent} />
-  </Paper>
-);
+const highlights = [
+  {
+    title: 'Supplier visibility',
+    description: 'Scorecards, lead times, and clear ownership for every vendor relationship.',
+    icon: <LocalShippingIcon sx={{ color: '#7c4dff' }} />,
+  },
+  {
+    title: 'Inventory control',
+    description: 'Track inbound, on-hand, and reserved stock with calibrated safety levels.',
+    icon: <InventoryIcon sx={{ color: '#00acc1' }} />,
+  },
+  {
+    title: 'Execution playbooks',
+    description: 'Issue POs, capture receipts, and route exceptions with a predictable rhythm.',
+    icon: <TimelineIcon sx={{ color: '#fb8c00' }} />,
+  },
+];
 
-const SupplyChainApp = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [dashboard, setDashboard] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [shipments, setShipments] = useState([]);
+const pillars = [
+  {
+    label: 'Assurance',
+    headline: 'Audit-ready by design',
+    copy: 'Proof points for every movement: approvals, timestamps, attachments, and supplier acknowledgements.',
+    icon: <VerifiedIcon color="success" />,
+  },
+  {
+    label: 'Speed',
+    headline: 'Shorten cycle times',
+    copy: 'Pre-built templates, auto-filled reorder points, and SLA timers keep teams moving.',
+    icon: <BoltIcon color="warning" />,
+  },
+  {
+    label: 'Insight',
+    headline: 'Decisions in real time',
+    copy: 'A single operational lens with margin impact, risk flags, and landed-cost visibility.',
+    icon: <InsightsIcon color="info" />,
+  },
+];
+
+const steps = [
+  'Model suppliers, SKUs, and lanes with your own rules.',
+  'Publish playbooks for purchasing, receiving, and exception handling.',
+  'Track every movement in one timeline and surface the risks automatically.',
+  'Share a clean summary with finance, ops, and partners—no extra spreadsheets.',
+];
+
+const SupplyChainPage = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
-    sku: '',
     name: '',
-    description: '',
-    supplier_id: '',
-    unit_cost: '',
-    reorder_level: '',
-    reorder_quantity: '',
+    sku: '',
+    category: '',
+    unitPrice: '',
+    quantity: '',
+    reorderLevel: '',
+    unitOfMeasure: '',
+    safetyStock: '',
+    leadTimeDays: '',
   });
-  const [formError, setFormError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
+  const handleSubmit = async () => {
     setError('');
+    if (!form.name || !form.sku) {
+      setError('Name and SKU are required.');
+      return;
+    }
+    setLoading(true);
     try {
-      const [dRes, pRes, poRes, sRes, supRes] = await Promise.all([
-        fetch(`${API_URLS.SUPPLY}/dashboard`).then((r) => r.json()),
-        fetch(`${API_URLS.SUPPLY}/products`).then((r) => r.json()),
-        fetch(`${API_URLS.SUPPLY}/purchase-orders`).then((r) => r.json()),
-        fetch(`${API_URLS.SUPPLY}/shipments`).then((r) => r.json()),
-        fetch(`${API_URLS.SUPPLY}/suppliers`).then((r) => r.json()),
-      ]);
-      setDashboard(dRes);
-      setProducts(pRes);
-      setPurchaseOrders(poRes);
-      setShipments(sRes);
-      setSuppliers(supRes);
+      const payload = {
+        name: form.name,
+        sku: form.sku,
+        category: form.category,
+        unit_price: form.unitPrice ? parseFloat(form.unitPrice) : 0,
+        unit_of_measure: form.unitOfMeasure,
+        quantity_in_stock: form.quantity ? parseInt(form.quantity, 10) : 0,
+        reorder_level: form.reorderLevel ? parseInt(form.reorderLevel, 10) : 0,
+        safety_stock: form.safetyStock ? parseInt(form.safetyStock, 10) : 0,
+        lead_time_days: form.leadTimeDays ? parseInt(form.leadTimeDays, 10) : 0,
+        status: 'available',
+      };
+      const res = await fetch(`${API_URLS.SUPPLY}/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Unable to save product.');
+      }
+      setSubmitted(true);
+      setForm({
+        name: '',
+        sku: '',
+        category: '',
+        unitPrice: '',
+        quantity: '',
+        reorderLevel: '',
+        unitOfMeasure: '',
+        safetyStock: '',
+        leadTimeDays: '',
+      });
+      setTimeout(() => setSubmitted(false), 1800);
+      setTimeout(() => setDialogOpen(false), 300);
     } catch (err) {
-      setError('Cannot reach Supply Chain API (port 5060). Make sure docker-compose in supply-chain/backend is running.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateProduct = async () => {
-    setFormError('');
-    if (!form.sku || !form.name) {
-      setFormError('SKU and Name are required.');
-      return;
-    }
-    try {
-      const resp = await fetch(`${API_URLS.SUPPLY}/products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sku: form.sku,
-          name: form.name,
-          description: form.description,
-          supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
-          unit_cost: Number(form.unit_cost || 0),
-          unit: 'pcs',
-          reorder_level: Number(form.reorder_level || 0),
-          reorder_quantity: Number(form.reorder_quantity || 0),
-        }),
-      });
-      if (!resp.ok) {
-        const msg = (await resp.json())?.detail || 'Failed to create product';
-        setFormError(msg);
-        return;
-      }
-      setForm({
-        sku: '',
-        name: '',
-        description: '',
-        supplier_id: '',
-        unit_cost: '',
-        reorder_level: '',
-        reorder_quantity: '',
-      });
-      await load();
-    } catch {
-      setFormError('Failed to create product');
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <Box sx={{ p: 4, display: 'grid', placeItems: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ p: { xs: 2, md: 4 } }}>
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-        Supply Chain Management
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Track suppliers, products, purchase orders, shipments, and low-stock alerts. This view uses the dedicated Supply Chain API on port 5060.
-      </Typography>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'radial-gradient(circle at 10% 20%, rgba(124,77,255,0.08), transparent 25%), radial-gradient(circle at 90% 10%, rgba(0,172,193,0.1), transparent 25%), linear-gradient(180deg, #0b1021 0%, #0f1a30 40%, #0e172b 100%)',
+        color: 'white',
+        py: { xs: 6, md: 10 },
+      }}
+    >
+      <Container maxWidth="lg">
+        <Box sx={{ maxWidth: 760, mb: 6 }}>
+          <Chip
+            label="New supply chain workspace"
+            sx={{
+              mb: 2,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              color: 'white',
+              borderRadius: 2,
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+            }}
+          />
+          <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1.2, mb: 2 }}>
+            Build a predictable supply chain with fewer clicks and clearer signals.
+          </Typography>
+          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.75)', mb: 4 }}>
+            One focused workspace for suppliers, purchase orchestration, and inventory truth—without bolting on extra tools.
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddIcon />}
+              sx={{ backgroundColor: '#7c4dff', '&:hover': { backgroundColor: '#6a40e6' }, minWidth: 200 }}
+              onClick={() => setDialogOpen(true)}
+            >
+              Add product
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              sx={{
+                borderColor: 'rgba(255,255,255,0.4)',
+                color: 'white',
+                minWidth: 180,
+                '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.05)' },
+              }}
+              href="/supply-chain/add-product"
+            >
+              Open add-product page
+            </Button>
+          </Stack>
+        </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      {dashboard && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}><Card title="Suppliers" value={dashboard.suppliers} accent="primary" /></Grid>
-          <Grid item xs={12} sm={6} md={3}><Card title="Products" value={dashboard.products} accent="success" /></Grid>
-          <Grid item xs={12} sm={6} md={3}><Card title="Open POs" value={dashboard.open_purchase_orders} accent="warning" /></Grid>
-          <Grid item xs={12} sm={6} md={3}><Card title="Shipments In Transit" value={dashboard.shipments_in_transit} accent="info" /></Grid>
-        </Grid>
-      )}
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Products</Typography>
-            <Divider sx={{ mb: 1 }} />
-            <List dense>
-              {products.map((p) => (
-                <ListItem key={p.id} divider>
-                  <ListItemText
-                    primary={`${p.name} (${p.sku})`}
-                    secondary={`Supplier: ${p.supplier?.name || '—'} • On hand: ${p.stock_on_hand}`}
-                  />
-                  {p.reorder_level && p.stock_on_hand <= p.reorder_level && (
-                    <Chip label="Reorder" color="warning" size="small" />
-                  )}
-                </ListItem>
-              ))}
-              {!products.length && <Typography color="text.secondary">No products yet.</Typography>}
-            </List>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Add Product</Typography>
-            {formError && <Alert severity="error" sx={{ mb: 1 }}>{formError}</Alert>}
-            <Stack spacing={1.5}>
-              <TextField label="SKU *" size="small" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
-              <TextField label="Name *" size="small" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              <TextField label="Description" size="small" multiline minRows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-              <TextField
-                select
-                SelectProps={{ native: true }}
-                label="Supplier"
-                size="small"
-                value={form.supplier_id}
-                onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
-              >
-                <option value="">Select supplier</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </TextField>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <TextField label="Unit Cost" type="number" size="small" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} />
-                <TextField label="Reorder Level" type="number" size="small" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} />
-                <TextField label="Reorder Qty" type="number" size="small" value={form.reorder_quantity} onChange={(e) => setForm({ ...form, reorder_quantity: e.target.value })} />
-              </Stack>
-              <Button variant="contained" onClick={handleCreateProduct}>Save Product</Button>
-            </Stack>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Purchase Orders</Typography>
-            <Divider sx={{ mb: 1 }} />
-            <List dense>
-              {purchaseOrders.map((po) => (
-                <ListItem key={po.id} divider>
-                  <ListItemText
-                    primary={`${po.reference} • ${po.status}`}
-                    secondary={`Supplier: ${po.supplier?.name || '—'} • Lines: ${po.items?.length || 0} • Total: $${po.total_amount?.toFixed(2)}`}
-                  />
-                  <Chip size="small" label={po.status} color={po.status === 'received' ? 'success' : 'info'} />
-                </ListItem>
-              ))}
-              {!purchaseOrders.length && <Typography color="text.secondary">No purchase orders yet.</Typography>}
-            </List>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Shipments</Typography>
-            <Divider sx={{ mb: 1 }} />
-            <List dense>
-              {shipments.map((s) => (
-                <ListItem key={s.id} divider>
-                  <ListItemText
-                    primary={`${s.carrier || 'Carrier TBD'} • ${s.status}`}
-                    secondary={`PO ${s.purchase_order_id || 'N/A'} • Tracking ${s.tracking_number || '—'} • ETA ${s.eta || '—'}`}
-                  />
-                  <Chip size="small" label={s.status} color={s.status === 'delivered' ? 'success' : 'info'} />
-                </ListItem>
-              ))}
-              {!shipments.length && <Typography color="text.secondary">No shipments yet.</Typography>}
-            </List>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-              <Button variant="outlined" onClick={load}>Refresh</Button>
-            </Box>
-          </Paper>
-        </Grid>
+        <Grid container spacing={3} sx={{ mb: 5 }}>
+          {highlights.map((item) => (
+            <Grid item xs={12} md={4} key={item.title}>
+              <Card
+                elevation={0}
+              sx={{
+                height: '100%',
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  {item.icon}
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'white' }}>
+                    {item.title}
+                  </Typography>
+                </Box>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  {item.description}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
+
+        <Grid container spacing={3} sx={{ mb: 6 }}>
+          {pillars.map((pillar) => (
+            <Grid item xs={12} md={4} key={pillar.label}>
+              <Card
+                elevation={0}
+              sx={{
+                height: '100%',
+                backgroundColor: 'rgba(15, 23, 43, 0.9)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              <CardContent>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                  {pillar.icon}
+                  <Chip label={pillar.label} size="small" sx={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                </Stack>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'white', mb: 1 }}>
+                  {pillar.headline}
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.75)' }}>
+                  {pillar.copy}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 6,
+            backgroundColor: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <CardContent>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'white', mb: 2 }}>
+              How we roll it out
+            </Typography>
+            <Grid container spacing={2}>
+              {steps.map((step, index) => (
+                <Grid item xs={12} sm={6} key={step}>
+                  <Box sx={{ p: 2.5, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.04)' }}>
+                    <Stack direction="row" spacing={2} alignItems="flex-start">
+                      <Chip
+                        label={String(index + 1).padStart(2, '0')}
+                        sx={{ backgroundColor: '#7c4dff', color: 'white', borderRadius: 1 }}
+                        size="small"
+                      />
+                      <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+                        {step}
+                      </Typography>
+                    </Stack>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            backgroundColor: '#0f1c36',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+          }}
+        >
+          <CardContent>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'white', mb: 1 }}>
+              Ready when you are
+            </Typography>
+            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.75)', mb: 3 }}>
+              Drop us into your next planning session. We will map suppliers, SKUs, and approvals into one clear workspace.
+            </Typography>
+            <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mb: 3 }} />
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Button
+                variant="contained"
+                size="large"
+                sx={{ backgroundColor: '#00acc1', '&:hover': { backgroundColor: '#0097a7' }, minWidth: 200 }}
+              >
+                Schedule a walkthrough
+              </Button>
+              <Button
+                variant="text"
+                size="large"
+                sx={{ color: 'white', minWidth: 200, textDecoration: 'underline' }}
+              >
+                See the implementation checklist
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Container>
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Add a product</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Product name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+            />
+            <TextField
+              label="SKU"
+              value={form.sku}
+              onChange={(e) => setForm({ ...form, sku: e.target.value })}
+              required
+            />
+            <TextField
+              label="Category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            />
+            <TextField
+              label="Unit of measure"
+              value={form.unitOfMeasure}
+              onChange={(e) => setForm({ ...form, unitOfMeasure: e.target.value })}
+            />
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                label="Unit price"
+                type="number"
+                inputProps={{ step: '0.01' }}
+                value={form.unitPrice}
+                onChange={(e) => setForm({ ...form, unitPrice: e.target.value })}
+                fullWidth
+              />
+              <TextField
+                label="On-hand qty"
+                type="number"
+                value={form.quantity}
+                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                fullWidth
+              />
+              <TextField
+                label="Reorder level"
+                type="number"
+                value={form.reorderLevel}
+                onChange={(e) => setForm({ ...form, reorderLevel: e.target.value })}
+                fullWidth
+              />
+              <TextField
+                label="Safety stock"
+                type="number"
+                value={form.safetyStock}
+                onChange={(e) => setForm({ ...form, safetyStock: e.target.value })}
+                fullWidth
+              />
+              <TextField
+                label="Lead time (days)"
+                type="number"
+                value={form.leadTimeDays}
+                onChange={(e) => setForm({ ...form, leadTimeDays: e.target.value })}
+                fullWidth
+              />
+            </Stack>
+            {error && <Alert severity="error">{error}</Alert>}
+            {submitted && <Alert severity="success">Product saved to Supply Chain API.</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Saving...' : 'Save product'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-export default SupplyChainApp;
+export default SupplyChainPage;

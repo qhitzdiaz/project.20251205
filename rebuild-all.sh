@@ -17,6 +17,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 REVERSE_PROXY_DIR="$SCRIPT_DIR/reverse-proxy"
+CORE_PROJECT="qhitz-core"
+SUPPLY_PROJECT="qhitz-supply"
+PROPERTY_PROJECT="qhitz-property"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Qhitz Inc - Complete Rebuild Script${NC}"
@@ -27,7 +30,13 @@ echo ""
 echo -e "${YELLOW}[1/8] Stopping all containers...${NC}"
 cd "$FRONTEND_DIR" && docker compose down 2>/dev/null || true
 cd "$REVERSE_PROXY_DIR" && docker compose down 2>/dev/null || true
-cd "$BACKEND_DIR" && docker compose down 2>/dev/null || true
+cd "$BACKEND_DIR" && COMPOSE_PROJECT_NAME="$CORE_PROJECT" docker compose down --remove-orphans 2>/dev/null || true
+if [ -d "$SCRIPT_DIR/supply-chain/backend" ]; then
+  cd "$SCRIPT_DIR/supply-chain/backend" && COMPOSE_PROJECT_NAME="$SUPPLY_PROJECT" docker compose down --remove-orphans 2>/dev/null || true
+fi
+if [ -d "$SCRIPT_DIR/property-management/backend" ]; then
+  cd "$SCRIPT_DIR/property-management/backend" && COMPOSE_PROJECT_NAME="$PROPERTY_PROJECT" docker compose down --remove-orphans 2>/dev/null || true
+fi
 echo -e "${GREEN}✓ All containers stopped${NC}"
 echo ""
 
@@ -41,7 +50,7 @@ echo ""
 # Step 3: Rebuild backend services (core only: auth, media, cloud)
 echo -e "${YELLOW}[3/8] Rebuilding backend services...${NC}"
 cd "$BACKEND_DIR"
-docker compose up -d --build backend-api backend-media backend-cloud
+COMPOSE_PROJECT_NAME="$CORE_PROJECT" docker compose up -d --build backend-api backend-media backend-cloud
 echo -e "${GREEN}✓ Backend services rebuilt and started${NC}"
 echo ""
 
@@ -49,8 +58,8 @@ echo ""
 if [ -d "$SCRIPT_DIR/supply-chain/backend" ]; then
   echo -e "${YELLOW}[4/8] Starting Supply Chain backend...${NC}"
   cd "$SCRIPT_DIR/supply-chain/backend"
-  docker compose up -d --build
-  echo -e "${GREEN}✓ Supply Chain API started (port 5060)${NC}"
+  COMPOSE_PROJECT_NAME="$SUPPLY_PROJECT" docker compose up -d --build
+  echo -e "${GREEN}✓ Supply Chain API started (port 5070)${NC}"
   echo ""
 else
   echo -e "${YELLOW}[4/8] Skipping Supply Chain backend (directory not found)${NC}"
@@ -61,7 +70,7 @@ fi
 if [ -d "$SCRIPT_DIR/property-management/backend" ]; then
   echo -e "${YELLOW}[5/8] Starting Property Management backend...${NC}"
   cd "$SCRIPT_DIR/property-management/backend"
-  docker compose up -d --build
+  COMPOSE_PROJECT_NAME="$PROPERTY_PROJECT" docker compose up -d --build
   echo -e "${GREEN}✓ Property API started (port 5050)${NC}"
   echo ""
 else
@@ -105,6 +114,17 @@ npx cap sync android
 echo -e "${GREEN}✓ Capacitor synced${NC}"
 echo ""
 
+# Build and deploy mobile binaries to emulators/simulators
+MOBILE_SCRIPT="$SCRIPT_DIR/scripts/build-android-ios-sim.sh"
+if [ -x "$MOBILE_SCRIPT" ]; then
+  echo -e "${YELLOW}[Extra] Building & installing mobile apps to simulators...${NC}"
+  # Default to iPad simulator; override with SIM_DEVICE/ANDROID_AVD env vars as needed.
+  SIM_DEVICE="${SIM_DEVICE:-iPad Pro 11-inch (M5)}" \
+  ANDROID_AVD="${ANDROID_AVD:-}" \
+  "$MOBILE_SCRIPT" || echo -e "${YELLOW}⚠️ Mobile build/install step encountered an issue; check logs above.${NC}"
+  echo ""
+fi
+
 # Display status
 echo -e "${BLUE}========================================${NC}"
 echo -e "${GREEN}  ✓ Rebuild Complete!${NC}"
@@ -134,10 +154,10 @@ else
     echo -e "${RED}✗ Cloud API (5012) - Not responding${NC}"
 fi
 
-if curl -s http://localhost:5060/health > /dev/null; then
-    echo -e "${GREEN}✓ Supply Chain API (5060) - Healthy${NC}"
+if curl -s http://localhost:5070/health > /dev/null; then
+    echo -e "${GREEN}✓ Supply Chain API (5070) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Supply Chain API (5060) - Not responding${NC}"
+    echo -e "${RED}✗ Supply Chain API (5070) - Not responding${NC}"
 fi
 
 if curl -s http://localhost:5050/health > /dev/null; then

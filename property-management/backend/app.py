@@ -1,287 +1,554 @@
+"""
+Property Management API Server - Port 5050
+Property, Tenant, Lease, and Maintenance Management
+Database: property_db
+"""
+
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from datetime import datetime, date
 import os
-from datetime import date, datetime
-from typing import Optional, List
-from enum import Enum
 
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, Text, Float, Date, DateTime, Enum as SQLEnum, ForeignKey, create_engine, select, func
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
+app = Flask(__name__)
 
+# ==================== CONFIGURATION ====================
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://property:property@db:5432/property_db")
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
-
-engine = create_engine(DATABASE_URL, echo=False, future=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-Base = declarative_base()
-
-
-class LeaseStatus(str, Enum):
-    active = "active"
-    pending = "pending"
-    ended = "ended"
-
-
-class Property(Base):
-    __tablename__ = "properties"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    address = Column(Text)
-    city = Column(String(100))
-    province = Column(String(100))
-    country = Column(String(100))
-    units_total = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    leases = relationship("Lease", back_populates="property", cascade="all, delete-orphan")
-
-
-class Tenant(Base):
-    __tablename__ = "tenants"
-    id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String(255), nullable=False)
-    email = Column(String(255))
-    phone = Column(String(100))
-    notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    leases = relationship("Lease", back_populates="tenant")
-    maintenance_requests = relationship("Maintenance", back_populates="tenant")
-
-
-class Lease(Base):
-    __tablename__ = "leases"
-    id = Column(Integer, primary_key=True, index=True)
-    property_id = Column(Integer, ForeignKey("properties.id"))
-    tenant_id = Column(Integer, ForeignKey("tenants.id"))
-    unit = Column(String(50))
-    start_date = Column(Date)
-    end_date = Column(Date)
-    rent = Column(Float, default=0)
-    status = Column(SQLEnum(LeaseStatus), default=LeaseStatus.pending)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    property = relationship("Property", back_populates="leases")
-    tenant = relationship("Tenant", back_populates="leases")
-
-
-class Maintenance(Base):
-    __tablename__ = "maintenance"
-    id = Column(Integer, primary_key=True, index=True)
-    property_id = Column(Integer, ForeignKey("properties.id"))
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    priority = Column(String(50), default="normal")
-    status = Column(String(50), default="open")
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    property = relationship("Property")
-    tenant = relationship("Tenant", back_populates="maintenance_requests")
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-class PropertyCreate(BaseModel):
-    name: str
-    address: Optional[str] = None
-    city: Optional[str] = None
-    province: Optional[str] = None
-    country: Optional[str] = None
-    units_total: int = 0
-
-
-class PropertyRead(PropertyCreate):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class TenantCreate(BaseModel):
-    full_name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    notes: Optional[str] = None
-
-
-class TenantRead(TenantCreate):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class LeaseCreate(BaseModel):
-    property_id: int
-    tenant_id: int
-    unit: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    rent: float = 0
-    status: LeaseStatus = LeaseStatus.pending
-
-
-class LeaseRead(LeaseCreate):
-    id: int
-    created_at: datetime
-    property: Optional[PropertyRead] = None
-    tenant: Optional[TenantRead] = None
-
-    class Config:
-        from_attributes = True
-
-
-class MaintenanceCreate(BaseModel):
-    property_id: int
-    tenant_id: Optional[int] = None
-    title: str
-    description: Optional[str] = None
-    priority: str = "normal"
-    status: str = "open"
-
-
-class MaintenanceRead(MaintenanceCreate):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-app = FastAPI(title="Property Management API", version="1.0.0")
-
-allow_origins = ["*"] if ALLOWED_ORIGINS == "*" else [o.strip() for o in ALLOWED_ORIGINS.split(",")]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allow_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'DATABASE_URL',
+    'postgresql://property_user:propertypass123@postgres-property:5432/property_db'
 )
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# CORS Configuration
+cors_origin = os.getenv('CORS_ORIGIN', '*')
+CORS(app, resources={r"/api/*": {"origins": cors_origin}})
+
+# Database
+db = SQLAlchemy(app)
+_schema_ready = False
+
+# ==================== MODELS ====================
+
+class Property(db.Model):
+    """Property model for property management"""
+    __tablename__ = 'properties'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    address = db.Column(db.Text)
+    city = db.Column(db.String(100))
+    province = db.Column(db.String(100))
+    country = db.Column(db.String(100))
+    units_total = db.Column(db.Integer, default=0)
+    manager_name = db.Column(db.String(255))
+    manager_phone = db.Column(db.String(100))
+    manager_email = db.Column(db.String(255))
+    postal_code = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    leases = db.relationship('Lease', backref='property', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'address': self.address,
+            'city': self.city,
+            'province': self.province,
+            'country': self.country,
+            'units_total': self.units_total,
+            'manager_name': self.manager_name,
+            'manager_phone': self.manager_phone,
+            'manager_email': self.manager_email,
+            'postal_code': self.postal_code,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
 
-@app.on_event("startup")
-def on_startup():
-    Base.metadata.create_all(bind=engine)
-    seed_data()
+class Tenant(db.Model):
+    """Tenant model"""
+    __tablename__ = 'tenants'
+
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255))
+    phone = db.Column(db.String(100))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    leases = db.relationship('Lease', backref='tenant', lazy=True)
+    maintenance_requests = db.relationship('Maintenance', backref='tenant', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'full_name': self.full_name,
+            'email': self.email,
+            'phone': self.phone,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
 
-def seed_data():
-    db = SessionLocal()
+class Lease(db.Model):
+    """Lease model"""
+    __tablename__ = 'leases'
+
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
+    unit = db.Column(db.String(50))
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+    rent = db.Column(db.Float, default=0)
+    rent_due_day = db.Column(db.Integer, default=1)
+    deposit_amount = db.Column(db.Float, default=0.0)
+    status = db.Column(db.String(50), default='draft')  # draft, active, ended, late
+    notice_given_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'property_id': self.property_id,
+            'tenant_id': self.tenant_id,
+            'unit': self.unit,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'rent': self.rent,
+            'rent_due_day': self.rent_due_day,
+            'deposit_amount': self.deposit_amount,
+            'status': self.status,
+            'notice_given_at': self.notice_given_at.isoformat() if self.notice_given_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'property': self.property.to_dict() if self.property else None,
+            'tenant': self.tenant.to_dict() if self.tenant else None
+        }
+
+
+class Maintenance(db.Model):
+    """Maintenance request model"""
+    __tablename__ = 'maintenance'
+
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'))
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    priority = db.Column(db.String(50), default='medium')  # low, medium, high
+    due_date = db.Column(db.Date)
+    completed_at = db.Column(db.DateTime)
+    status = db.Column(db.String(50), default='open')  # open, in_progress, closed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'property_id': self.property_id,
+            'tenant_id': self.tenant_id,
+            'title': self.title,
+            'description': self.description,
+            'priority': self.priority,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+# ==================== ROUTES ====================
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'service': 'property-management-api',
+        'port': 5050
+    })
+
+
+def ensure_schema():
+    """Run lightweight schema migrations once per process."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    with db.engine.begin() as conn:
+        # Ensure base tables exist before applying incremental column adds.
+        db.create_all()
+
+        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_name VARCHAR(255)")
+        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_phone VARCHAR(100)")
+        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255)")
+        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)")
+
+        conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS rent_due_day INTEGER DEFAULT 1")
+        conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_amount FLOAT DEFAULT 0")
+        conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS notice_given_at TIMESTAMP")
+
+        conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS due_date DATE")
+        conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
+    _schema_ready = True
+
+
+@app.before_request
+def _run_schema_if_needed():
+    ensure_schema()
+
+
+# ========== Property Endpoints ==========
+
+@app.route('/api/properties', methods=['GET'])
+def get_properties():
+    """Get all properties"""
     try:
-        if db.scalar(select(func.count()).select_from(Property)) > 0:
-            return
-
-        prop1 = Property(name="Harbor View Apartments", address="101 Waterfront Dr", city="Toronto", province="ON", country="Canada", units_total=24)
-        prop2 = Property(name="Maple Grove Townhomes", address="77 Cedar Ave", city="Mississauga", province="ON", country="Canada", units_total=16)
-        db.add_all([prop1, prop2])
-        db.flush()
-
-        tenant1 = Tenant(full_name="Alex Morgan", email="alex.morgan@example.com", phone="555-100-2000")
-        tenant2 = Tenant(full_name="Jamie Patel", email="jamie.patel@example.com", phone="555-300-4000")
-        db.add_all([tenant1, tenant2])
-        db.flush()
-
-        lease1 = Lease(property_id=prop1.id, tenant_id=tenant1.id, unit="A-201", start_date=date(2025, 1, 1), end_date=date(2025, 12, 31), rent=2200, status=LeaseStatus.active)
-        lease2 = Lease(property_id=prop2.id, tenant_id=tenant2.id, unit="B-104", start_date=date(2025, 2, 1), end_date=date(2026, 1, 31), rent=1850, status=LeaseStatus.pending)
-        db.add_all([lease1, lease2])
-
-        m1 = Maintenance(property_id=prop1.id, tenant_id=tenant1.id, title="Leaky faucet", description="Kitchen faucet dripping", priority="low", status="open")
-        m2 = Maintenance(property_id=prop2.id, tenant_id=tenant2.id, title="Heating issue", description="Living room heater not warming", priority="high", status="in_progress")
-        db.add_all([m1, m2])
-
-        db.commit()
-    finally:
-        db.close()
+        properties = Property.query.order_by(Property.created_at.desc()).all()
+        return jsonify([p.to_dict() for p in properties]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+@app.route('/api/properties/<int:property_id>', methods=['GET'])
+def get_property(property_id):
+    """Get a single property by id"""
+    try:
+        prop = Property.query.get(property_id)
+        if not prop:
+            return jsonify({'error': 'Property not found'}), 404
+        return jsonify(prop.to_dict()), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/api/properties", response_model=List[PropertyRead])
-def list_properties(db: Session = Depends(get_db)):
-    return db.scalars(select(Property).order_by(Property.created_at.desc())).all()
+@app.route('/api/properties', methods=['POST'])
+def create_property():
+    """Create a new property"""
+    try:
+        data = request.get_json()
+
+        property_obj = Property(
+            name=data.get('name'),
+            address=data.get('address'),
+            city=data.get('city'),
+            province=data.get('province'),
+            country=data.get('country'),
+            units_total=data.get('units_total', 0),
+            manager_name=data.get('manager_name'),
+            manager_phone=data.get('manager_phone'),
+            manager_email=data.get('manager_email'),
+            postal_code=data.get('postal_code')
+        )
+
+        db.session.add(property_obj)
+        db.session.commit()
+
+        return jsonify(property_obj.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
-@app.post("/api/properties", response_model=PropertyRead, status_code=201)
-def create_property(payload: PropertyCreate, db: Session = Depends(get_db)):
-    prop = Property(**payload.model_dump())
-    db.add(prop)
-    db.commit()
-    db.refresh(prop)
-    return prop
+# ========== Tenant Endpoints ==========
+
+@app.route('/api/tenants', methods=['GET'])
+def get_tenants():
+    """Get all tenants"""
+    try:
+        tenants = Tenant.query.order_by(Tenant.created_at.desc()).all()
+        return jsonify([t.to_dict() for t in tenants]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/api/tenants", response_model=List[TenantRead])
-def list_tenants(db: Session = Depends(get_db)):
-    return db.scalars(select(Tenant).order_by(Tenant.created_at.desc())).all()
+@app.route('/api/tenants/<int:tenant_id>', methods=['GET'])
+def get_tenant(tenant_id):
+    """Get a specific tenant"""
+    try:
+        tenant = Tenant.query.get(tenant_id)
+        if not tenant:
+            return jsonify({'error': 'Tenant not found'}), 404
+        return jsonify(tenant.to_dict()), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.post("/api/tenants", response_model=TenantRead, status_code=201)
-def create_tenant(payload: TenantCreate, db: Session = Depends(get_db)):
-    tenant = Tenant(**payload.model_dump())
-    db.add(tenant)
-    db.commit()
-    db.refresh(tenant)
-    return tenant
+@app.route('/api/tenants', methods=['POST'])
+def create_tenant():
+    """Create a new tenant"""
+    try:
+        data = request.get_json()
+
+        tenant = Tenant(
+            full_name=data.get('full_name'),
+            email=data.get('email'),
+            phone=data.get('phone'),
+            notes=data.get('notes')
+        )
+
+        db.session.add(tenant)
+        db.session.commit()
+
+        return jsonify(tenant.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/api/leases", response_model=List[LeaseRead])
-def list_leases(db: Session = Depends(get_db)):
-    return db.scalars(select(Lease).order_by(Lease.created_at.desc())).all()
+# ========== Lease Endpoints ==========
+
+@app.route('/api/leases', methods=['GET'])
+def get_leases():
+    """Get all leases"""
+    try:
+        leases = Lease.query.order_by(Lease.created_at.desc()).all()
+        return jsonify([l.to_dict() for l in leases]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.post("/api/leases", response_model=LeaseRead, status_code=201)
-def create_lease(payload: LeaseCreate, db: Session = Depends(get_db)):
-    prop = db.get(Property, payload.property_id)
-    tenant = db.get(Tenant, payload.tenant_id)
-    if not prop or not tenant:
-        raise HTTPException(status_code=400, detail="Invalid property or tenant")
-    lease = Lease(**payload.model_dump())
-    db.add(lease)
-    db.commit()
-    db.refresh(lease)
-    return lease
+@app.route('/api/leases', methods=['POST'])
+def create_lease():
+    """Create a new lease"""
+    try:
+        data = request.get_json()
+
+        # Validate property and tenant exist
+        property_obj = Property.query.get(data.get('property_id'))
+        tenant = Tenant.query.get(data.get('tenant_id'))
+
+        if not property_obj or not tenant:
+            return jsonify({'error': 'Invalid property or tenant'}), 400
+
+        # Parse dates
+        start_date = None
+        end_date = None
+        if data.get('start_date'):
+            start_date = datetime.fromisoformat(data.get('start_date')).date()
+        if data.get('end_date'):
+            end_date = datetime.fromisoformat(data.get('end_date')).date()
+
+        lease = Lease(
+            property_id=data.get('property_id'),
+            tenant_id=data.get('tenant_id'),
+            unit=data.get('unit'),
+            start_date=start_date,
+            end_date=end_date,
+            rent=data.get('rent', 0),
+            rent_due_day=data.get('rent_due_day', 1),
+            deposit_amount=data.get('deposit_amount', 0.0),
+            status=data.get('status', 'draft'),
+            notice_given_at=datetime.fromisoformat(data.get('notice_given_at')).replace(tzinfo=None) if data.get('notice_given_at') else None
+        )
+
+        db.session.add(lease)
+        db.session.commit()
+
+        return jsonify(lease.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/api/maintenance", response_model=List[MaintenanceRead])
-def list_maintenance(db: Session = Depends(get_db)):
-    return db.scalars(select(Maintenance).order_by(Maintenance.created_at.desc())).all()
+# ========== Maintenance Endpoints ==========
+
+@app.route('/api/maintenance', methods=['GET'])
+def get_maintenance():
+    """Get all maintenance requests"""
+    try:
+        maintenance = Maintenance.query.order_by(Maintenance.created_at.desc()).all()
+        return jsonify([m.to_dict() for m in maintenance]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.post("/api/maintenance", response_model=MaintenanceRead, status_code=201)
-def create_maintenance(payload: MaintenanceCreate, db: Session = Depends(get_db)):
-    if not db.get(Property, payload.property_id):
-        raise HTTPException(status_code=400, detail="Invalid property")
-    maint = Maintenance(**payload.model_dump())
-    db.add(maint)
-    db.commit()
-    db.refresh(maint)
-    return maint
+@app.route('/api/maintenance/<int:maintenance_id>', methods=['GET'])
+def get_maintenance_item(maintenance_id):
+    """Get a maintenance ticket"""
+    try:
+        ticket = Maintenance.query.get(maintenance_id)
+        if not ticket:
+            return jsonify({'error': 'Maintenance not found'}), 404
+        return jsonify(ticket.to_dict()), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/api/dashboard")
-def dashboard(db: Session = Depends(get_db)):
-    prop_count = db.scalar(select(func.count()).select_from(Property)) or 0
-    tenant_count = db.scalar(select(func.count()).select_from(Tenant)) or 0
-    lease_count = db.scalar(select(func.count()).select_from(Lease)) or 0
-    open_tickets = db.scalar(select(func.count()).select_from(Maintenance).where(Maintenance.status != "closed")) or 0
-    return {
-        "properties": prop_count,
-        "tenants": tenant_count,
-        "leases": lease_count,
-        "open_tickets": open_tickets,
-    }
+@app.route('/api/maintenance', methods=['POST'])
+def create_maintenance():
+    """Create a new maintenance request"""
+    try:
+        data = request.get_json()
+
+        # Validate property exists
+        property_obj = Property.query.get(data.get('property_id'))
+        if not property_obj:
+            return jsonify({'error': 'Invalid property'}), 400
+
+        maintenance = Maintenance(
+            property_id=data.get('property_id'),
+            tenant_id=data.get('tenant_id'),
+            title=data.get('title'),
+            description=data.get('description'),
+            priority=data.get('priority', 'medium'),
+            due_date=date.fromisoformat(data.get('due_date')) if data.get('due_date') else None,
+            completed_at=datetime.fromisoformat(data.get('completed_at')) if data.get('completed_at') else None,
+            status=data.get('status', 'open')
+        )
+
+        db.session.add(maintenance)
+        db.session.commit()
+
+        return jsonify(maintenance.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# ========== Dashboard Endpoint ==========
+
+@app.route('/api/dashboard', methods=['GET'])
+def get_dashboard():
+    """Get dashboard statistics"""
+    try:
+        prop_count = Property.query.count()
+        tenant_count = Tenant.query.count()
+        lease_count = Lease.query.count()
+        open_tickets = Maintenance.query.filter(Maintenance.status != 'closed').count()
+
+        return jsonify({
+            'properties': prop_count,
+            'tenants': tenant_count,
+            'leases': lease_count,
+            'open_tickets': open_tickets
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== DATABASE INITIALIZATION ====================
+
+def init_db():
+    """Initialize the database"""
+    with app.app_context():
+        db.create_all()
+        print("Database tables created successfully")
+
+        # Lightweight column migrations (idempotent)
+        with db.engine.begin() as conn:
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_name VARCHAR(255)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_phone VARCHAR(100)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)")
+
+            conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS rent_due_day INTEGER DEFAULT 1")
+            conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_amount FLOAT DEFAULT 0")
+            conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS notice_given_at TIMESTAMP")
+
+            conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS due_date DATE")
+            conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
+
+        # Add sample data if no properties exist
+        if Property.query.count() == 0:
+            print("Adding sample data...")
+
+            # Create properties
+            prop1 = Property(
+                name='Harbor View Apartments',
+                address='101 Waterfront Dr',
+                city='Toronto',
+                province='ON',
+                country='Canada',
+                units_total=24,
+                manager_name='Sofia Lee',
+                manager_phone='555-900-1111',
+                manager_email='sofia.lee@harborview.com',
+                postal_code='M5J 1A1',
+                latitude=43.6408,
+                longitude=-79.3853
+            )
+            prop2 = Property(
+                name='Maple Grove Townhomes',
+                address='77 Cedar Ave',
+                city='Mississauga',
+                province='ON',
+                country='Canada',
+                units_total=16,
+                manager_name='Daniel Green',
+                manager_phone='555-222-3333',
+                manager_email='daniel.green@maplegrove.com',
+                postal_code='L5A 1B2',
+                latitude=43.5890,
+                longitude=-79.6441
+            )
+            db.session.add_all([prop1, prop2])
+            db.session.flush()
+
+            # Create tenants
+            tenant1 = Tenant(
+                full_name='Alex Morgan',
+                email='alex.morgan@example.com',
+                phone='555-100-2000'
+            )
+            tenant2 = Tenant(
+                full_name='Jamie Patel',
+                email='jamie.patel@example.com',
+                phone='555-300-4000'
+            )
+            db.session.add_all([tenant1, tenant2])
+            db.session.flush()
+
+            # Create leases
+            lease1 = Lease(
+                property_id=prop1.id,
+                tenant_id=tenant1.id,
+                unit='A-201',
+                start_date=date(2025, 1, 1),
+                end_date=date(2025, 12, 31),
+                rent=2200,
+                rent_due_day=1,
+                deposit_amount=2200,
+                status='active'
+            )
+            lease2 = Lease(
+                property_id=prop2.id,
+                tenant_id=tenant2.id,
+                unit='B-104',
+                start_date=date(2025, 2, 1),
+                end_date=date(2026, 1, 31),
+                rent=1850,
+                rent_due_day=1,
+                deposit_amount=1850,
+                status='draft'
+            )
+            db.session.add_all([lease1, lease2])
+
+            # Create maintenance requests
+            m1 = Maintenance(
+                property_id=prop1.id,
+                tenant_id=tenant1.id,
+                title='Leaky faucet',
+                description='Kitchen faucet dripping',
+                priority='low',
+                due_date=date(2025, 1, 15),
+                status='open'
+            )
+            m2 = Maintenance(
+                property_id=prop2.id,
+                tenant_id=tenant2.id,
+                title='Heating issue',
+                description='Living room heater not warming',
+                priority='high',
+                due_date=date(2025, 1, 10),
+                status='in_progress'
+            )
+            db.session.add_all([m1, m2])
+
+            db.session.commit()
+            print("Sample data added successfully")
+
+
+if __name__ == '__main__':
+    init_db()
+    app.run(host='0.0.0.0', port=5050, debug=True)

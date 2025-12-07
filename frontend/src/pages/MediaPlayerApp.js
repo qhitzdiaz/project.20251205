@@ -75,8 +75,6 @@ function MediaPlayerApp() {
 
   const videoRef = useRef(null);
   const audioRef = useRef(null);
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
 
   useEffect(() => {
     loadVideos();
@@ -100,136 +98,6 @@ function MediaPlayerApp() {
     if (!media) return null;
     return media.artwork_url || media.thumbnail || media.cover || null;
   };
-
-  // Cassette tape visualization
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    // Draw a static cassette when no audio is active
-    if (!currentMedia || currentMedia.type !== 'audio' || !audioRef.current) {
-      ctx.fillStyle = '#1976d2';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#333';
-      ctx.fillRect(canvas.width * 0.1, canvas.height * 0.2, canvas.width * 0.8, canvas.height * 0.6);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(canvas.width * 0.15, canvas.height * 0.3, canvas.width * 0.7, canvas.height * 0.2);
-      ctx.fillStyle = '#1976d2';
-      ctx.font = `bold ${canvas.height * 0.05}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText('Play an audio track', canvas.width / 2, canvas.height * 0.5);
-      return;
-    }
-
-    let audioContext, analyser, source;
-    try {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioContext.createAnalyser();
-      source = audioContext.createMediaElementSource(audioRef.current);
-      source.connect(analyser);
-      analyser.connect(audioContext.destination);
-      analyser.fftSize = 256;
-    } catch (e) {
-      console.log('Web Audio API not supported');
-      return;
-    }
-
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    let rotation = 0;
-
-    const drawCassette = () => {
-      const width = canvas.width;
-      const height = canvas.height;
-
-      ctx.fillStyle = '#0d1b2a';
-      ctx.fillRect(0, 0, width, height);
-
-      analyser.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
-
-      if (isPlaying) {
-        rotation += 0.03 + (average / 8000);
-      }
-
-      // Cassette body
-      ctx.fillStyle = '#111';
-      ctx.fillRect(width * 0.08, height * 0.18, width * 0.84, height * 0.64);
-      ctx.strokeStyle = '#555';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(width * 0.08, height * 0.18, width * 0.84, height * 0.64);
-
-      // Label
-      ctx.fillStyle = '#f5f5f5';
-      ctx.fillRect(width * 0.14, height * 0.28, width * 0.72, height * 0.18);
-
-      const drawReel = (x, y, radius) => {
-        ctx.fillStyle = '#1f2937';
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#374151';
-        ctx.beginPath();
-        ctx.arc(x, y, radius * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#e5e7eb';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 6; i++) {
-          const angle = rotation + (i * Math.PI / 3);
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + Math.cos(angle) * radius * 0.6, y + Math.sin(angle) * radius * 0.6);
-          ctx.stroke();
-        }
-
-        ctx.fillStyle = '#9ca3af';
-        ctx.beginPath();
-        ctx.arc(x, y, radius * 0.2, 0, Math.PI * 2);
-        ctx.fill();
-      };
-
-      const reelY = height * 0.5;
-      const reelRadius = Math.min(width, height) * 0.11;
-      drawReel(width * 0.32, reelY, reelRadius);
-      drawReel(width * 0.68, reelY, reelRadius);
-
-      // Tape window
-      ctx.fillStyle = '#8B4513';
-      const tapeHeight = reelRadius * 0.35;
-      ctx.fillRect(width * 0.32, reelY - tapeHeight / 2, width * 0.36, tapeHeight);
-
-      // Text
-      ctx.fillStyle = '#111827';
-      ctx.font = `bold ${height * 0.055}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText(currentMedia?.title || 'Audio', width / 2, height * 0.35);
-      ctx.font = `${height * 0.04}px Arial`;
-      ctx.fillText(currentMedia?.artist || 'Now Playing', width / 2, height * 0.4);
-
-      // Visualizer bars
-      const barWidth = width / bufferLength;
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255) * height * 0.12;
-        const hue = (i / bufferLength) * 360;
-        ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
-        ctx.fillRect(barWidth * i, height * 0.86 - barHeight, barWidth - 1, barHeight);
-      }
-
-      animationRef.current = requestAnimationFrame(drawCassette);
-    };
-
-    drawCassette();
-
-    return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      if (audioContext) {
-        audioContext.close().catch(() => {});
-      }
-    };
-  }, [currentMedia, isPlaying]);
 
   const loadVideos = async () => {
     try {
@@ -730,18 +598,6 @@ function MediaPlayerApp() {
         </Paper>
       </Container>
 
-      {/* Cassette Tape Visualization */}
-      <Container maxWidth="lg" sx={{ mt: 2, mb: 2 }}>
-        <Paper elevation={3} sx={{ p: 0, bgcolor: '#0f172a', borderRadius: 2, overflow: 'hidden' }}>
-          <canvas
-            ref={canvasRef}
-            width={800}
-            height={240}
-            style={{ width: '100%', height: 'auto', display: 'block' }}
-          />
-        </Paper>
-      </Container>
-
       {/* Search */}
       <Container maxWidth="xl" sx={{ mt: 2 }}>
         <TextField
@@ -817,30 +673,28 @@ function MediaPlayerApp() {
           </List>
         </Paper>
 
-      {/* Music Grid/List */}
-      <Container maxWidth="lg" sx={{ py: 3 }}>
-        <Paper sx={{ mb: 2, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="h6">Music Library</Typography>
-            <Button size="small" startIcon={<QueueIcon />} onClick={() => addAllToQueue(filteredMusicBase)}>
-              Queue All
-            </Button>
-            <Button
-              size="small"
-              startIcon={showFavoritesOnly ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-              onClick={() => setShowFavoritesOnly((v) => !v)}
-            >
-              {showFavoritesOnly ? 'Favorites Only' : 'Show Favorites'}
-            </Button>
-            <Button
-              size="small"
-              startIcon={<QueueIcon />}
-              variant={showQueue ? 'contained' : 'outlined'}
-              onClick={() => setShowQueue((v) => !v)}
-            >
-              {showQueue ? 'Hide Queue' : 'Show Queue'}
-            </Button>
-          </Box>
+      {/* Compact Music Library */}
+      <Paper sx={{ p: 2, mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Music Library</Typography>
+          <Button size="small" startIcon={<QueueIcon />} onClick={() => addAllToQueue(filteredMusicBase)}>
+            Queue All
+          </Button>
+          <Button
+            size="small"
+            startIcon={showFavoritesOnly ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+            onClick={() => setShowFavoritesOnly((v) => !v)}
+          >
+            {showFavoritesOnly ? 'Favorites Only' : 'Show Favorites'}
+          </Button>
+          <Button
+            size="small"
+            startIcon={<QueueIcon />}
+            variant={showQueue ? 'contained' : 'outlined'}
+            onClick={() => setShowQueue((v) => !v)}
+          >
+            {showQueue ? 'Hide Queue' : 'Show Queue'}
+          </Button>
           <TextField
             size="small"
             placeholder="Search music..."
@@ -853,18 +707,17 @@ function MediaPlayerApp() {
                 </InputAdornment>
               ),
             }}
-            sx={{ minWidth: 240, flex: 1 }}
+            sx={{ minWidth: 200, maxWidth: 260 }}
           />
-        </Paper>
+        </Box>
 
         {showQueue && (
-          <Paper sx={{ mb: 2, p: 2 }}>
+          <Paper variant="outlined" sx={{ mb: 2, p: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <QueueIcon color="primary" />
-              <Typography variant="subtitle1">Queue</Typography>
-              <Typography variant="body2" color="text.secondary">({playlist.length})</Typography>
+              <Typography variant="subtitle2">Queue ({playlist.length})</Typography>
             </Box>
-            <List dense>
+            <List dense sx={{ maxHeight: 160, overflow: 'auto' }}>
               {playlist.map((item, idx) => (
                 <ListItemButton
                   key={`${item.id}-${idx}`}
@@ -872,10 +725,10 @@ function MediaPlayerApp() {
                   onClick={() => playMedia(item, item.type || 'audio')}
                 >
                   <ListItemText primary={item.title} secondary={item.artist || item.album || item.type} />
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
                     <Button size="small" onClick={(e) => { e.stopPropagation(); moveInQueue(idx, -1); }}>Up</Button>
                     <Button size="small" onClick={(e) => { e.stopPropagation(); moveInQueue(idx, 1); }}>Down</Button>
-                    <Button size="small" onClick={(e) => { e.stopPropagation(); playNextFromQueue(item); }}>Play Next</Button>
+                    <Button size="small" onClick={(e) => { e.stopPropagation(); playNextFromQueue(item); }}>Next</Button>
                   </Box>
                 </ListItemButton>
               ))}
@@ -884,12 +737,15 @@ function MediaPlayerApp() {
         )}
 
         <List
+          dense
           sx={{
             bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : '#f5f7fb',
             borderRadius: 1,
             boxShadow: theme.palette.mode === 'dark'
               ? 'inset 0 1px 0 rgba(255,255,255,0.05)'
               : 'inset 0 1px 0 rgba(0,0,0,0.05)',
+            maxHeight: 260,
+            overflow: 'auto',
           }}
         >
           {filteredMusic.map((track, index) => (
@@ -905,19 +761,23 @@ function MediaPlayerApp() {
                 }}
               >
                 <ListItemIcon>
-                  <MusicIcon color="primary" />
+                  <MusicIcon color="primary" fontSize="small" />
                 </ListItemIcon>
                 <ListItemText
+                  primaryTypographyProps={{ variant: 'body2' }}
+                  secondaryTypographyProps={{ variant: 'caption' }}
                   primary={track.title}
                   secondary={`${track.artist || 'Unknown Artist'} • ${track.album || 'Unknown Album'}`}
                 />
                 <IconButton
+                  size="small"
                   onClick={(e) => { e.stopPropagation(); toggleFavorite(track); }}
                   color={favorites.includes(track.id) ? 'error' : 'default'}
                 >
-                  {favorites.includes(track.id) ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                  {favorites.includes(track.id) ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
                 </IconButton>
                 <IconButton
+                  size="small"
                   edge="end"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -925,14 +785,14 @@ function MediaPlayerApp() {
                   }}
                   color="primary"
                 >
-                  {currentMedia?.id === track.id && isPlaying ? <PauseIcon /> : <PlayIcon />}
+                  {currentMedia?.id === track.id && isPlaying ? <PauseIcon fontSize="small" /> : <PlayIcon fontSize="small" />}
                 </IconButton>
               </ListItemButton>
               {index < filteredMusic.length - 1 && <Divider />}
             </React.Fragment>
           ))}
         </List>
-      </Container>
+      </Paper>
 
       {/* Upload Dialog */}
       <Dialog open={uploadDialog} onClose={() => setUploadDialog(false)} maxWidth="sm" fullWidth>

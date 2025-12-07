@@ -1,0 +1,218 @@
+import React, { useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Container,
+  Divider,
+  Grid,
+  Stack,
+  TextField,
+  Typography,
+  Chip,
+  IconButton,
+} from '@mui/material';
+import { HomeWork as HomeWorkIcon, Close as CloseIcon } from '@mui/icons-material';
+import { API_URLS } from '../config/apiConfig';
+
+const AddPropertyPage = () => {
+  const [form, setForm] = useState({
+    name: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    units: '',
+    manager: '',
+    phone: '',
+    email: '',
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    setError('');
+    if (!form.name || !form.address || !form.city) {
+      setError('Name, address, and city are required.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = {
+        name: form.name,
+        address: form.address,
+        city: form.city,
+        province: form.state,
+        country: 'USA',
+        units_total: form.units ? parseInt(form.units, 10) : 0,
+        manager_name: form.manager,
+        manager_phone: form.phone,
+        manager_email: form.email,
+        postal_code: form.zip,
+      };
+      const res = await fetch(`${API_URLS.PROPERTY}/properties`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Unable to save property.');
+      }
+      setSubmitted(true);
+      setForm({
+        name: '',
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        units: '',
+        manager: '',
+        phone: '',
+        email: '',
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setSubmitted(false), 2000);
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #0c182e 0%, #0f233f 40%, #0b1324 100%)',
+        py: { xs: 6, md: 10 },
+      }}
+    >
+      <Container maxWidth="md">
+        <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          <Box sx={{ background: 'linear-gradient(135deg, #1565c0, #00acc1)', color: 'white', p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <HomeWorkIcon />
+              <Box>
+                <Chip label="Property" size="small" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', backgroundColor: 'transparent', mb: 0.5 }} />
+                <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
+                  Add a Property
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+                  Capture key details before assigning units and tenants.
+                </Typography>
+              </Box>
+            </Stack>
+            <IconButton size="small" onClick={() => window.history.back()} sx={{ color: 'white' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            <Stack spacing={2}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Property name"
+                    fullWidth
+                    required
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Address"
+                    fullWidth
+                    required
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="City"
+                    fullWidth
+                    required
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <TextField
+                    label="State/Province"
+                    fullWidth
+                    value={form.state}
+                    onChange={(e) => setForm({ ...form, state: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <TextField
+                    label="ZIP/Postal"
+                    fullWidth
+                    value={form.zip}
+                    onChange={(e) => setForm({ ...form, zip: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Unit count"
+                    type="number"
+                    fullWidth
+                    value={form.units}
+                    onChange={(e) => setForm({ ...form, units: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Property manager"
+                    fullWidth
+                    value={form.manager}
+                    onChange={(e) => setForm({ ...form, manager: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Manager phone"
+                    fullWidth
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Manager email"
+                    fullWidth
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+
+              {error && <Alert severity="error">{error}</Alert>}
+              {submitted && (
+                <Alert severity="success">
+                  Property saved to Property API.
+                </Alert>
+              )}
+
+              <Divider />
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="flex-end">
+                <Button variant="outlined" href="/property">
+                  Back to Property
+                </Button>
+                <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+                  {loading ? 'Saving...' : 'Save property'}
+                </Button>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
+  );
+};
+
+export default AddPropertyPage;

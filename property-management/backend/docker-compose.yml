@@ -1,30 +1,53 @@
-name: propertymgmt
-
 services:
-  api:
-    build: .
-    container_name: property-api
-    ports:
-      - "${APP_PORT:-5050}:8000"
+  # Property Management Database
+  postgres-property:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-property
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg2://property:property@db:5432/property_db}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-    depends_on:
-      - db
-    restart: unless-stopped
-
-  db:
-    image: postgres:15
-    container_name: property-db
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-property}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-property}
-      POSTGRES_DB: ${POSTGRES_DB:-property_db}
+      POSTGRES_DB: property_db
+      POSTGRES_USER: property_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-propertypass123}
     ports:
       - "5450:5432"
     volumes:
-      - property-data:/var/lib/postgresql/data
+      - postgres-property-data:/var/lib/postgresql/data
+    networks:
+      - property-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U property_user -d property_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Property Management API Server
+  backend-property:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-property
+    ports:
+      - "0.0.0.0:5050:5050"
+    volumes:
+      - .:/app:z
+    environment:
+      - DATABASE_URL=postgresql://property_user:${POSTGRES_PASSWORD:-propertypass123}@postgres-property:5432/property_db
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    depends_on:
+      postgres-property:
+        condition: service_healthy
+    command: gunicorn -w 2 -b 0.0.0.0:5050 app:app
+    networks:
+      - property-network
     restart: unless-stopped
 
 volumes:
-  property-data:
+  postgres-property-data:
+    driver: local
+
+networks:
+  property-network:
+    driver: bridge

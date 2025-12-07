@@ -48,9 +48,9 @@ function Documentation() {
       items: ['Properties & Units', 'Tenants & Leases', 'Maintenance Tickets', 'Rent Tracking']
     },
     {
-      title: 'Supply Chain',
+      title: 'Supply Chain Workspace',
       icon: <DocIcon sx={{ fontSize: 50, color: 'info.main' }} />,
-      items: ['Suppliers', 'Purchase Orders', 'Inventory Movements', 'Shipments & Alerts']
+      items: ['Supplier visibility', 'Execution playbooks', 'Exception routing', 'Operational insights']
     },
   ];
 
@@ -76,8 +76,8 @@ function Documentation() {
       answer: 'The frontend is a Progressive Web App (PWA) with offline capabilities for cached content. However, new data requires an internet connection.'
     },
     {
-      question: 'How do I track inventory and purchase orders?',
-      answer: 'Open Supply Chain, review the dashboard, and create purchase orders with line items. Inventory movements (inbound/outbound/adjust) update stock on hand automatically.'
+      question: 'What is included in the new supply chain workspace?',
+      answer: 'A guided playbook for suppliers, purchasing, and inventory truth—focused on visibility and predictable execution without extra spreadsheets.'
     },
     {
       question: 'Where do I manage tenants and leases?',
@@ -166,14 +166,6 @@ function Documentation() {
               <CardContent>
                 <Typography variant="h6" color="secondary">Property API</Typography>
                 <Typography variant="body2" color="text.secondary">Port 5050</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="info.main">Supply Chain API</Typography>
-                <Typography variant="body2" color="text.secondary">Port 5060</Typography>
               </CardContent>
             </Card>
           </Grid>

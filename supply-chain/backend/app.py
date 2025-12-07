@@ -1,547 +1,721 @@
+"""
+Supply Chain Management API Server - Port 5070
+Supplier Management, Inventory, Logistics
+Database: supply_chain_db
+"""
+
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from datetime import datetime
 import os
-from datetime import datetime, date
-from typing import List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from sqlalchemy import Column, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, create_engine, func, select
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
-import enum
+app = Flask(__name__)
 
+# ==================== CONFIGURATION ====================
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://supplychain:supplychain@db:5432/supplychain_db")
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
-
-engine = create_engine(DATABASE_URL, echo=False, future=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-Base = declarative_base()
-
-
-class PurchaseStatus(str, enum.Enum):
-    draft = "draft"
-    ordered = "ordered"
-    received = "received"
-    cancelled = "cancelled"
-
-
-class ShipmentStatus(str, enum.Enum):
-    pending = "pending"
-    in_transit = "in_transit"
-    delivered = "delivered"
-    delayed = "delayed"
-
-
-class MovementType(str, enum.Enum):
-    inbound = "inbound"
-    outbound = "outbound"
-    adjust = "adjust"
-
-
-class Supplier(Base):
-    __tablename__ = "suppliers"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    contact_name = Column(String(255))
-    phone = Column(String(50))
-    email = Column(String(255))
-    address = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    products = relationship("Product", back_populates="supplier")
-
-
-class Product(Base):
-    __tablename__ = "products"
-    id = Column(Integer, primary_key=True, index=True)
-    sku = Column(String(100), unique=True, nullable=False)
-    name = Column(String(255), nullable=False)
-    description = Column(Text)
-    supplier_id = Column(Integer, ForeignKey("suppliers.id"))
-    unit_cost = Column(Float, default=0)
-    unit = Column(String(50), default="unit")
-    reorder_level = Column(Integer, default=0)
-    reorder_quantity = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    supplier = relationship("Supplier", back_populates="products")
-    order_items = relationship("PurchaseOrderItem", back_populates="product")
-    movements = relationship("InventoryMovement", back_populates="product")
-
-
-class PurchaseOrder(Base):
-    __tablename__ = "purchase_orders"
-    id = Column(Integer, primary_key=True, index=True)
-    reference = Column(String(100), unique=True, nullable=False)
-    supplier_id = Column(Integer, ForeignKey("suppliers.id"))
-    status = Column(Enum(PurchaseStatus), default=PurchaseStatus.draft)
-    expected_date = Column(Date)
-    notes = Column(Text)
-    total_amount = Column(Float, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    supplier = relationship("Supplier")
-    items = relationship("PurchaseOrderItem", back_populates="purchase_order", cascade="all, delete-orphan")
-    shipments = relationship("Shipment", back_populates="purchase_order")
-
-
-class PurchaseOrderItem(Base):
-    __tablename__ = "purchase_order_items"
-    id = Column(Integer, primary_key=True, index=True)
-    purchase_order_id = Column(Integer, ForeignKey("purchase_orders.id", ondelete="CASCADE"))
-    product_id = Column(Integer, ForeignKey("products.id"))
-    quantity = Column(Integer, nullable=False)
-    unit_cost = Column(Float, nullable=False)
-
-    purchase_order = relationship("PurchaseOrder", back_populates="items")
-    product = relationship("Product", back_populates="order_items")
-
-
-class Shipment(Base):
-    __tablename__ = "shipments"
-    id = Column(Integer, primary_key=True, index=True)
-    purchase_order_id = Column(Integer, ForeignKey("purchase_orders.id"))
-    carrier = Column(String(100))
-    tracking_number = Column(String(255))
-    eta = Column(Date)
-    status = Column(Enum(ShipmentStatus), default=ShipmentStatus.pending)
-    notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    purchase_order = relationship("PurchaseOrder", back_populates="shipments")
-
-
-class InventoryMovement(Base):
-    __tablename__ = "inventory_movements"
-    id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"))
-    movement_type = Column(Enum(MovementType), nullable=False)
-    quantity = Column(Integer, nullable=False)
-    reason = Column(String(255))
-    reference = Column(String(255))
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    product = relationship("Product", back_populates="movements")
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# ---------- Pydantic Schemas ----------
-class SupplierCreate(BaseModel):
-    name: str
-    contact_name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    address: Optional[str] = None
-
-
-class SupplierRead(SupplierCreate):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ProductCreate(BaseModel):
-    sku: str
-    name: str
-    description: Optional[str] = None
-    supplier_id: Optional[int] = None
-    unit_cost: float = 0
-    unit: str = "unit"
-    reorder_level: int = 0
-    reorder_quantity: int = 0
-
-
-class ProductRead(ProductCreate):
-    id: int
-    created_at: datetime
-    supplier: Optional[SupplierRead] = None
-    stock_on_hand: int = 0
-
-    class Config:
-        from_attributes = True
-
-
-class PurchaseOrderItemCreate(BaseModel):
-    product_id: int
-    quantity: int
-    unit_cost: float
-
-
-class PurchaseOrderCreate(BaseModel):
-    reference: str
-    supplier_id: Optional[int] = None
-    status: PurchaseStatus = PurchaseStatus.draft
-    expected_date: Optional[date] = None
-    notes: Optional[str] = None
-    items: List[PurchaseOrderItemCreate] = Field(default_factory=list)
-
-
-class PurchaseOrderItemRead(PurchaseOrderItemCreate):
-    id: int
-    product: Optional[ProductRead] = None
-
-    class Config:
-        from_attributes = True
-
-
-class PurchaseOrderRead(BaseModel):
-    id: int
-    reference: str
-    supplier: Optional[SupplierRead] = None
-    status: PurchaseStatus
-    expected_date: Optional[date]
-    notes: Optional[str]
-    total_amount: float
-    created_at: datetime
-    items: List[PurchaseOrderItemRead] = Field(default_factory=list)
-
-    class Config:
-        from_attributes = True
-
-
-class ShipmentCreate(BaseModel):
-    purchase_order_id: Optional[int] = None
-    carrier: Optional[str] = None
-    tracking_number: Optional[str] = None
-    eta: Optional[date] = None
-    status: ShipmentStatus = ShipmentStatus.pending
-    notes: Optional[str] = None
-
-
-class ShipmentRead(ShipmentCreate):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class MovementCreate(BaseModel):
-    product_id: int
-    movement_type: MovementType
-    quantity: int
-    reason: Optional[str] = None
-    reference: Optional[str] = None
-
-
-class MovementRead(MovementCreate):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-app = FastAPI(title="Supply Chain Management API", version="1.0.0")
-
-if ALLOWED_ORIGINS == "*":
-    allow_origins = ["*"]
-else:
-    allow_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allow_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'DATABASE_URL',
+    'postgresql://supply_user:supplypass123@postgres-supply:5432/supply_chain_db'
 )
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# CORS Configuration
+cors_origin = os.getenv('CORS_ORIGIN', '*')
+CORS(app, resources={r"/api/*": {"origins": cors_origin}})
+
+# Database
+db = SQLAlchemy(app)
+_schema_ready = False
+
+# ==================== MODELS ====================
+
+class Supplier(db.Model):
+    """Supplier model for supply chain management"""
+    __tablename__ = 'suppliers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    contact_person = db.Column(db.String(255))
+    email = db.Column(db.String(255))
+    phone = db.Column(db.String(50))
+    address = db.Column(db.Text)
+    city = db.Column(db.String(100))
+    country = db.Column(db.String(100))
+    status = db.Column(db.String(50), default='active')  # active, inactive
+    rating = db.Column(db.Float, default=0.0)
+    primary_contact = db.Column(db.String(255))
+    contact_phone = db.Column(db.String(50))
+    contact_email = db.Column(db.String(255))
+    on_time_score = db.Column(db.Float, default=0.0)
+    quality_score = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    products = db.relationship('Product', backref='supplier', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'contact_person': self.contact_person,
+            'email': self.email,
+            'phone': self.phone,
+            'address': self.address,
+            'city': self.city,
+            'country': self.country,
+            'status': self.status,
+            'rating': self.rating,
+            'primary_contact': self.primary_contact,
+            'contact_phone': self.contact_phone,
+            'contact_email': self.contact_email,
+            'on_time_score': self.on_time_score,
+            'quality_score': self.quality_score,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 
-@app.on_event("startup")
-def on_startup():
-    Base.metadata.create_all(bind=engine)
-    seed_data()
+class Product(db.Model):
+    """Product model for inventory management"""
+    __tablename__ = 'products'
+
+    id = db.Column(db.Integer, primary_key=True)
+    sku = db.Column(db.String(100), unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(100))
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    unit_price = db.Column(db.Float, default=0.0)
+    standard_cost = db.Column(db.Float, default=0.0)
+    unit_of_measure = db.Column(db.String(50))
+    quantity_in_stock = db.Column(db.Integer, default=0)
+    reorder_level = db.Column(db.Integer, default=10)
+    safety_stock = db.Column(db.Integer, default=0)
+    lead_time_days = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(50), default='available')  # available, out_of_stock, discontinued
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'sku': self.sku,
+            'name': self.name,
+            'description': self.description,
+            'category': self.category,
+            'supplier_id': self.supplier_id,
+            'unit_price': self.unit_price,
+            'standard_cost': self.standard_cost,
+            'unit_of_measure': self.unit_of_measure,
+            'quantity_in_stock': self.quantity_in_stock,
+            'reorder_level': self.reorder_level,
+            'safety_stock': self.safety_stock,
+            'lead_time_days': self.lead_time_days,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 
-def seed_data():
-    """Populate with minimal demo data so the UI isn't empty."""
-    db = SessionLocal()
+class PurchaseOrder(db.Model):
+    """Purchase Order model"""
+    __tablename__ = 'purchase_orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_number = db.Column(db.String(100), unique=True, nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    order_date = db.Column(db.DateTime, default=datetime.utcnow)
+    expected_delivery = db.Column(db.DateTime)
+    received_at = db.Column(db.DateTime)
+    status = db.Column(db.String(50), default='pending')  # draft, sent, partial, received, canceled
+    total_amount = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    supplier = db.relationship('Supplier', backref='purchase_orders')
+    items = db.relationship('PurchaseOrderItem', backref='purchase_order', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_number': self.order_number,
+            'supplier_id': self.supplier_id,
+            'order_date': self.order_date.isoformat() if self.order_date else None,
+            'expected_delivery': self.expected_delivery.isoformat() if self.expected_delivery else None,
+            'status': self.status,
+            'total_amount': self.total_amount,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class PurchaseOrderItem(db.Model):
+    """Purchase Order Items"""
+    __tablename__ = 'purchase_order_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    purchase_order_id = db.Column(db.Integer, db.ForeignKey('purchase_orders.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    subtotal = db.Column(db.Float, nullable=False)
+
+    product = db.relationship('Product')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'purchase_order_id': self.purchase_order_id,
+            'product_id': self.product_id,
+            'quantity': self.quantity,
+            'unit_price': self.unit_price,
+            'subtotal': self.subtotal
+        }
+
+
+# ==================== ROUTES ====================
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'supply-chain-api',
+        'port': 5070,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+
+# ========== Supplier Endpoints ==========
+
+@app.route('/suppliers', methods=['GET'])
+def get_suppliers():
+    """Get all suppliers"""
     try:
-        def get_or_create_supplier(name, **kwargs):
-            existing = db.scalar(select(Supplier).where(Supplier.name == name))
-            if existing:
-                return existing
-            supplier = Supplier(name=name, **kwargs)
-            db.add(supplier)
-            db.flush()
-            return supplier
+        suppliers = Supplier.query.all()
+        return jsonify([s.to_dict() for s in suppliers]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-        def get_or_create_product(sku, **kwargs):
-            existing = db.scalar(select(Product).where(Product.sku == sku))
-            if existing:
-                return existing
-            product = Product(sku=sku, **kwargs)
-            db.add(product)
-            db.flush()
-            return product
 
-        def ensure_po(reference, supplier, status, expected_date=None, notes=None, items=None):
-            existing = db.scalar(select(PurchaseOrder).where(PurchaseOrder.reference == reference))
-            if existing:
-                return existing
-            order = PurchaseOrder(reference=reference, supplier_id=supplier.id if supplier else None, status=status, expected_date=expected_date, notes=notes)
-            db.add(order)
-            db.flush()
-            total = 0
-            for it in items or []:
-                db_item = PurchaseOrderItem(
-                    purchase_order_id=order.id,
-                    product_id=it["product"].id,
-                    quantity=it["quantity"],
-                    unit_cost=it["unit_cost"],
-                )
-                total += it["quantity"] * it["unit_cost"]
-                db.add(db_item)
-            order.total_amount = total
-            return order
+@app.route('/suppliers/<int:supplier_id>', methods=['GET'])
+def get_supplier(supplier_id):
+    """Get a specific supplier"""
+    supplier = Supplier.query.get(supplier_id)
+    if not supplier:
+        return jsonify({'error': 'Supplier not found'}), 404
+    return jsonify(supplier.to_dict()), 200
 
-        def ensure_shipment(po, carrier, tracking_number, eta, status):
-            existing = db.scalar(select(Shipment).where(Shipment.tracking_number == tracking_number))
-            if existing:
-                return existing
-            shipment = Shipment(purchase_order_id=po.id if po else None, carrier=carrier, tracking_number=tracking_number, eta=eta, status=status)
-            db.add(shipment)
-            return shipment
 
-        # Suppliers
-        acme = get_or_create_supplier("Acme Components", contact_name="Riley Smith", phone="555-111-2222", email="parts@acme.com", address="101 Industry Rd, Toronto")
-        north = get_or_create_supplier("Northern Freight", contact_name="Sam Patel", phone="555-333-4444", email="ops@northernfreight.com", address="12 Harbor St, Hamilton")
-        global_parts = get_or_create_supplier("Global Parts Co.", contact_name="Jamie Lee", phone="555-222-9090", email="sales@globalparts.com", address="22 Supply Pkwy, Mississauga")
-        blue_logistics = get_or_create_supplier("Blue River Logistics", contact_name="Jordan Wu", phone="555-777-4545", email="support@blueriverlogistics.com", address="9 Port Ln, Oshawa")
+@app.route('/suppliers', methods=['POST'])
+def create_supplier():
+    """Create a new supplier"""
+    try:
+        data = request.get_json()
 
-        # Products
-        widget = get_or_create_product("WID-1000", name="Widget Core", description="Primary widget core", supplier=acme, unit_cost=12.5, unit="pcs", reorder_level=20, reorder_quantity=50)
-        plate = get_or_create_product("PLT-240", name="Mounting Plate", description="Steel mounting plate", supplier=acme, unit_cost=4.2, unit="pcs", reorder_level=40, reorder_quantity=100)
-        cable = get_or_create_product("CAB-900", name="Signal Cable", description="Shielded 3m signal cable", supplier=global_parts, unit_cost=7.9, unit="pcs", reorder_level=30, reorder_quantity=80)
-        bolt = get_or_create_product("BLT-550", name="Grade-8 Bolt Pack", description="Industrial fasteners (pack of 50)", supplier=global_parts, unit_cost=18.0, unit="pack", reorder_level=10, reorder_quantity=25)
-
-        # Initial stock movements (avoid duplicates)
-        def ensure_movement(product, movement_type, quantity, reason, reference):
-            exists = db.scalar(
-                select(InventoryMovement).where(
-                    InventoryMovement.product_id == product.id,
-                    InventoryMovement.reference == reference,
-                    InventoryMovement.movement_type == movement_type,
-                )
-            )
-            if exists:
-                return
-            db.add(InventoryMovement(product_id=product.id, movement_type=movement_type, quantity=quantity, reason=reason, reference=reference))
-
-        ensure_movement(widget, MovementType.inbound, 35, "Initial stock", "SEED-WID")
-        ensure_movement(plate, MovementType.inbound, 60, "Initial stock", "SEED-PLT")
-        ensure_movement(cable, MovementType.inbound, 50, "Initial stock", "SEED-CAB")
-        ensure_movement(bolt, MovementType.inbound, 20, "Initial stock", "SEED-BLT")
-
-        # Purchase orders
-        po1 = ensure_po(
-            "PO-2024-001",
-            supplier=acme,
-            status=PurchaseStatus.ordered,
-            expected_date=date.today(),
-            items=[
-                {"product": widget, "quantity": 80, "unit_cost": 12.5},
-                {"product": plate, "quantity": 150, "unit_cost": 4.1},
-            ],
+        supplier = Supplier(
+            name=data.get('name'),
+            contact_person=data.get('contact_person') or data.get('primary_contact'),
+            email=data.get('email') or data.get('contact_email'),
+            phone=data.get('phone') or data.get('contact_phone'),
+            address=data.get('address'),
+            city=data.get('city'),
+            country=data.get('country'),
+            status=data.get('status', 'active'),
+            rating=data.get('rating', 0.0),
+            primary_contact=data.get('primary_contact'),
+            contact_phone=data.get('contact_phone'),
+            contact_email=data.get('contact_email'),
+            on_time_score=data.get('on_time_score', 0.0),
+            quality_score=data.get('quality_score', 0.0)
         )
 
-        po2 = ensure_po(
-            "PO-2024-002",
-            supplier=global_parts,
-            status=PurchaseStatus.received,
-            expected_date=date.today(),
-            notes="Bulk replenishment",
-            items=[
-                {"product": cable, "quantity": 120, "unit_cost": 7.8},
-                {"product": bolt, "quantity": 40, "unit_cost": 18.0},
-            ],
-        )
+        db.session.add(supplier)
+        db.session.commit()
 
-        po3 = ensure_po(
-            "PO-2024-003",
-            supplier=acme,
-            status=PurchaseStatus.draft,
-            expected_date=date.today(),
-            notes="Draft PO for next sprint",
-            items=[
-                {"product": widget, "quantity": 50, "unit_cost": 12.4},
-            ],
-        )
-
-        # Shipments
-        ensure_shipment(po1, carrier="Northern Freight", tracking_number="NF1234567", eta=date.today(), status=ShipmentStatus.in_transit)
-        ensure_shipment(po2, carrier="Blue River Logistics", tracking_number="BRL-88844", eta=date.today(), status=ShipmentStatus.delivered)
-        ensure_shipment(po3, carrier="Northern Freight", tracking_number="NF-PO3-DRAFT", eta=date.today(), status=ShipmentStatus.pending)
-
-        db.commit()
-    finally:
-        db.close()
+        return jsonify(supplier.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
-def product_stock_on_hand(db: Session, product_id: int) -> int:
-    inbound = db.scalar(
-        select(func.coalesce(func.sum(InventoryMovement.quantity), 0)).where(
-            InventoryMovement.product_id == product_id,
-            InventoryMovement.movement_type == MovementType.inbound,
-        )
-    )
-    outbound = db.scalar(
-        select(func.coalesce(func.sum(InventoryMovement.quantity), 0)).where(
-            InventoryMovement.product_id == product_id,
-            InventoryMovement.movement_type == MovementType.outbound,
-        )
-    )
-    adjust = db.scalar(
-        select(func.coalesce(func.sum(InventoryMovement.quantity), 0)).where(
-            InventoryMovement.product_id == product_id,
-            InventoryMovement.movement_type == MovementType.adjust,
-        )
-    )
-    return (inbound or 0) - (outbound or 0) + (adjust or 0)
+@app.route('/suppliers/<int:supplier_id>', methods=['PUT'])
+def update_supplier(supplier_id):
+    """Update a supplier"""
+    supplier = Supplier.query.get(supplier_id)
+    if not supplier:
+        return jsonify({'error': 'Supplier not found'}), 404
+
+    try:
+        data = request.get_json()
+
+        supplier.name = data.get('name', supplier.name)
+        supplier.contact_person = data.get('contact_person', supplier.contact_person)
+        supplier.email = data.get('email', supplier.email)
+        supplier.phone = data.get('phone', supplier.phone)
+        supplier.address = data.get('address', supplier.address)
+        supplier.city = data.get('city', supplier.city)
+        supplier.country = data.get('country', supplier.country)
+        supplier.status = data.get('status', supplier.status)
+        supplier.rating = data.get('rating', supplier.rating)
+        supplier.primary_contact = data.get('primary_contact', supplier.primary_contact)
+        supplier.contact_phone = data.get('contact_phone', supplier.contact_phone)
+        supplier.contact_email = data.get('contact_email', supplier.contact_email)
+        supplier.on_time_score = data.get('on_time_score', supplier.on_time_score)
+        supplier.quality_score = data.get('quality_score', supplier.quality_score)
+        supplier.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify(supplier.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+@app.route('/suppliers/<int:supplier_id>', methods=['DELETE'])
+def delete_supplier(supplier_id):
+    """Delete a supplier"""
+    supplier = Supplier.query.get(supplier_id)
+    if not supplier:
+        return jsonify({'error': 'Supplier not found'}), 404
+
+    try:
+        db.session.delete(supplier)
+        db.session.commit()
+        return jsonify({'message': 'Supplier deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
-@app.get("/api/suppliers", response_model=List[SupplierRead])
-def list_suppliers(db: Session = Depends(get_db)):
-    suppliers = db.scalars(select(Supplier).order_by(Supplier.created_at.desc())).all()
-    return suppliers
+# ========== Product Endpoints ==========
+
+@app.route('/products', methods=['GET'])
+def get_products():
+    """Get all products"""
+    try:
+        products = Product.query.all()
+        return jsonify([p.to_dict() for p in products]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-@app.post("/api/suppliers", response_model=SupplierRead, status_code=201)
-def create_supplier(payload: SupplierCreate, db: Session = Depends(get_db)):
-    supplier = Supplier(**payload.model_dump())
-    db.add(supplier)
-    db.commit()
-    db.refresh(supplier)
-    return supplier
-
-
-@app.get("/api/products", response_model=List[ProductRead])
-def list_products(db: Session = Depends(get_db)):
-    products = db.scalars(select(Product).order_by(Product.created_at.desc())).all()
-    result = []
-    for product in products:
-        stock = product_stock_on_hand(db, product.id)
-        data = ProductRead.from_orm(product)
-        data.stock_on_hand = stock
-        result.append(data)
-    return result
-
-
-@app.post("/api/products", response_model=ProductRead, status_code=201)
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
-    if db.scalar(select(Product).where(Product.sku == payload.sku)):
-        raise HTTPException(status_code=400, detail="SKU already exists")
-    product = Product(**payload.model_dump())
-    db.add(product)
-    db.commit()
-    db.refresh(product)
-    data = ProductRead.from_orm(product)
-    data.stock_on_hand = 0
-    return data
-
-
-@app.get("/api/purchase-orders", response_model=List[PurchaseOrderRead])
-def list_purchase_orders(db: Session = Depends(get_db)):
-    orders = db.scalars(select(PurchaseOrder).order_by(PurchaseOrder.created_at.desc())).all()
-    return orders
-
-
-@app.post("/api/purchase-orders", response_model=PurchaseOrderRead, status_code=201)
-def create_purchase_order(payload: PurchaseOrderCreate, db: Session = Depends(get_db)):
-    if db.scalar(select(PurchaseOrder).where(PurchaseOrder.reference == payload.reference)):
-        raise HTTPException(status_code=400, detail="Reference already exists")
-
-    order = PurchaseOrder(
-        reference=payload.reference,
-        supplier_id=payload.supplier_id,
-        status=payload.status,
-        expected_date=payload.expected_date,
-        notes=payload.notes,
-    )
-    db.add(order)
-    db.flush()
-
-    total = 0
-    for item in payload.items:
-        db_item = PurchaseOrderItem(
-            purchase_order_id=order.id,
-            product_id=item.product_id,
-            quantity=item.quantity,
-            unit_cost=item.unit_cost,
-        )
-        total += item.quantity * item.unit_cost
-        db.add(db_item)
-
-    order.total_amount = total
-    db.commit()
-    db.refresh(order)
-    return order
-
-
-@app.get("/api/shipments", response_model=List[ShipmentRead])
-def list_shipments(db: Session = Depends(get_db)):
-    shipments = db.scalars(select(Shipment).order_by(Shipment.created_at.desc())).all()
-    return shipments
-
-
-@app.post("/api/shipments", response_model=ShipmentRead, status_code=201)
-def create_shipment(payload: ShipmentCreate, db: Session = Depends(get_db)):
-    shipment = Shipment(**payload.model_dump())
-    db.add(shipment)
-    db.commit()
-    db.refresh(shipment)
-    return shipment
-
-
-@app.get("/api/inventory", response_model=List[MovementRead])
-def list_inventory_movements(db: Session = Depends(get_db)):
-    movements = db.scalars(select(InventoryMovement).order_by(InventoryMovement.created_at.desc())).all()
-    return movements
-
-
-@app.post("/api/inventory", response_model=MovementRead, status_code=201)
-def record_movement(payload: MovementCreate, db: Session = Depends(get_db)):
-    product = db.get(Product, payload.product_id)
+@app.route('/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    """Get a specific product"""
+    product = Product.query.get(product_id)
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    movement = InventoryMovement(**payload.model_dump())
-    db.add(movement)
-    db.commit()
-    db.refresh(movement)
-    return movement
+        return jsonify({'error': 'Product not found'}), 404
+    return jsonify(product.to_dict()), 200
 
 
-@app.get("/api/dashboard")
-def dashboard(db: Session = Depends(get_db)):
-    supplier_count = db.scalar(select(func.count()).select_from(Supplier)) or 0
-    product_count = db.scalar(select(func.count()).select_from(Product)) or 0
-    open_pos = db.scalar(select(func.count()).select_from(PurchaseOrder).where(PurchaseOrder.status != PurchaseStatus.cancelled)) or 0
-    in_transit = db.scalar(select(func.count()).select_from(Shipment).where(Shipment.status.in_([ShipmentStatus.in_transit, ShipmentStatus.pending]))) or 0
-    low_stock = db.scalars(select(Product)).all()
-    low_stock_items = []
-    for product in low_stock:
-        on_hand = product_stock_on_hand(db, product.id)
-        if product.reorder_level and on_hand <= product.reorder_level:
-            low_stock_items.append({"id": product.id, "name": product.name, "sku": product.sku, "stock_on_hand": on_hand, "reorder_level": product.reorder_level})
-    return {
-        "suppliers": supplier_count,
-        "products": product_count,
-        "open_purchase_orders": open_pos,
-        "shipments_in_transit": in_transit,
-        "low_stock": low_stock_items,
-    }
+@app.route('/products', methods=['POST'])
+def create_product():
+    """Create a new product"""
+    try:
+        data = request.get_json()
+
+        supplier_id = data.get('supplier_id')
+        if not supplier_id:
+            first_supplier = Supplier.query.first()
+            if not first_supplier:
+                return jsonify({'error': 'No supplier available. Please add a supplier first.'}), 400
+            supplier_id = first_supplier.id
+
+        product = Product(
+            sku=data.get('sku'),
+            name=data.get('name'),
+            description=data.get('description'),
+            category=data.get('category'),
+            supplier_id=supplier_id,
+            unit_price=data.get('unit_price', 0.0),
+            standard_cost=data.get('standard_cost', 0.0),
+            unit_of_measure=data.get('unit_of_measure'),
+            quantity_in_stock=data.get('quantity_in_stock', 0),
+            reorder_level=data.get('reorder_level', 10),
+            safety_stock=data.get('safety_stock', 0),
+            lead_time_days=data.get('lead_time_days', 0),
+            status=data.get('status', 'available')
+        )
+
+        db.session.add(product)
+        db.session.commit()
+
+        return jsonify(product.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    """Update a product"""
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    try:
+        data = request.get_json()
+
+        product.name = data.get('name', product.name)
+        product.description = data.get('description', product.description)
+        product.category = data.get('category', product.category)
+        product.unit_price = data.get('unit_price', product.unit_price)
+        product.standard_cost = data.get('standard_cost', product.standard_cost)
+        product.unit_of_measure = data.get('unit_of_measure', product.unit_of_measure)
+        product.quantity_in_stock = data.get('quantity_in_stock', product.quantity_in_stock)
+        product.reorder_level = data.get('reorder_level', product.reorder_level)
+        product.safety_stock = data.get('safety_stock', product.safety_stock)
+        product.lead_time_days = data.get('lead_time_days', product.lead_time_days)
+        product.status = data.get('status', product.status)
+        product.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify(product.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    """Delete a product"""
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    try:
+        db.session.delete(product)
+        db.session.commit()
+        return jsonify({'message': 'Product deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# ========== Purchase Order Endpoints ==========
+
+@app.route('/purchase-orders', methods=['GET'])
+def get_purchase_orders():
+    """Get all purchase orders"""
+    try:
+        orders = PurchaseOrder.query.all()
+        return jsonify([o.to_dict() for o in orders]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/purchase-orders/<int:order_id>', methods=['GET'])
+def get_purchase_order(order_id):
+    """Get a specific purchase order"""
+    order = PurchaseOrder.query.get(order_id)
+    if not order:
+        return jsonify({'error': 'Purchase order not found'}), 404
+
+    order_dict = order.to_dict()
+    order_dict['items'] = [item.to_dict() for item in order.items]
+    return jsonify(order_dict), 200
+
+
+@app.route('/purchase-orders', methods=['POST'])
+def create_purchase_order():
+    """Create a new purchase order"""
+    try:
+        data = request.get_json()
+
+        order = PurchaseOrder(
+            order_number=data.get('order_number'),
+            supplier_id=data.get('supplier_id'),
+            expected_delivery=datetime.fromisoformat(data.get('expected_delivery')) if data.get('expected_delivery') else None,
+            status=data.get('status', 'draft'),
+            total_amount=data.get('total_amount', 0.0),
+            notes=data.get('notes'),
+            received_at=datetime.fromisoformat(data.get('received_at')) if data.get('received_at') else None
+        )
+
+        db.session.add(order)
+        db.session.flush()
+
+        # Add order items if provided
+        items = data.get('items', [])
+        for item_data in items:
+            item = PurchaseOrderItem(
+                purchase_order_id=order.id,
+                product_id=item_data.get('product_id'),
+                quantity=item_data.get('quantity'),
+                unit_price=item_data.get('unit_price'),
+                subtotal=item_data.get('quantity') * item_data.get('unit_price')
+            )
+            db.session.add(item)
+
+        db.session.commit()
+
+        return jsonify(order.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/purchase-orders/<int:order_id>', methods=['PUT'])
+def update_purchase_order(order_id):
+    """Update a purchase order"""
+    order = PurchaseOrder.query.get(order_id)
+    if not order:
+        return jsonify({'error': 'Purchase order not found'}), 404
+
+    try:
+        data = request.get_json()
+
+        order.status = data.get('status', order.status)
+        order.expected_delivery = datetime.fromisoformat(data.get('expected_delivery')) if data.get('expected_delivery') else order.expected_delivery
+        order.received_at = datetime.fromisoformat(data.get('received_at')) if data.get('received_at') else order.received_at
+        order.total_amount = data.get('total_amount', order.total_amount)
+        order.notes = data.get('notes', order.notes)
+        order.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify(order.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/purchase-orders/<int:order_id>', methods=['DELETE'])
+def delete_purchase_order(order_id):
+    """Delete a purchase order"""
+    order = PurchaseOrder.query.get(order_id)
+    if not order:
+        return jsonify({'error': 'Purchase order not found'}), 404
+
+    try:
+        db.session.delete(order)
+        db.session.commit()
+        return jsonify({'message': 'Purchase order deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# ========== Dashboard & Statistics Endpoints ==========
+
+@app.route('/dashboard', methods=['GET'])
+def get_dashboard():
+    """Get dashboard statistics"""
+    try:
+        total_suppliers = Supplier.query.count()
+        active_suppliers = Supplier.query.filter_by(status='active').count()
+        total_products = Product.query.count()
+        low_stock_products = Product.query.filter(Product.quantity_in_stock <= Product.reorder_level).count()
+        total_orders = PurchaseOrder.query.count()
+        pending_orders = PurchaseOrder.query.filter_by(status='pending').count()
+
+        return jsonify({
+            'totalSuppliers': total_suppliers,
+            'totalProducts': total_products,
+            'totalPurchaseOrders': total_orders,
+            'totalShipments': 0  # Placeholder
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/shipments', methods=['GET'])
+def get_shipments():
+    """Get all shipments (placeholder)"""
+    try:
+        # Return empty array for now
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== DATABASE INITIALIZATION ====================
+
+def ensure_schema():
+    """Run lightweight schema migrations once per process."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    with db.engine.begin() as conn:
+        # Ensure base tables exist before applying incremental column adds.
+        db.create_all()
+
+        conn.exec_driver_sql("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS primary_contact VARCHAR(255)")
+        conn.exec_driver_sql("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50)")
+        conn.exec_driver_sql("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255)")
+        conn.exec_driver_sql("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS on_time_score FLOAT DEFAULT 0.0")
+        conn.exec_driver_sql("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS quality_score FLOAT DEFAULT 0.0")
+
+        conn.exec_driver_sql("ALTER TABLE products ADD COLUMN IF NOT EXISTS standard_cost FLOAT DEFAULT 0.0")
+        conn.exec_driver_sql("ALTER TABLE products ADD COLUMN IF NOT EXISTS unit_of_measure VARCHAR(50)")
+        conn.exec_driver_sql("ALTER TABLE products ADD COLUMN IF NOT EXISTS safety_stock INTEGER DEFAULT 0")
+        conn.exec_driver_sql("ALTER TABLE products ADD COLUMN IF NOT EXISTS lead_time_days INTEGER DEFAULT 0")
+
+        conn.exec_driver_sql("ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS received_at TIMESTAMP")
+    _schema_ready = True
+
+
+@app.before_request
+def _run_schema_if_needed():
+    ensure_schema()
+
+
+def init_db():
+    """Initialize the database"""
+    with app.app_context():
+        db.create_all()
+        print("Database tables created successfully")
+        ensure_schema()
+
+        # Add sample data if no suppliers exist
+        if Supplier.query.count() == 0:
+            print("Adding sample data...")
+
+            suppliers = [
+                Supplier(
+                    name='Acme Components',
+                    contact_person='John Smith',
+                    email='john@acme.com',
+                    phone='+1-555-0101',
+                    address='123 Industrial Blvd',
+                    city='New York',
+                    country='USA',
+                    status='active',
+                    rating=4.5,
+                    primary_contact='John Smith',
+                    contact_phone='+1-555-0101',
+                    contact_email='john@acme.com',
+                    on_time_score=92,
+                    quality_score=90
+                ),
+                Supplier(
+                    name='Northern Freight',
+                    contact_person='Sarah Johnson',
+                    email='sarah@northern.com',
+                    phone='+1-555-0202',
+                    address='456 Logistics Ave',
+                    city='Chicago',
+                    country='USA',
+                    status='active',
+                    rating=4.0,
+                    primary_contact='Sarah Johnson',
+                    contact_phone='+1-555-0202',
+                    contact_email='sarah@northern.com',
+                    on_time_score=89,
+                    quality_score=88
+                ),
+                Supplier(
+                    name='Global Parts Co.',
+                    contact_person='Mike Chen',
+                    email='mike@globalparts.com',
+                    phone='+1-555-0303',
+                    address='789 Supply Lane',
+                    city='Los Angeles',
+                    country='USA',
+                    status='active',
+                    rating=4.8
+                ),
+                Supplier(
+                    name='Blue River Logistics',
+                    contact_person='Emma Davis',
+                    email='emma@blueriver.com',
+                    phone='+1-555-0404',
+                    address='321 Warehouse Dr',
+                    city='Seattle',
+                    country='USA',
+                    status='active',
+                    rating=4.3
+                )
+            ]
+
+            for supplier in suppliers:
+                db.session.add(supplier)
+
+            db.session.commit()
+            print("Sample suppliers added successfully")
+
+        if Product.query.count() == 0 and Supplier.query.first():
+            default_supplier = Supplier.query.first()
+            products = [
+                Product(
+                    sku='SKU-1001',
+                    name='Industrial Fastener',
+                    category='Hardware',
+                    supplier_id=default_supplier.id,
+                    unit_price=5.5,
+                    standard_cost=3.2,
+                    unit_of_measure='each',
+                    quantity_in_stock=120,
+                    reorder_level=40,
+                    safety_stock=25,
+                    lead_time_days=7
+                ),
+                Product(
+                    sku='SKU-2002',
+                    name='Composite Panel',
+                    category='Materials',
+                    supplier_id=default_supplier.id,
+                    unit_price=32.0,
+                    standard_cost=24.0,
+                    unit_of_measure='sheet',
+                    quantity_in_stock=60,
+                    reorder_level=20,
+                    safety_stock=10,
+                    lead_time_days=14
+                ),
+                Product(
+                    sku='SKU-3003',
+                    name='Logistics Crate',
+                    category='Packaging',
+                    supplier_id=default_supplier.id,
+                    unit_price=12.5,
+                    standard_cost=8.5,
+                    unit_of_measure='each',
+                    quantity_in_stock=200,
+                    reorder_level=50,
+                    safety_stock=30,
+                    lead_time_days=5
+                ),
+            ]
+            for prod in products:
+                db.session.add(prod)
+            db.session.commit()
+            print("Sample products added successfully")
+
+        if PurchaseOrder.query.count() == 0 and Supplier.query.first() and Product.query.first():
+            default_supplier = Supplier.query.first()
+            po = PurchaseOrder(
+                order_number='PO-10001',
+                supplier_id=default_supplier.id,
+                expected_delivery=datetime.utcnow(),
+                status='draft',
+                total_amount=0,
+                notes='Initial sample PO'
+            )
+            db.session.add(po)
+            db.session.flush()
+
+            first_product = Product.query.first()
+            item = PurchaseOrderItem(
+                purchase_order_id=po.id,
+                product_id=first_product.id,
+                quantity=10,
+                unit_price=first_product.unit_price,
+                subtotal=10 * first_product.unit_price
+            )
+            po.total_amount = item.subtotal
+            db.session.add(item)
+            db.session.commit()
+            print("Sample purchase order added successfully")
+
+
+if __name__ == '__main__':
+    init_db()
+    app.run(host='0.0.0.0', port=5070, debug=True)
