@@ -6,8 +6,10 @@ Database: property_db
 
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 from datetime import datetime, date, timedelta
+import uuid
 import os
 
 app = Flask(__name__)
@@ -59,6 +61,13 @@ def month_start_for(dt: date, months_back: int = 0) -> date:
     year = dt.year + (dt.month - 1 - months_back) // 12
     month = (dt.month - 1 - months_back) % 12 + 1
     return date(year, month, 1)
+
+
+def generate_contract_number() -> str:
+    """Generate a short, semi-unique contract number."""
+    today = datetime.utcnow().strftime('%Y%m%d')
+    suffix = uuid.uuid4().hex[:6].upper()
+    return f"CT-{today}-{suffix}"
 
 # ==================== MODELS ====================
 
@@ -347,25 +356,43 @@ class Contract(db.Model):
     __tablename__ = 'contracts'
 
     id = db.Column(db.Integer, primary_key=True)
+    contract_number = db.Column(db.String(100), unique=True)
     contract_type = db.Column(db.String(100))  # service, vendor, lease, etc.
     party_name = db.Column(db.String(255))  # contractor/vendor name
+    party_email = db.Column(db.String(255))
+    party_phone = db.Column(db.String(100))
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     value = db.Column(db.Float, default=0.0)
     status = db.Column(db.String(50), default='active')  # active, pending, expired, terminated
     description = db.Column(db.Text)
+    payment_terms = db.Column(db.Text)
+    renewal_terms = db.Column(db.Text)
+    termination_notice_days = db.Column(db.Integer, default=30)
+    auto_renew = db.Column(db.Boolean, default=False)
+    signed_at = db.Column(db.DateTime)
+    signed_by = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
             'id': self.id,
+            'contract_number': self.contract_number,
             'contract_type': self.contract_type,
             'party_name': self.party_name,
+            'party_email': self.party_email,
+            'party_phone': self.party_phone,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'value': self.value,
             'status': self.status,
             'description': self.description,
+            'payment_terms': self.payment_terms,
+            'renewal_terms': self.renewal_terms,
+            'termination_notice_days': self.termination_notice_days,
+            'auto_renew': self.auto_renew,
+            'signed_at': self.signed_at.isoformat() if self.signed_at else None,
+            'signed_by': self.signed_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -422,6 +449,17 @@ def ensure_schema():
             conn.exec_driver_sql("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS maintenance_id INTEGER REFERENCES maintenance(id)")
             conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS expenses (id SERIAL PRIMARY KEY, property_id INTEGER REFERENCES properties(id), lease_id INTEGER REFERENCES leases(id), maintenance_id INTEGER REFERENCES maintenance(id), category VARCHAR(100), amount FLOAT NOT NULL, expense_date DATE NOT NULL, status VARCHAR(50) DEFAULT 'recorded', memo TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
             conn.exec_driver_sql("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS maintenance_id INTEGER REFERENCES maintenance(id)")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_number VARCHAR(100)")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS party_email VARCHAR(255)")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS party_phone VARCHAR(100)")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS payment_terms TEXT")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS renewal_terms TEXT")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS termination_notice_days INTEGER DEFAULT 30")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN DEFAULT FALSE")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS signed_at TIMESTAMP")
+            conn.exec_driver_sql("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS signed_by VARCHAR(255)")
+            # Best-effort unique index on contract_number if values are present
+            conn.exec_driver_sql("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'uq_contracts_number' AND n.nspname = 'public') THEN CREATE UNIQUE INDEX uq_contracts_number ON contracts(contract_number) WHERE contract_number IS NOT NULL; END IF; END $$;")
         finally:
             if advisory_locked:
                 conn.exec_driver_sql("SELECT pg_advisory_unlock(4815162342)")
@@ -1698,17 +1736,29 @@ def create_contract():
 
     try:
         contract = Contract()
+        contract.contract_number = data.get('contract_number') or generate_contract_number()
         contract.contract_type = data.get('contract_type', '')
         contract.party_name = data.get('party_name', '')
+        contract.party_email = data.get('party_email')
+        contract.party_phone = data.get('party_phone')
         contract.start_date = parse_iso_date(data.get('start_date'), 'start_date')
         contract.end_date = parse_iso_date(data.get('end_date'), 'end_date')
         contract.value = float(data.get('value', 0))
         contract.status = data.get('status', 'active')
         contract.description = data.get('description', '')
+        contract.payment_terms = data.get('payment_terms')
+        contract.renewal_terms = data.get('renewal_terms')
+        contract.termination_notice_days = int(data.get('termination_notice_days', 30))
+        contract.auto_renew = bool(data.get('auto_renew', False))
+        contract.signed_at = parse_iso_datetime(data.get('signed_at'), 'signed_at') if data.get('signed_at') else None
+        contract.signed_by = data.get('signed_by')
 
         db.session.add(contract)
         db.session.commit()
         return jsonify(contract.to_dict()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return error_response("Contract number already exists. Provide a unique value.", 400)
     except ValueError as e:
         return error_response(str(e), 400)
     except Exception as e:
@@ -1726,10 +1776,16 @@ def update_contract(contract_id):
         return error_response("Request body must be JSON"), 400
 
     try:
+        if 'contract_number' in data and data.get('contract_number'):
+            contract.contract_number = data['contract_number']
         if 'contract_type' in data:
             contract.contract_type = data['contract_type']
         if 'party_name' in data:
             contract.party_name = data['party_name']
+        if 'party_email' in data:
+            contract.party_email = data['party_email']
+        if 'party_phone' in data:
+            contract.party_phone = data['party_phone']
         if 'start_date' in data:
             contract.start_date = parse_iso_date(data['start_date'], 'start_date')
         if 'end_date' in data:
@@ -1740,9 +1796,24 @@ def update_contract(contract_id):
             contract.status = data['status']
         if 'description' in data:
             contract.description = data['description']
+        if 'payment_terms' in data:
+            contract.payment_terms = data['payment_terms']
+        if 'renewal_terms' in data:
+            contract.renewal_terms = data['renewal_terms']
+        if 'termination_notice_days' in data:
+            contract.termination_notice_days = int(data['termination_notice_days'])
+        if 'auto_renew' in data:
+            contract.auto_renew = bool(data['auto_renew'])
+        if 'signed_at' in data:
+            contract.signed_at = parse_iso_datetime(data['signed_at'], 'signed_at') if data['signed_at'] else None
+        if 'signed_by' in data:
+            contract.signed_by = data['signed_by']
 
         db.session.commit()
         return jsonify(contract.to_dict()), 200
+    except IntegrityError:
+        db.session.rollback()
+        return error_response("Contract number already exists. Provide a unique value.", 400)
     except ValueError as e:
         return error_response(str(e), 400)
     except Exception as e:
