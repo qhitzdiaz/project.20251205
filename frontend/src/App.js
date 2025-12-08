@@ -51,6 +51,7 @@ import {
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
   LocalShipping as SupplyIcon,
+  Build as ServicesIcon,
 } from '@mui/icons-material';
 
 // Import page components
@@ -71,6 +72,9 @@ import SupplyChainDashboard from './pages/SupplyChain/Dashboard';
 import SupplyChainSuppliers from './pages/SupplyChain/Suppliers';
 import SupplyChainProducts from './pages/SupplyChain/Products';
 import SupplyChainPurchaseOrders from './pages/SupplyChain/PurchaseOrders';
+// Serbisyo24x7 pages
+import SerbisyoDashboard from './pages/Serbisyo24x7/Dashboard';
+import SerbisyoServices from './pages/Serbisyo24x7/Services';
 
 // Property Management pages
 import PropertyDashboard from './pages/PropertyManagement/Dashboard';
@@ -78,6 +82,10 @@ import PropertyProperties from './pages/PropertyManagement/Properties';
 import PropertyTenants from './pages/PropertyManagement/Tenants';
 import PropertyMaintenance from './pages/PropertyManagement/Maintenance';
 import PropertyStaff from './pages/PropertyManagement/Staff';
+import PropertyAdmin from './pages/PropertyManagement/Admin';
+import PropertyInvoices from './pages/PropertyManagement/Invoices';
+import PropertyPricing from './pages/PropertyManagement/Pricing';
+import PropertyExpenses from './pages/PropertyManagement/Expenses';
 import UserManagement from './pages/UserManagement';
 
 function AppContent() {
@@ -254,6 +262,15 @@ function AppContent() {
       color: '#512da8',
       path: '/supply-chain',
       features: ['Add products fast', 'Supplier visibility', 'Execution playbooks', 'Exception routing']
+    },
+    {
+      id: 'serbisyo',
+      title: 'Serbisyo24x7',
+      description: '24/7 service management for jobs, requests, and scheduling',
+      icon: <ServicesIcon sx={{ fontSize: 60, color: '#ff6f00' }} />,
+      color: '#ff6f00',
+      path: '/serbisyo',
+      features: ['Service Catalog', 'Job Requests', 'Scheduling', 'Status Tracking']
     },
   ];
 
@@ -475,6 +492,10 @@ function AppContent() {
                 <ListItemIcon><SupplyIcon /></ListItemIcon>
                 <ListItemText primary="Supply Chain" />
               </ListItemButton>
+              <ListItemButton onClick={() => { navigate('/serbisyo'); setDrawerOpen(false); }}>
+                <ListItemIcon><ServicesIcon /></ListItemIcon>
+                <ListItemText primary="Serbisyo24x7" />
+              </ListItemButton>
 
               <Divider sx={{ my: 1 }} />
               <Typography variant="overline" sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 600 }}>
@@ -641,12 +662,20 @@ function AppContent() {
           <Route path="/property/properties" element={isLoggedIn ? <PropertyProperties /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/tenants" element={isLoggedIn ? <PropertyTenants /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/maintenance" element={isLoggedIn ? <PropertyMaintenance /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/admin" element={isLoggedIn ? <PropertyAdmin /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/invoices" element={isLoggedIn ? <PropertyInvoices /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/pricing" element={isLoggedIn ? <PropertyPricing /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/expenses" element={isLoggedIn ? <PropertyExpenses /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/staff" element={isLoggedIn ? <PropertyStaff /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/add" element={isLoggedIn ? <AddPropertyPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/:id" element={isLoggedIn ? <PropertyDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/tenants/:id" element={isLoggedIn ? <TenantDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/maintenance/:id" element={isLoggedIn ? <MaintenanceDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/users" element={isLoggedIn ? <UserManagement /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+
+          {/* Serbisyo24x7 Pages */}
+          <Route path="/serbisyo" element={<SerbisyoDashboard />} />
+          <Route path="/serbisyo/services" element={<SerbisyoServices />} />
 
           {/* Supply Chain Pages */}
           <Route path="/supply-chain" element={<SupplyChainDashboard />} />

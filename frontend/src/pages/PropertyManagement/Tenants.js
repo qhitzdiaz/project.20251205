@@ -13,6 +13,7 @@ const Tenants = () => {
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [currentTenant, setCurrentTenant] = useState(null);
   const [form, setForm] = useState({ full_name: '', email: '', phone: '', notes: '' });
 
@@ -72,6 +73,11 @@ const Tenants = () => {
     }
   };
 
+  const handleRowClick = (tenant) => {
+    setCurrentTenant(tenant);
+    setDetailOpen(true);
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} /></Box>;
 
   return (
@@ -106,14 +112,44 @@ const Tenants = () => {
                     <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4 }}><Typography variant="body1" sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }}>No tenants found. Click "Add Tenant" to create one.</Typography></TableCell></TableRow>
                   ) : (
                     tenants.map((tenant) => (
-                      <TableRow key={tenant.id} hover>
+                      <TableRow
+                        key={tenant.id}
+                        hover
+                        onClick={() => handleRowClick(tenant)}
+                        sx={{
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                          },
+                          transition: 'background-color 0.2s',
+                        }}
+                      >
                         <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><PersonIcon sx={{ color: '#2e7d32', fontSize: 20 }} /><Typography variant="body1" sx={{ fontWeight: 600 }}>{tenant.full_name}</Typography></Box></TableCell>
                         <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><EmailIcon sx={{ fontSize: 16, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />{tenant.email || '-'}</Box></TableCell>
                         <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><PhoneIcon sx={{ fontSize: 16, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />{tenant.phone || '-'}</Box></TableCell>
                         <TableCell><Typography variant="body2" sx={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenant.notes || '-'}</Typography></TableCell>
                         <TableCell align="right">
-                          <IconButton size="small" onClick={() => handleOpenDialog(tenant)} sx={{ color: '#1976d2' }}><EditIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" onClick={() => { setCurrentTenant(tenant); setDeleteDialogOpen(true); }} sx={{ color: '#d32f2f' }}><DeleteIcon fontSize="small" /></IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDialog(tenant);
+                            }}
+                            sx={{ color: '#1976d2' }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentTenant(tenant);
+                              setDeleteDialogOpen(true);
+                            }}
+                            sx={{ color: '#d32f2f' }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))
@@ -145,6 +181,69 @@ const Tenants = () => {
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Tenant Detail Dialog */}
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon sx={{ color: '#2e7d32' }} />
+            <Typography variant="h6">Tenant Details</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {currentTenant && (
+            <Box sx={{ py: 1 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary">Full Name</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{currentTenant.full_name}</Typography>
+                </Grid>
+                {currentTenant.email && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Email</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                      <EmailIcon sx={{ fontSize: 18, color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }} />
+                      <Typography variant="body1">{currentTenant.email}</Typography>
+                    </Box>
+                  </Grid>
+                )}
+                {currentTenant.phone && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Phone</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                      <PhoneIcon sx={{ fontSize: 18, color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }} />
+                      <Typography variant="body1">{currentTenant.phone}</Typography>
+                    </Box>
+                  </Grid>
+                )}
+                {currentTenant.notes && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">Notes</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>{currentTenant.notes}</Typography>
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailOpen(false)}>Close</Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setDetailOpen(false);
+              handleOpenDialog(currentTenant);
+            }}
+          >
+            Edit
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

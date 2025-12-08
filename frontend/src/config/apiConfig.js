@@ -21,6 +21,7 @@ export const API_URLS = {
   CLOUD: `http://${baseHost}:5012/api`,
   PROPERTY: `http://${baseHost}:5050/api`,
   SUPPLY: `http://${baseHost}:5070`,
+  SERBISYO: `http://${baseHost}:5080/api`,
 };
 
 // Backwards compatibility

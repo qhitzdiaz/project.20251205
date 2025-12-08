@@ -1,0 +1,50 @@
+services:
+  postgres-serbisyo:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-serbisyo
+    environment:
+      POSTGRES_DB: serbisyo_db
+      POSTGRES_USER: serbisyo_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-serbiyopass123}
+    ports:
+      - "5480:5432"
+    volumes:
+      - postgres-serbisyo-data:/var/lib/postgresql/data
+    networks:
+      - serbisyo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U serbisyo_user -d serbisyo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend-serbisyo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-serbisyo
+    ports:
+      - "0.0.0.0:5080:5080"
+    volumes:
+      - .:/app:z
+    environment:
+      - DATABASE_URL=postgresql://serbisyo_user:${POSTGRES_PASSWORD:-serbiyopass123}@postgres-serbisyo:5432/serbisyo_db
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-dev-serbisyo}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    depends_on:
+      postgres-serbisyo:
+        condition: service_healthy
+    command: gunicorn -w 2 -b 0.0.0.0:5080 app:app
+    networks:
+      - serbisyo-network
+    restart: unless-stopped
+
+volumes:
+  postgres-serbisyo-data:
+    driver: local
+
+networks:
+  serbisyo-network:
+    driver: bridge

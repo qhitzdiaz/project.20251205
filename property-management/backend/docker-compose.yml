@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: property_db
       POSTGRES_USER: property_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-propertypass123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5450:5432"
     volumes:
@@ -31,9 +31,8 @@ services:
     volumes:
       - .:/app:z
     environment:
-      - DATABASE_URL=postgresql://property_user:${POSTGRES_PASSWORD:-propertypass123}@postgres-property:5432/property_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
+      - DATABASE_URL=postgresql://property_user:${POSTGRES_PASSWORD}@postgres-property:5432/property_db
+      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:

@@ -18,6 +18,7 @@ import {
   People as TenantsIcon,
   PeopleAlt as StaffIcon,
   Build as MaintenanceIcon,
+  AccountBalanceWallet as WalletIcon,
   TrendingUp as TrendingIcon,
   Warning as WarningIcon,
   CheckCircle as CheckIcon,
@@ -38,6 +39,9 @@ const Dashboard = () => {
     maintenanceRequests: 0,
     pendingMaintenance: 0,
     staff: 0,
+    netCash: 0,
+    income: 0,
+    expense: 0,
   });
 
   useEffect(() => {
@@ -48,14 +52,15 @@ const Dashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const [propertiesRes, tenantsRes, leasesRes, maintenanceRes] = await Promise.all([
+      const [propertiesRes, tenantsRes, leasesRes, maintenanceRes, dashboardRes] = await Promise.all([
         fetch(`${API_URLS.PROPERTY}/properties`),
         fetch(`${API_URLS.PROPERTY}/tenants`),
         fetch(`${API_URLS.PROPERTY}/leases`),
         fetch(`${API_URLS.PROPERTY}/maintenance`),
+        fetch(`${API_URLS.PROPERTY}/dashboard`),
       ]);
 
-      if (!propertiesRes.ok || !tenantsRes.ok || !leasesRes.ok || !maintenanceRes.ok) {
+      if (!propertiesRes.ok || !tenantsRes.ok || !leasesRes.ok || !maintenanceRes.ok || !dashboardRes.ok) {
         throw new Error('Failed to load dashboard data');
       }
 
@@ -63,8 +68,10 @@ const Dashboard = () => {
       const tenants = await tenantsRes.json();
       const leases = await leasesRes.json();
       const maintenance = await maintenanceRes.json();
+      const dashboard = await dashboardRes.json();
       const staffRes = await fetch(`${API_URLS.PROPERTY}/staff`);
       const staffData = staffRes.ok ? await staffRes.json() : [];
+      const admin = dashboard?.admin || {};
 
       setStats({
         totalProperties: properties.length,
@@ -73,6 +80,9 @@ const Dashboard = () => {
         maintenanceRequests: maintenance.length,
         pendingMaintenance: maintenance.filter(m => m.status === 'pending' || m.status === 'in_progress').length,
         staff: staffData.length,
+        netCash: admin.net_cash ?? 0,
+        income: admin.income_total ?? 0,
+        expense: admin.expense_total ?? 0,
       });
     } catch (err) {
       setError('Unable to connect to Property Management API. Please ensure the backend is running.');
@@ -118,6 +128,15 @@ const Dashboard = () => {
       bgColor: isDark ? 'rgba(106,27,154,0.15)' : 'rgba(106,27,154,0.1)',
       action: () => navigate('/property/staff'),
     },
+    {
+      title: 'Admin / Cash',
+      value: `$${(stats.netCash || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+      subtitle: `Income $${(stats.income || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} • Expense $${(stats.expense || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+      icon: <WalletIcon sx={{ fontSize: 40 }} />,
+      color: '#009688',
+      bgColor: isDark ? 'rgba(0,150,136,0.18)' : 'rgba(0,150,136,0.12)',
+      action: () => navigate('/property/invoices'),
+    },
   ];
 
   const quickActions = [
@@ -127,6 +146,9 @@ const Dashboard = () => {
     { label: 'Log Maintenance', path: '/property/maintenance', color: '#ed6c02' },
     { label: 'View All Properties', path: '/property/properties', color: '#0288d1' },
     { label: 'View All Tenants', path: '/property/tenants', color: '#388e3c' },
+    { label: 'Invoices', path: '/property/invoices', color: '#009688' },
+    { label: 'Pricing', path: '/property/pricing', color: '#546e7a' },
+    { label: 'Expenses', path: '/property/expenses', color: '#c62828' },
   ];
 
   if (loading) {

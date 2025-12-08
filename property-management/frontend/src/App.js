@@ -1,8 +1,16 @@
-import React from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Container, Box, Typography, Grid, Paper, Button } from '@mui/material';
-import WelcomePage from './pages/WelcomePage';
+import React, { useState } from 'react';
+import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import DashboardPage from './pages/DashboardPage';
+import PropertiesPage from './pages/PropertiesPage';
+import TenantsPage from './pages/TenantsPage';
+import MaintenancePage from './pages/MaintenancePage';
+import StaffPage from './pages/StaffPage';
+import Navigation from './components/Navigation';
 
-const apiBase = process.env.REACT_APP_PM_API || 'http://localhost:5050/api';
+// Prefer explicit API override, else use dev localhost, else same-origin (for prod behind proxy)
+const apiBase = process.env.REACT_APP_PM_API
+  || (process.env.NODE_ENV === 'development' ? 'http://localhost:5050/api' : '/api');
 
 const theme = createTheme({
   palette: {
@@ -14,15 +22,36 @@ const theme = createTheme({
 });
 
 function App() {
+  const [darkMode, setDarkMode] = useState(false);
+
+  const toggleDarkMode = () => setDarkMode(!darkMode);
+
+  const currentTheme = createTheme({
+    ...theme,
+    palette: {
+      ...theme.palette,
+      mode: darkMode ? 'dark' : 'light',
+    },
+  });
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={currentTheme}>
       <CssBaseline />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">API: {apiBase}</Typography>
+      <Router>
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+          <Navigation apiBase={apiBase} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage apiBase={apiBase} />} />
+              <Route path="/properties" element={<PropertiesPage apiBase={apiBase} />} />
+              <Route path="/tenants" element={<TenantsPage apiBase={apiBase} />} />
+              <Route path="/maintenance" element={<MaintenancePage apiBase={apiBase} />} />
+              <Route path="/staff" element={<StaffPage apiBase={apiBase} />} />
+            </Routes>
+          </Box>
         </Box>
-        <WelcomePage onGetStarted={() => { /* hook routing later */ }} />
-      </Container>
+      </Router>
     </ThemeProvider>
   );
 }

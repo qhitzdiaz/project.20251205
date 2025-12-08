@@ -45,6 +45,7 @@ const StaffPage = () => {
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [current, setCurrent] = useState(null);
   const [form, setForm] = useState({
     full_name: '',
@@ -158,6 +159,11 @@ const StaffPage = () => {
     }
   };
 
+  const handleRowClick = (row) => {
+    setCurrent(row);
+    setDetailOpen(true);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -236,7 +242,18 @@ const StaffPage = () => {
                     staff.map((row) => {
                       const prop = properties.find((p) => p.id === row.property_id);
                       return (
-                        <TableRow key={row.id} hover>
+                        <TableRow
+                          key={row.id}
+                          hover
+                          onClick={() => handleRowClick(row)}
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                            },
+                            transition: 'background-color 0.2s',
+                          }}
+                        >
                           <TableCell sx={{ fontWeight: 600 }}>{row.full_name}</TableCell>
                           <TableCell>{row.role || '—'}</TableCell>
                           <TableCell>{row.department || '—'}</TableCell>
@@ -249,12 +266,20 @@ const StaffPage = () => {
                             <Chip size="small" label={row.is_active ? 'Active' : 'Inactive'} color={row.is_active ? 'success' : 'default'} />
                           </TableCell>
                           <TableCell align="right">
-                            <IconButton size="small" onClick={() => handleOpen(row)} sx={{ color: '#1976d2' }}>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpen(row);
+                              }}
+                              sx={{ color: '#1976d2' }}
+                            >
                               <EditIcon fontSize="small" />
                             </IconButton>
                             <IconButton
                               size="small"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setCurrent(row);
                                 setDeleteDialogOpen(true);
                               }}
@@ -390,6 +415,117 @@ const StaffPage = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Staff Detail Dialog */}
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">Staff Details</Typography>
+            <Chip
+              label={current?.is_active ? 'Active' : 'Inactive'}
+              color={current?.is_active ? 'success' : 'default'}
+              size="small"
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {current && (
+            <Box sx={{ py: 1 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary">Full Name</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{current.full_name}</Typography>
+                </Grid>
+                {current.role && (
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Role</Typography>
+                    <Typography variant="body1">{current.role}</Typography>
+                  </Grid>
+                )}
+                {current.department && (
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Department</Typography>
+                    <Typography variant="body1">{current.department}</Typography>
+                  </Grid>
+                )}
+                {current.email && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Email</Typography>
+                    <Typography variant="body1">{current.email}</Typography>
+                  </Grid>
+                )}
+                {current.phone && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Phone</Typography>
+                    <Typography variant="body1">{current.phone}</Typography>
+                  </Grid>
+                )}
+                {current.address && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Address</Typography>
+                    <Typography variant="body1">{current.address}</Typography>
+                  </Grid>
+                )}
+                {(current.date_of_birth || current.start_date) && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    {current.date_of_birth && (
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">Date of Birth</Typography>
+                        <Typography variant="body1">{new Date(current.date_of_birth).toLocaleDateString()}</Typography>
+                      </Grid>
+                    )}
+                    {current.start_date && (
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">Start Date</Typography>
+                        <Typography variant="body1">{new Date(current.start_date).toLocaleDateString()}</Typography>
+                      </Grid>
+                    )}
+                  </>
+                )}
+                {current.property_id && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">Assigned Property</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {properties.find((p) => p.id === current.property_id)?.name || 'Unknown'}
+                      </Typography>
+                    </Grid>
+                  </>
+                )}
+                {current.notes && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">Notes</Typography>
+                      <Typography variant="body2">{current.notes}</Typography>
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailOpen(false)}>Close</Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setDetailOpen(false);
+              handleOpen(current);
+            }}
+          >
+            Edit
           </Button>
         </DialogActions>
       </Dialog>

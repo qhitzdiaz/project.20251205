@@ -2,6 +2,12 @@
 
 # Qhitz Inc., - Complete Rebuild Script
 # This script rebuilds all backend services, frontend, reverse proxy, and syncs the mobile app
+#
+# Usage:
+#   ./rebuild-all.sh           # Full rebuild with backup and restore
+#   ./rebuild-all.sh --quick   # Quick rebuild (skip backups, faster)
+#   ./rebuild-all.sh --no-prune # Rebuild without pruning volumes
+#   ./rebuild-all.sh --help    # Show help
 
 set -e  # Exit on any error
 
@@ -10,26 +16,94 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+# Parse command line arguments
+QUICK_MODE=false
+SKIP_BACKUP=false
+SKIP_PRUNE=false
+
+show_help() {
+    echo -e "${CYAN}Qhitz Inc., Complete Rebuild Script${NC}"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --quick       Quick rebuild (skip backups and volume pruning)"
+    echo "  --no-backup   Skip database backups (faster, but risky)"
+    echo "  --no-prune    Skip volume pruning (keeps existing data)"
+    echo "  --help        Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                # Full rebuild with backup and restore"
+    echo "  $0 --quick        # Quick rebuild for development"
+    echo "  $0 --no-prune     # Rebuild but keep existing volumes"
+    exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --quick)
+            QUICK_MODE=true
+            SKIP_BACKUP=true
+            SKIP_PRUNE=true
+            shift
+            ;;
+        --no-backup)
+            SKIP_BACKUP=true
+            shift
+            ;;
+        --no-prune)
+            SKIP_PRUNE=true
+            shift
+            ;;
+        --help|-h)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Get the script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 REVERSE_PROXY_DIR="$SCRIPT_DIR/reverse-proxy"
+
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Qhitz Inc., - Complete Rebuild Script${NC}"
+if [ "$QUICK_MODE" = true ]; then
+    echo -e "${CYAN}  Qhitz Inc., - Quick Rebuild Mode${NC}"
+else
+    echo -e "${BLUE}  Qhitz Inc., - Complete Rebuild Script${NC}"
+fi
 echo -e "${BLUE}========================================${NC}"
 echo ""
+
+if [ "$QUICK_MODE" = true ]; then
+    echo -e "${YELLOW}⚡ Quick Mode: Skipping backups and volume pruning${NC}"
+    echo ""
+fi
 
 # Create backup directory
 BACKUP_DIR="$SCRIPT_DIR/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_PATH="$BACKUP_DIR/$TIMESTAMP"
-mkdir -p "$BACKUP_PATH"
+
+if [ "$SKIP_BACKUP" = false ]; then
+    mkdir -p "$BACKUP_PATH"
+fi
 
 # Step 1: Export all database data
-echo -e "${YELLOW}[1/8] Exporting database data...${NC}"
+if [ "$SKIP_BACKUP" = false ]; then
+    echo -e "${YELLOW}[1/8] Exporting database data...${NC}"
+else
+    echo -e "${YELLOW}[1/8] Skipping database backup (--quick or --no-backup mode)${NC}"
+fi
 
 # Function to export PostgreSQL database
 export_postgres_db() {
@@ -50,34 +124,41 @@ export_postgres_db() {
     fi
 }
 
-# Export core databases
-export_postgres_db "qhitz-postgres-auth" "auth_db" "qhitz_user" "$BACKUP_PATH/auth_db.sql"
-export_postgres_db "qhitz-postgres-media" "media_db" "qhitz_user" "$BACKUP_PATH/media_db.sql"
-export_postgres_db "qhitz-postgres-cloud" "cloud_db" "qhitz_user" "$BACKUP_PATH/cloud_db.sql"
+if [ "$SKIP_BACKUP" = false ]; then
+    # Export core databases
+    export_postgres_db "qhitz-postgres-auth" "auth_db" "qhitz_user" "$BACKUP_PATH/auth_db.sql"
+    export_postgres_db "qhitz-postgres-media" "media_db" "qhitz_user" "$BACKUP_PATH/media_db.sql"
+    export_postgres_db "qhitz-postgres-cloud" "cloud_db" "qhitz_user" "$BACKUP_PATH/cloud_db.sql"
 
-# Export Supply Chain database
-export_postgres_db "qhitz-postgres-supply" "supply_chain_db" "supply_user" "$BACKUP_PATH/supply_chain_db.sql"
+    # Export Supply Chain database
+    export_postgres_db "qhitz-postgres-supply" "supply_chain_db" "supply_user" "$BACKUP_PATH/supply_chain_db.sql"
 
-# Export Property Management database
-export_postgres_db "qhitz-postgres-property" "property_db" "property_user" "$BACKUP_PATH/property_db.sql"
+    # Export Property Management database
+    export_postgres_db "qhitz-postgres-property" "property_db" "property_user" "$BACKUP_PATH/property_db.sql"
 
-# Backup media uploads and cloud storage volumes
-if docker volume ls | grep -q "qhitz-media-uploads"; then
-    echo "  Backing up media uploads..."
-    docker run --rm -v qhitz-media-uploads:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/media-uploads.tar.gz -C /data . 2>/dev/null && \
-        echo -e "${GREEN}  ✓ Backed up media uploads${NC}" || \
-        echo -e "${YELLOW}  ⚠️  Warning: Failed to backup media uploads${NC}"
+    # Export Serbisyo24x7 database
+    export_postgres_db "qhitz-postgres-serbisyo" "serbisyo_db" "serbisyo_user" "$BACKUP_PATH/serbisyo_db.sql"
 fi
 
-if docker volume ls | grep -q "qhitz-cloud-storage"; then
-    echo "  Backing up cloud storage..."
-    docker run --rm -v qhitz-cloud-storage:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/cloud-storage.tar.gz -C /data . 2>/dev/null && \
-        echo -e "${GREEN}  ✓ Backed up cloud storage${NC}" || \
-        echo -e "${YELLOW}  ⚠️  Warning: Failed to backup cloud storage${NC}"
-fi
+if [ "$SKIP_BACKUP" = false ]; then
+    # Backup media uploads and cloud storage volumes
+    if docker volume ls | grep -q "qhitz-media-uploads"; then
+        echo "  Backing up media uploads..."
+        docker run --rm -v qhitz-media-uploads:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/media-uploads.tar.gz -C /data . 2>/dev/null && \
+            echo -e "${GREEN}  ✓ Backed up media uploads${NC}" || \
+            echo -e "${YELLOW}  ⚠️  Warning: Failed to backup media uploads${NC}"
+    fi
 
-echo -e "${GREEN}✓ Database export complete${NC}"
-echo -e "${BLUE}  Backup location: $BACKUP_PATH${NC}"
+    if docker volume ls | grep -q "qhitz-cloud-storage"; then
+        echo "  Backing up cloud storage..."
+        docker run --rm -v qhitz-cloud-storage:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/cloud-storage.tar.gz -C /data . 2>/dev/null && \
+            echo -e "${GREEN}  ✓ Backed up cloud storage${NC}" || \
+            echo -e "${YELLOW}  ⚠️  Warning: Failed to backup cloud storage${NC}"
+    fi
+
+    echo -e "${GREEN}✓ Database export complete${NC}"
+    echo -e "${BLUE}  Backup location: $BACKUP_PATH${NC}"
+fi
 echo ""
 
 # Step 2: Stop all containers
@@ -95,17 +176,23 @@ echo ""
 echo -e "${YELLOW}[3/8] Cleaning up Docker resources...${NC}"
 docker container prune -f
 docker image prune -f
-echo -e "${YELLOW}⚠️  Pruning volumes (data will be restored from backup)...${NC}"
-docker volume prune -f
+
+if [ "$SKIP_PRUNE" = false ]; then
+    echo -e "${YELLOW}⚠️  Pruning volumes (data will be restored from backup)...${NC}"
+    docker volume prune -f
+else
+    echo -e "${CYAN}  Keeping existing volumes (--no-prune mode)${NC}"
+fi
+
 echo -e "${GREEN}✓ Docker cleanup complete${NC}"
 echo ""
 
-# Step 4: Rebuild backend services (core + property + supply)
+# Step 4: Rebuild backend services (core + property + supply + serbisyo)
 echo -e "${YELLOW}[4/8] Rebuilding backend services...${NC}"
 cd "$SCRIPT_DIR"
 # Start databases first, then API services
-docker compose up -d --build postgres-auth postgres-media postgres-cloud postgres-property postgres-supply
-docker compose up -d --build backend-api backend-media backend-cloud backend-property backend-supply
+docker compose up -d --build postgres-auth postgres-media postgres-cloud postgres-property postgres-supply postgres-serbisyo
+docker compose up -d --build backend-api backend-media backend-cloud backend-property backend-supply backend-serbisyo
 echo -e "${GREEN}✓ Backend services rebuilt and started${NC}"
 echo ""
 
@@ -194,6 +281,9 @@ import_postgres_db "qhitz-postgres-supply" "supply_chain_db" "supply_user" "$BAC
 
 # Import Property Management database
 import_postgres_db "qhitz-postgres-property" "property_db" "property_user" "$BACKUP_PATH/property_db.sql"
+
+# Import Serbisyo24x7 database
+import_postgres_db "qhitz-postgres-serbisyo" "serbisyo_db" "serbisyo_user" "$BACKUP_PATH/serbisyo_db.sql"
 
 # Restore media uploads and cloud storage volumes
 restore_volume() {
@@ -304,6 +394,12 @@ else
     echo -e "${RED}✗ Property API (5050) - Not responding${NC}"
 fi
 
+if curl -s http://localhost:5080/health > /dev/null; then
+    echo -e "${GREEN}✓ Serbisyo24x7 API (5080) - Healthy${NC}"
+else
+    echo -e "${RED}✗ Serbisyo24x7 API (5080) - Not responding${NC}"
+fi
+
 # Test frontend
 if curl -s http://localhost:3000 > /dev/null; then
     echo -e "${GREEN}✓ Frontend (3000) - Running${NC}"
@@ -347,5 +443,32 @@ echo "  $BACKUP_PATH"
 echo ""
 echo -e "${YELLOW}Note:${NC} Backups are stored in $BACKUP_DIR"
 echo -e "${YELLOW}This rebuild includes full container, image, and volume pruning with automatic data restoration${NC}"
+echo ""
+
+# Service Statistics
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  Service Statistics${NC}"
+echo -e "${BLUE}========================================${NC}"
+
+# Count running services
+RUNNING_SERVICES=$(docker ps --filter "name=qhitz-" --format "{{.Names}}" | wc -l | tr -d ' ')
+TOTAL_SERVICES=11  # auth, media, cloud, property, supply, serbisyo, frontend, proxy, + 6 databases
+
+echo -e "${GREEN}Services Running:${NC} $RUNNING_SERVICES / $TOTAL_SERVICES"
+
+# Show container resource usage
+echo ""
+echo -e "${CYAN}Resource Usage:${NC}"
+docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" | grep "qhitz-" | head -5
+
+echo ""
+echo -e "${CYAN}Database Sizes:${NC}"
+for container in qhitz-postgres-auth qhitz-postgres-media qhitz-postgres-cloud qhitz-postgres-property qhitz-postgres-supply qhitz-postgres-serbisyo; do
+    if docker ps --filter "name=$container" --format "{{.Names}}" | grep -q "$container"; then
+        DB_SIZE=$(docker exec "$container" psql -U $(echo $container | sed 's/qhitz-postgres-//')_user -c "SELECT pg_size_pretty(pg_database_size(current_database()));" 2>/dev/null | sed -n '3p' | tr -d ' ' || echo "N/A")
+        echo "  $container: $DB_SIZE"
+    fi
+done
+
 echo ""
 echo -e "${GREEN}All systems operational! 🚀${NC}"

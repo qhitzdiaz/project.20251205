@@ -15,6 +15,7 @@ const Maintenance = () => {
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [currentRequest, setCurrentRequest] = useState(null);
   const [form, setForm] = useState({ property_id: '', tenant_id: '', title: '', description: '', priority: 'medium', status: 'pending' });
 
@@ -96,6 +97,11 @@ const Maintenance = () => {
     }
   };
 
+  const handleRowClick = (request) => {
+    setCurrentRequest(request);
+    setDetailOpen(true);
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} /></Box>;
 
   return (
@@ -135,7 +141,18 @@ const Maintenance = () => {
                       const property = properties.find(p => p.id === request.property_id);
                       const tenant = tenants.find(t => t.id === request.tenant_id);
                       return (
-                        <TableRow key={request.id} hover>
+                        <TableRow
+                          key={request.id}
+                          hover
+                          onClick={() => handleRowClick(request)}
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                            },
+                            transition: 'background-color 0.2s',
+                          }}
+                        >
                           <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><BuildIcon sx={{ color: '#ed6c02', fontSize: 20 }} /><Typography variant="body1" sx={{ fontWeight: 600 }}>{request.title}</Typography></Box></TableCell>
                           <TableCell>{property?.name || '-'}</TableCell>
                           <TableCell>{tenant?.full_name || '-'}</TableCell>
@@ -143,8 +160,27 @@ const Maintenance = () => {
                           <TableCell><Chip label={request.status || 'pending'} color={getStatusColor(request.status)} size="small" /></TableCell>
                           <TableCell>{request.created_at ? new Date(request.created_at).toLocaleDateString() : '-'}</TableCell>
                           <TableCell align="right">
-                            <IconButton size="small" onClick={() => handleOpenDialog(request)} sx={{ color: '#1976d2' }}><EditIcon fontSize="small" /></IconButton>
-                            <IconButton size="small" onClick={() => { setCurrentRequest(request); setDeleteDialogOpen(true); }} sx={{ color: '#d32f2f' }}><DeleteIcon fontSize="small" /></IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDialog(request);
+                              }}
+                              sx={{ color: '#1976d2' }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentRequest(request);
+                                setDeleteDialogOpen(true);
+                              }}
+                              sx={{ color: '#d32f2f' }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
                           </TableCell>
                         </TableRow>
                       );
@@ -179,6 +215,100 @@ const Maintenance = () => {
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Maintenance Detail Dialog */}
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BuildIcon sx={{ color: '#ed6c02' }} />
+              <Typography variant="h6">Maintenance Request</Typography>
+            </Box>
+            <Chip
+              label={currentRequest?.status || 'pending'}
+              color={getStatusColor(currentRequest?.status)}
+              size="small"
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {currentRequest && (
+            <Box sx={{ py: 1 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary">Title</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentRequest.title}</Typography>
+                </Grid>
+                {currentRequest.description && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Description</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>{currentRequest.description}</Typography>
+                  </Grid>
+                )}
+                <Grid item xs={12}>
+                  <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Priority</Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    <Chip label={currentRequest.priority || 'medium'} color={getPriorityColor(currentRequest.priority)} size="small" />
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Status</Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    <Chip label={currentRequest.status || 'pending'} color={getStatusColor(currentRequest.status)} size="small" />
+                  </Box>
+                </Grid>
+                {currentRequest.property_id && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">Property</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {properties.find(p => p.id === currentRequest.property_id)?.name || 'Unknown'}
+                      </Typography>
+                    </Grid>
+                  </>
+                )}
+                {currentRequest.tenant_id && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Tenant</Typography>
+                    <Typography variant="body1">
+                      {tenants.find(t => t.id === currentRequest.tenant_id)?.full_name || 'Unknown'}
+                    </Typography>
+                  </Grid>
+                )}
+                {currentRequest.created_at && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">Created</Typography>
+                      <Typography variant="body2">{new Date(currentRequest.created_at).toLocaleDateString()}</Typography>
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailOpen(false)}>Close</Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setDetailOpen(false);
+              handleOpenDialog(currentRequest);
+            }}
+          >
+            Edit
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

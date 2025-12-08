@@ -7,17 +7,14 @@ Database: property_db
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
 
 app = Flask(__name__)
 
 # ==================== CONFIGURATION ====================
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    'DATABASE_URL',
-    'postgresql://property_user:propertypass123@postgres-property:5432/property_db'
-)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///property.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
@@ -28,6 +25,40 @@ CORS(app, resources={r"/api/*": {"origins": cors_origin}})
 # Database
 db = SQLAlchemy(app)
 _schema_ready = False
+
+
+# ==================== HELPERS ====================
+
+def error_response(message, status_code=400):
+    """Consistent error responses"""
+    return jsonify({'error': message}), status_code
+
+
+def parse_iso_date(value, field_name):
+    """Parse an ISO date string or return None"""
+    if value is None or value == '':
+        return None
+    try:
+        return date.fromisoformat(value)
+    except Exception:
+        raise ValueError(f"Invalid date for {field_name}; expected ISO date string")
+
+
+def parse_iso_datetime(value, field_name):
+    """Parse an ISO datetime string or return None"""
+    if value is None or value == '':
+        return None
+    try:
+        return datetime.fromisoformat(value).replace(tzinfo=None)
+    except Exception:
+        raise ValueError(f"Invalid datetime for {field_name}; expected ISO datetime string")
+
+
+def month_start_for(dt: date, months_back: int = 0) -> date:
+    """Return the first day of the month shifted back by months_back."""
+    year = dt.year + (dt.month - 1 - months_back) // 12
+    month = (dt.month - 1 - months_back) % 12 + 1
+    return date(year, month, 1)
 
 # ==================== MODELS ====================
 
@@ -200,6 +231,117 @@ class Staff(db.Model):
         }
 
 
+class Transaction(db.Model):
+    """Accounting transaction for income/expense and cash flow"""
+    __tablename__ = 'transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id'))
+    lease_id = db.Column(db.Integer, db.ForeignKey('leases.id'))
+    txn_type = db.Column(db.String(20), nullable=False)  # income, expense
+    category = db.Column(db.String(100))
+    amount = db.Column(db.Float, nullable=False)
+    txn_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(50), default='cleared')  # cleared, pending
+    memo = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    property = db.relationship('Property', backref=db.backref('transactions', lazy=True))
+    lease = db.relationship('Lease', backref=db.backref('transactions', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'property_id': self.property_id,
+            'lease_id': self.lease_id,
+            'txn_type': self.txn_type,
+            'category': self.category,
+            'amount': self.amount,
+            'txn_date': self.txn_date.isoformat() if self.txn_date else None,
+            'status': self.status,
+            'memo': self.memo,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'property': self.property.to_dict() if self.property else None,
+            'lease': self.lease.to_dict() if self.lease else None
+        }
+
+
+class Invoice(db.Model):
+    """Invoice model for billing income/expenses"""
+    __tablename__ = 'invoices'
+
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.String(50), unique=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id'))
+    lease_id = db.Column(db.Integer, db.ForeignKey('leases.id'))
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), default='pending')  # pending, sent, paid, overdue, void
+    due_date = db.Column(db.Date)
+    issue_date = db.Column(db.Date, default=date.today)
+    paid_at = db.Column(db.DateTime)
+    memo = db.Column(db.Text)
+    maintenance_id = db.Column(db.Integer, db.ForeignKey('maintenance.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    property = db.relationship('Property', backref=db.backref('invoices', lazy=True))
+    lease = db.relationship('Lease', backref=db.backref('invoices', lazy=True))
+    maintenance = db.relationship('Maintenance', backref=db.backref('invoices', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'number': self.number,
+            'property_id': self.property_id,
+            'lease_id': self.lease_id,
+            'amount': self.amount,
+            'status': self.status,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'issue_date': self.issue_date.isoformat() if self.issue_date else None,
+            'paid_at': self.paid_at.isoformat() if self.paid_at else None,
+            'memo': self.memo,
+            'maintenance_id': self.maintenance_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'property': self.property.to_dict() if self.property else None,
+            'lease': self.lease.to_dict() if self.lease else None
+        }
+
+
+class Expense(db.Model):
+    """Expense model for non-rent costs"""
+    __tablename__ = 'expenses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id'))
+    lease_id = db.Column(db.Integer, db.ForeignKey('leases.id'))
+    maintenance_id = db.Column(db.Integer, db.ForeignKey('maintenance.id'))
+    category = db.Column(db.String(100))
+    amount = db.Column(db.Float, nullable=False)
+    expense_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(50), default='recorded')  # recorded, pending, reimbursed
+    memo = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    property = db.relationship('Property', backref=db.backref('expenses', lazy=True))
+    lease = db.relationship('Lease', backref=db.backref('expenses', lazy=True))
+    maintenance = db.relationship('Maintenance', backref=db.backref('expenses', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'property_id': self.property_id,
+            'lease_id': self.lease_id,
+            'maintenance_id': self.maintenance_id,
+            'category': self.category,
+            'amount': self.amount,
+            'expense_date': self.expense_date.isoformat() if self.expense_date else None,
+            'status': self.status,
+            'memo': self.memo,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'property': self.property.to_dict() if self.property else None,
+            'lease': self.lease.to_dict() if self.lease else None,
+        }
+
+
 # ==================== ROUTES ====================
 
 @app.route('/health', methods=['GET'])
@@ -218,23 +360,43 @@ def ensure_schema():
     if _schema_ready:
         return
     with db.engine.begin() as conn:
-        # Ensure base tables exist before applying incremental column adds.
-        db.create_all()
+        advisory_locked = False
+        try:
+            if db.engine.url.get_backend_name() not in ['sqlite']:
+                # Prevent concurrent ALTER/CREATE across gunicorn workers
+                conn.exec_driver_sql("SELECT pg_advisory_lock(4815162342)")
+                advisory_locked = True
 
-        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_name VARCHAR(255)")
-        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_phone VARCHAR(100)")
-        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255)")
-        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)")
-        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS latitude FLOAT")
-        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS longitude FLOAT")
+            # Ensure base tables exist before applying incremental column adds.
+            db.create_all()
 
-        conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS rent_due_day INTEGER DEFAULT 1")
-        conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_amount FLOAT DEFAULT 0")
-        conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS notice_given_at TIMESTAMP")
+            # SQLite has limited ALTER support; skip migration-style ALTERs there.
+            if db.engine.url.get_backend_name() == 'sqlite':
+                _schema_ready = True
+                return
 
-        conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS due_date DATE")
-        conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
-        conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS staff (id SERIAL PRIMARY KEY, property_id INTEGER REFERENCES properties(id), full_name VARCHAR(255) NOT NULL, role VARCHAR(100), email VARCHAR(255), phone VARCHAR(100), department VARCHAR(100), address TEXT, date_of_birth DATE, start_date DATE, notes TEXT, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_name VARCHAR(255)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_phone VARCHAR(100)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS latitude FLOAT")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS longitude FLOAT")
+
+            conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS rent_due_day INTEGER DEFAULT 1")
+            conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_amount FLOAT DEFAULT 0")
+            conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS notice_given_at TIMESTAMP")
+
+            conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS due_date DATE")
+            conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
+            conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS staff (id SERIAL PRIMARY KEY, property_id INTEGER REFERENCES properties(id), full_name VARCHAR(255) NOT NULL, role VARCHAR(100), email VARCHAR(255), phone VARCHAR(100), department VARCHAR(100), address TEXT, date_of_birth DATE, start_date DATE, notes TEXT, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS transactions (id SERIAL PRIMARY KEY, property_id INTEGER REFERENCES properties(id), lease_id INTEGER REFERENCES leases(id), txn_type VARCHAR(20) NOT NULL, category VARCHAR(100), amount FLOAT NOT NULL, txn_date DATE NOT NULL, status VARCHAR(50) DEFAULT 'cleared', memo TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS invoices (id SERIAL PRIMARY KEY, number VARCHAR(50) UNIQUE, property_id INTEGER REFERENCES properties(id), lease_id INTEGER REFERENCES leases(id), maintenance_id INTEGER REFERENCES maintenance(id), amount FLOAT NOT NULL, status VARCHAR(50) DEFAULT 'pending', due_date DATE, issue_date DATE, paid_at TIMESTAMP, memo TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            conn.exec_driver_sql("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS maintenance_id INTEGER REFERENCES maintenance(id)")
+            conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS expenses (id SERIAL PRIMARY KEY, property_id INTEGER REFERENCES properties(id), lease_id INTEGER REFERENCES leases(id), maintenance_id INTEGER REFERENCES maintenance(id), category VARCHAR(100), amount FLOAT NOT NULL, expense_date DATE NOT NULL, status VARCHAR(50) DEFAULT 'recorded', memo TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            conn.exec_driver_sql("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS maintenance_id INTEGER REFERENCES maintenance(id)")
+        finally:
+            if advisory_locked:
+                conn.exec_driver_sql("SELECT pg_advisory_unlock(4815162342)")
     _schema_ready = True
 
 
@@ -252,7 +414,7 @@ def get_properties():
         properties = Property.query.order_by(Property.created_at.desc()).all()
         return jsonify([p.to_dict() for p in properties]), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/properties/<int:property_id>', methods=['GET'])
@@ -261,10 +423,10 @@ def get_property(property_id):
     try:
         prop = Property.query.get(property_id)
         if not prop:
-            return jsonify({'error': 'Property not found'}), 404
+            return error_response('Property not found', 404)
         return jsonify(prop.to_dict()), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/properties', methods=['POST'])
@@ -272,6 +434,9 @@ def create_property():
     """Create a new property"""
     try:
         data = request.get_json()
+
+        if not data or not data.get('name'):
+            return error_response('name is required', 400)
 
         property_obj = Property(
             name=data.get('name'),
@@ -294,7 +459,9 @@ def create_property():
         return jsonify(property_obj.to_dict()), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/properties/<int:property_id>', methods=['PUT'])
@@ -302,7 +469,7 @@ def update_property(property_id):
     """Update an existing property"""
     prop = Property.query.get(property_id)
     if not prop:
-        return jsonify({'error': 'Property not found'}), 404
+        return error_response('Property not found', 404)
 
     try:
         data = request.get_json() or {}
@@ -324,13 +491,17 @@ def update_property(property_id):
 
         for field in fields:
             if field in data:
+                if field == 'name' and not data.get(field):
+                    return error_response('name cannot be empty', 400)
                 setattr(prop, field, data.get(field))
 
         db.session.commit()
         return jsonify(prop.to_dict()), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/properties/<int:property_id>', methods=['DELETE'])
@@ -338,7 +509,7 @@ def delete_property(property_id):
     """Delete a property and its related leases"""
     prop = Property.query.get(property_id)
     if not prop:
-        return jsonify({'error': 'Property not found'}), 404
+        return error_response('Property not found', 404)
 
     try:
         db.session.delete(prop)
@@ -346,7 +517,7 @@ def delete_property(property_id):
         return jsonify({'message': 'Property deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # ========== Tenant Endpoints ==========
@@ -358,7 +529,7 @@ def get_tenants():
         tenants = Tenant.query.order_by(Tenant.created_at.desc()).all()
         return jsonify([t.to_dict() for t in tenants]), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/tenants/<int:tenant_id>', methods=['GET'])
@@ -367,10 +538,10 @@ def get_tenant(tenant_id):
     try:
         tenant = Tenant.query.get(tenant_id)
         if not tenant:
-            return jsonify({'error': 'Tenant not found'}), 404
+            return error_response('Tenant not found', 404)
         return jsonify(tenant.to_dict()), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/tenants', methods=['POST'])
@@ -378,6 +549,9 @@ def create_tenant():
     """Create a new tenant"""
     try:
         data = request.get_json()
+
+        if not data or not data.get('full_name'):
+            return error_response('full_name is required', 400)
 
         tenant = Tenant(
             full_name=data.get('full_name'),
@@ -392,7 +566,9 @@ def create_tenant():
         return jsonify(tenant.to_dict()), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/tenants/<int:tenant_id>', methods=['PUT'])
@@ -400,7 +576,7 @@ def update_tenant(tenant_id):
     """Update tenant details"""
     tenant = Tenant.query.get(tenant_id)
     if not tenant:
-        return jsonify({'error': 'Tenant not found'}), 404
+        return error_response('Tenant not found', 404)
 
     try:
         data = request.get_json() or {}
@@ -414,7 +590,9 @@ def update_tenant(tenant_id):
         return jsonify(tenant.to_dict()), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/tenants/<int:tenant_id>', methods=['DELETE'])
@@ -422,7 +600,7 @@ def delete_tenant(tenant_id):
     """Delete a tenant"""
     tenant = Tenant.query.get(tenant_id)
     if not tenant:
-        return jsonify({'error': 'Tenant not found'}), 404
+        return error_response('Tenant not found', 404)
 
     try:
         db.session.delete(tenant)
@@ -430,7 +608,7 @@ def delete_tenant(tenant_id):
         return jsonify({'message': 'Tenant deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # ========== Lease Endpoints ==========
@@ -442,7 +620,7 @@ def get_leases():
         leases = Lease.query.order_by(Lease.created_at.desc()).all()
         return jsonify([l.to_dict() for l in leases]), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/leases', methods=['POST'])
@@ -451,20 +629,21 @@ def create_lease():
     try:
         data = request.get_json()
 
+        if not data:
+            return error_response('payload is required', 400)
+        if not data.get('property_id') or not data.get('tenant_id'):
+            return error_response('property_id and tenant_id are required', 400)
+
         # Validate property and tenant exist
         property_obj = Property.query.get(data.get('property_id'))
         tenant = Tenant.query.get(data.get('tenant_id'))
 
         if not property_obj or not tenant:
-            return jsonify({'error': 'Invalid property or tenant'}), 400
+            return error_response('Invalid property or tenant', 400)
 
         # Parse dates
-        start_date = None
-        end_date = None
-        if data.get('start_date'):
-            start_date = datetime.fromisoformat(data.get('start_date')).date()
-        if data.get('end_date'):
-            end_date = datetime.fromisoformat(data.get('end_date')).date()
+        start_date = parse_iso_date(data.get('start_date'), 'start_date')
+        end_date = parse_iso_date(data.get('end_date'), 'end_date')
 
         lease = Lease(
             property_id=data.get('property_id'),
@@ -476,7 +655,7 @@ def create_lease():
             rent_due_day=data.get('rent_due_day', 1),
             deposit_amount=data.get('deposit_amount', 0.0),
             status=data.get('status', 'draft'),
-            notice_given_at=datetime.fromisoformat(data.get('notice_given_at')).replace(tzinfo=None) if data.get('notice_given_at') else None
+            notice_given_at=parse_iso_datetime(data.get('notice_given_at'), 'notice_given_at')
         )
 
         db.session.add(lease)
@@ -485,7 +664,9 @@ def create_lease():
         return jsonify(lease.to_dict()), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/leases/<int:lease_id>', methods=['GET'])
@@ -493,7 +674,7 @@ def get_lease(lease_id):
     """Get a specific lease"""
     lease = Lease.query.get(lease_id)
     if not lease:
-        return jsonify({'error': 'Lease not found'}), 404
+        return error_response('Lease not found', 404)
     return jsonify(lease.to_dict()), 200
 
 
@@ -502,21 +683,27 @@ def update_lease(lease_id):
     """Update an existing lease"""
     lease = Lease.query.get(lease_id)
     if not lease:
-        return jsonify({'error': 'Lease not found'}), 404
+        return error_response('Lease not found', 404)
 
     try:
         data = request.get_json() or {}
 
         if 'property_id' in data:
+            property_obj = Property.query.get(data.get('property_id'))
+            if not property_obj:
+                return error_response('Invalid property', 400)
             lease.property_id = data.get('property_id')
         if 'tenant_id' in data:
+            tenant = Tenant.query.get(data.get('tenant_id'))
+            if not tenant:
+                return error_response('Invalid tenant', 400)
             lease.tenant_id = data.get('tenant_id')
         if 'unit' in data:
             lease.unit = data.get('unit')
         if 'start_date' in data:
-            lease.start_date = datetime.fromisoformat(data['start_date']).date() if data.get('start_date') else None
+            lease.start_date = parse_iso_date(data.get('start_date'), 'start_date')
         if 'end_date' in data:
-            lease.end_date = datetime.fromisoformat(data['end_date']).date() if data.get('end_date') else None
+            lease.end_date = parse_iso_date(data.get('end_date'), 'end_date')
         if 'rent' in data:
             lease.rent = data.get('rent')
         if 'rent_due_day' in data:
@@ -526,13 +713,15 @@ def update_lease(lease_id):
         if 'status' in data:
             lease.status = data.get('status')
         if 'notice_given_at' in data:
-            lease.notice_given_at = datetime.fromisoformat(data['notice_given_at']).replace(tzinfo=None) if data.get('notice_given_at') else None
+            lease.notice_given_at = parse_iso_datetime(data.get('notice_given_at'), 'notice_given_at')
 
         db.session.commit()
         return jsonify(lease.to_dict()), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/leases/<int:lease_id>', methods=['DELETE'])
@@ -540,7 +729,7 @@ def delete_lease(lease_id):
     """Delete a lease"""
     lease = Lease.query.get(lease_id)
     if not lease:
-        return jsonify({'error': 'Lease not found'}), 404
+        return error_response('Lease not found', 404)
 
     try:
         db.session.delete(lease)
@@ -548,7 +737,7 @@ def delete_lease(lease_id):
         return jsonify({'message': 'Lease deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # ========== Maintenance Endpoints ==========
@@ -560,7 +749,7 @@ def get_maintenance():
         maintenance = Maintenance.query.order_by(Maintenance.created_at.desc()).all()
         return jsonify([m.to_dict() for m in maintenance]), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/maintenance/<int:maintenance_id>', methods=['GET'])
@@ -569,10 +758,10 @@ def get_maintenance_item(maintenance_id):
     try:
         ticket = Maintenance.query.get(maintenance_id)
         if not ticket:
-            return jsonify({'error': 'Maintenance not found'}), 404
+            return error_response('Maintenance not found', 404)
         return jsonify(ticket.to_dict()), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/maintenance', methods=['POST'])
@@ -581,10 +770,21 @@ def create_maintenance():
     try:
         data = request.get_json()
 
+        if not data or not data.get('property_id'):
+            return error_response('property_id is required', 400)
+        if not data.get('title'):
+            return error_response('title is required', 400)
+
         # Validate property exists
         property_obj = Property.query.get(data.get('property_id'))
         if not property_obj:
-            return jsonify({'error': 'Invalid property'}), 400
+            return error_response('Invalid property', 400)
+
+        # Tenant optional; validate if provided
+        if data.get('tenant_id'):
+            tenant = Tenant.query.get(data.get('tenant_id'))
+            if not tenant:
+                return error_response('Invalid tenant', 400)
 
         maintenance = Maintenance(
             property_id=data.get('property_id'),
@@ -592,8 +792,8 @@ def create_maintenance():
             title=data.get('title'),
             description=data.get('description'),
             priority=data.get('priority', 'medium'),
-            due_date=date.fromisoformat(data.get('due_date')) if data.get('due_date') else None,
-            completed_at=datetime.fromisoformat(data.get('completed_at')) if data.get('completed_at') else None,
+            due_date=parse_iso_date(data.get('due_date'), 'due_date'),
+            completed_at=parse_iso_datetime(data.get('completed_at'), 'completed_at'),
             status=data.get('status', 'pending')
         )
 
@@ -603,7 +803,9 @@ def create_maintenance():
         return jsonify(maintenance.to_dict()), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/maintenance/<int:maintenance_id>', methods=['PUT'])
@@ -611,15 +813,24 @@ def update_maintenance(maintenance_id):
     """Update a maintenance request"""
     ticket = Maintenance.query.get(maintenance_id)
     if not ticket:
-        return jsonify({'error': 'Maintenance not found'}), 404
+        return error_response('Maintenance not found', 404)
 
     try:
         data = request.get_json() or {}
 
         if 'property_id' in data:
+            property_obj = Property.query.get(data.get('property_id'))
+            if not property_obj:
+                return error_response('Invalid property', 400)
             ticket.property_id = data.get('property_id')
         if 'tenant_id' in data:
-            ticket.tenant_id = data.get('tenant_id')
+            if data.get('tenant_id'):
+                tenant = Tenant.query.get(data.get('tenant_id'))
+                if not tenant:
+                    return error_response('Invalid tenant', 400)
+                ticket.tenant_id = data.get('tenant_id')
+            else:
+                ticket.tenant_id = None
         if 'title' in data:
             ticket.title = data.get('title')
         if 'description' in data:
@@ -629,15 +840,17 @@ def update_maintenance(maintenance_id):
         if 'status' in data:
             ticket.status = data.get('status')
         if 'due_date' in data:
-            ticket.due_date = date.fromisoformat(data['due_date']) if data.get('due_date') else None
+            ticket.due_date = parse_iso_date(data.get('due_date'), 'due_date')
         if 'completed_at' in data:
-            ticket.completed_at = datetime.fromisoformat(data['completed_at']) if data.get('completed_at') else None
+            ticket.completed_at = parse_iso_datetime(data.get('completed_at'), 'completed_at')
 
         db.session.commit()
         return jsonify(ticket.to_dict()), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/maintenance/<int:maintenance_id>', methods=['DELETE'])
@@ -645,7 +858,7 @@ def delete_maintenance(maintenance_id):
     """Delete a maintenance request"""
     ticket = Maintenance.query.get(maintenance_id)
     if not ticket:
-        return jsonify({'error': 'Maintenance not found'}), 404
+        return error_response('Maintenance not found', 404)
 
     try:
         db.session.delete(ticket)
@@ -653,7 +866,7 @@ def delete_maintenance(maintenance_id):
         return jsonify({'message': 'Maintenance deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # ========== Dashboard Endpoint ==========
@@ -662,18 +875,158 @@ def delete_maintenance(maintenance_id):
 def get_dashboard():
     """Get dashboard statistics"""
     try:
+        today = date.today()
+        in_30 = today + timedelta(days=30)
+        in_60 = today + timedelta(days=60)
+        in_90 = today + timedelta(days=90)
+
+        # Summary counts
         prop_count = Property.query.count()
         tenant_count = Tenant.query.count()
         lease_count = Lease.query.count()
-        open_tickets = Maintenance.query.filter(~Maintenance.status.in_(['completed', 'cancelled'])).count()
         staff_count = Staff.query.filter_by(is_active=True).count()
 
+        # Lease health
+        lease_status_counts = dict(
+            db.session.query(Lease.status, db.func.count(Lease.id)).group_by(Lease.status).all()
+        )
+        overdue_rent = lease_status_counts.get('late', 0)
+        active_leases = lease_status_counts.get('active', 0)
+        total_units = db.session.query(db.func.coalesce(db.func.sum(Property.units_total), 0)).scalar()
+        occupancy_rate = round((active_leases / total_units) * 100, 1) if total_units else None
+
+        expiring_30 = Lease.query.filter(
+            Lease.end_date.isnot(None),
+            Lease.end_date >= today,
+            Lease.end_date <= in_30,
+            Lease.status.in_(['active', 'draft'])
+        ).count()
+        expiring_60 = Lease.query.filter(
+            Lease.end_date.isnot(None),
+            Lease.end_date > in_30,
+            Lease.end_date <= in_60,
+            Lease.status.in_(['active', 'draft'])
+        ).count()
+        expiring_90 = Lease.query.filter(
+            Lease.end_date.isnot(None),
+            Lease.end_date > in_60,
+            Lease.end_date <= in_90,
+            Lease.status.in_(['active', 'draft'])
+        ).count()
+
+        # Maintenance health
+        maintenance_by_status = dict(
+            db.session.query(Maintenance.status, db.func.count(Maintenance.id)).group_by(Maintenance.status).all()
+        )
+        maintenance_by_priority = dict(
+            db.session.query(Maintenance.priority, db.func.count(Maintenance.id)).group_by(Maintenance.priority).all()
+        )
+        open_tickets = Maintenance.query.filter(~Maintenance.status.in_(['completed', 'cancelled'])).count()
+        due_this_week = Maintenance.query.filter(
+            Maintenance.due_date.isnot(None),
+            Maintenance.due_date >= today,
+            Maintenance.due_date <= today + timedelta(days=7),
+            ~Maintenance.status.in_(['completed', 'cancelled'])
+        ).order_by(Maintenance.due_date.asc()).limit(5).all()
+
+        # Accounting / admin
+        income_total = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(Transaction.txn_type == 'income').scalar()
+        expense_total = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(Transaction.txn_type == 'expense').scalar()
+        net_cash = round(income_total - expense_total, 2)
+
+        monthly_cash = []
+        for i in range(0, 6):
+            month_start = month_start_for(today, i)
+            next_month = month_start_for(today, i - 1)
+
+            income = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(
+                Transaction.txn_type == 'income',
+                Transaction.txn_date >= month_start,
+                Transaction.txn_date < next_month
+            ).scalar()
+            expense = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(
+                Transaction.txn_type == 'expense',
+                Transaction.txn_date >= month_start,
+                Transaction.txn_date < next_month
+            ).scalar()
+            monthly_cash.append({
+                'month': month_start.strftime('%Y-%m'),
+                'income': float(income or 0),
+                'expense': float(expense or 0),
+                'net': float((income or 0) - (expense or 0))
+            })
+
+        # Data quality / alerts
+        properties_missing_manager = Property.query.filter(
+            db.or_(Property.manager_name.is_(None), Property.manager_name == '')
+        ).count()
+
+        leases_expiring_soon = Lease.query.filter(
+            Lease.end_date.isnot(None),
+            Lease.end_date >= today,
+            Lease.end_date <= in_60,
+            Lease.status.in_(['active', 'draft'])
+        ).order_by(Lease.end_date.asc()).limit(5).all()
+
+        def serialize_lease(lease: Lease):
+            return {
+                'id': lease.id,
+                'unit': lease.unit,
+                'status': lease.status,
+                'rent': lease.rent,
+                'end_date': lease.end_date.isoformat() if lease.end_date else None,
+                'property': lease.property.to_dict() if lease.property else None,
+                'tenant': lease.tenant.to_dict() if lease.tenant else None
+            }
+
+        def serialize_ticket(ticket: Maintenance):
+            return {
+                'id': ticket.id,
+                'title': ticket.title,
+                'status': ticket.status,
+                'priority': ticket.priority,
+                'due_date': ticket.due_date.isoformat() if ticket.due_date else None,
+                'property_id': ticket.property_id,
+                'tenant_id': ticket.tenant_id
+            }
+
         return jsonify({
-            'properties': prop_count,
-            'tenants': tenant_count,
-            'leases': lease_count,
-            'open_tickets': open_tickets,
-            'staff': staff_count
+            'summary': {
+                'properties': prop_count,
+                'tenants': tenant_count,
+                'leases': lease_count,
+                'staff': staff_count
+            },
+            'leases': {
+                'status_counts': lease_status_counts,
+                'overdue_rent': overdue_rent,
+                'expiring': {
+                    'days_30': expiring_30,
+                    'days_60': expiring_60,
+                    'days_90': expiring_90
+                },
+                'occupancy': {
+                    'active_leases': active_leases,
+                    'total_units': total_units,
+                    'occupancy_rate': occupancy_rate
+                },
+                'expiring_soon': [serialize_lease(l) for l in leases_expiring_soon]
+            },
+            'maintenance': {
+                'open_tickets': open_tickets,
+                'by_status': maintenance_by_status,
+                'by_priority': maintenance_by_priority,
+                'due_this_week': [serialize_ticket(t) for t in due_this_week]
+            },
+            'admin': {
+                'income_total': float(income_total or 0),
+                'expense_total': float(expense_total or 0),
+                'net_cash': net_cash,
+                'cashflow': list(reversed(monthly_cash))
+            },
+            'alerts': {
+                'properties_missing_manager': properties_missing_manager
+            }
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -697,7 +1050,7 @@ def list_staff():
         staff = query.order_by(Staff.full_name.asc()).all()
         return jsonify([s.to_dict() for s in staff]), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route('/api/staff', methods=['POST'])
@@ -727,7 +1080,9 @@ def create_staff():
         return jsonify(staff.to_dict()), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
@@ -735,7 +1090,7 @@ def update_staff(staff_id):
     """Update a staff member"""
     staff = Staff.query.get(staff_id)
     if not staff:
-        return jsonify({'error': 'Staff not found'}), 404
+        return error_response('Staff not found', 404)
 
     try:
         data = request.get_json() or {}
@@ -756,7 +1111,9 @@ def update_staff(staff_id):
         return jsonify(staff.to_dict()), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
 
 
 @app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
@@ -764,7 +1121,7 @@ def delete_staff(staff_id):
     """Delete a staff member"""
     staff = Staff.query.get(staff_id)
     if not staff:
-        return jsonify({'error': 'Staff not found'}), 404
+        return error_response('Staff not found', 404)
 
     try:
         db.session.delete(staff)
@@ -772,7 +1129,7 @@ def delete_staff(staff_id):
         return jsonify({'message': 'Staff deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # ========== Geocoding Endpoint ==========
@@ -789,7 +1146,7 @@ def geocode_address():
         address = data.get('address', '')
 
         if not address:
-            return jsonify({'error': 'Address is required'}), 400
+            return error_response('Address is required', 400)
 
         # Build full address string
         parts = [
@@ -811,7 +1168,7 @@ def geocode_address():
             results = json.loads(response.read().decode())
 
         if not results:
-            return jsonify({'error': 'Address not found'}), 404
+            return error_response('Address not found', 404)
 
         result = results[0]
         return jsonify({
@@ -821,7 +1178,464 @@ def geocode_address():
         }), 200
 
     except Exception as e:
-        return jsonify({'error': f'Geocoding failed: {str(e)}'}), 500
+        return error_response(f'Geocoding failed: {str(e)}', 500)
+
+
+# ========== Invoice Endpoints ==========
+
+@app.route('/api/invoices', methods=['GET'])
+def list_invoices():
+    """List invoices with optional filters"""
+    try:
+        property_id = request.args.get('property_id', type=int)
+        lease_id = request.args.get('lease_id', type=int)
+        maintenance_id = request.args.get('maintenance_id', type=int)
+        status = request.args.get('status')
+        query_text = request.args.get('q', '').strip()
+        query = Invoice.query
+        if property_id:
+            query = query.filter_by(property_id=property_id)
+        if lease_id:
+            query = query.filter_by(lease_id=lease_id)
+        if maintenance_id:
+            query = query.filter_by(maintenance_id=maintenance_id)
+        if status:
+            query = query.filter_by(status=status)
+        if query_text:
+            like_pattern = f"%{query_text}%"
+            query = query.filter(db.or_(Invoice.number.ilike(like_pattern), Invoice.memo.ilike(like_pattern)))
+        query = query.join(Property, isouter=True).join(Lease, isouter=True)
+        invoices = query.order_by(Invoice.due_date.asc().nullslast(), Invoice.created_at.desc()).all()
+        return jsonify([i.to_dict() for i in invoices]), 200
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+@app.route('/api/invoices', methods=['POST'])
+def create_invoice():
+    """Create an invoice"""
+    try:
+        data = request.get_json() or {}
+        if data.get('amount') is None:
+            return error_response('amount is required', 400)
+        issue_date = parse_iso_date(data.get('issue_date'), 'issue_date') or date.today()
+        due_date = parse_iso_date(data.get('due_date'), 'due_date')
+        paid_at = parse_iso_datetime(data.get('paid_at'), 'paid_at')
+
+        if data.get('property_id'):
+            prop = Property.query.get(data.get('property_id'))
+            if not prop:
+                return error_response('Invalid property', 400)
+        if data.get('lease_id'):
+            lease = Lease.query.get(data.get('lease_id'))
+            if not lease:
+                return error_response('Invalid lease', 400)
+
+        invoice = Invoice(
+            number=data.get('number'),
+            property_id=data.get('property_id'),
+            lease_id=data.get('lease_id'),
+            amount=data.get('amount'),
+            status=data.get('status', 'pending'),
+            due_date=due_date,
+            issue_date=issue_date,
+            paid_at=paid_at,
+            memo=data.get('memo')
+        )
+        db.session.add(invoice)
+        db.session.commit()
+        return jsonify(invoice.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
+
+
+@app.route('/api/invoices/<int:invoice_id>', methods=['PUT'])
+def update_invoice(invoice_id):
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return error_response('Invoice not found', 404)
+    try:
+        data = request.get_json() or {}
+        if 'number' in data:
+            invoice.number = data.get('number')
+        if 'amount' in data:
+            invoice.amount = data.get('amount')
+        if 'status' in data:
+            invoice.status = data.get('status')
+        if 'due_date' in data:
+            invoice.due_date = parse_iso_date(data.get('due_date'), 'due_date')
+        if 'issue_date' in data:
+            invoice.issue_date = parse_iso_date(data.get('issue_date'), 'issue_date')
+        if 'paid_at' in data:
+            invoice.paid_at = parse_iso_datetime(data.get('paid_at'), 'paid_at')
+        if 'memo' in data:
+            invoice.memo = data.get('memo')
+        if 'property_id' in data:
+            if data.get('property_id'):
+                prop = Property.query.get(data.get('property_id'))
+                if not prop:
+                    return error_response('Invalid property', 400)
+                invoice.property_id = data.get('property_id')
+            else:
+                invoice.property_id = None
+        if 'lease_id' in data:
+            if data.get('lease_id'):
+                lease = Lease.query.get(data.get('lease_id'))
+                if not lease:
+                    return error_response('Invalid lease', 400)
+                invoice.lease_id = data.get('lease_id')
+            else:
+                invoice.lease_id = None
+        if 'maintenance_id' in data:
+            if data.get('maintenance_id'):
+                ticket = Maintenance.query.get(data.get('maintenance_id'))
+                if not ticket:
+                    return error_response('Invalid maintenance', 400)
+                invoice.maintenance_id = data.get('maintenance_id')
+            else:
+                invoice.maintenance_id = None
+
+        db.session.commit()
+        return jsonify(invoice.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
+
+
+@app.route('/api/invoices/<int:invoice_id>', methods=['DELETE'])
+def delete_invoice(invoice_id):
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return error_response('Invoice not found', 404)
+    try:
+        db.session.delete(invoice)
+        db.session.commit()
+        return jsonify({'message': 'Invoice deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e), 500)
+
+
+@app.route('/api/expenses', methods=['GET'])
+def list_expenses():
+    """List expenses with optional filters"""
+    try:
+        property_id = request.args.get('property_id', type=int)
+        lease_id = request.args.get('lease_id', type=int)
+        maintenance_id = request.args.get('maintenance_id', type=int)
+        status = request.args.get('status')
+        query_text = request.args.get('q', '').strip()
+
+        query = Expense.query
+        if property_id:
+            query = query.filter_by(property_id=property_id)
+        if lease_id:
+            query = query.filter_by(lease_id=lease_id)
+        if maintenance_id:
+            query = query.filter_by(maintenance_id=maintenance_id)
+        if status:
+            query = query.filter_by(status=status)
+        if query_text:
+            like_pattern = f"%{query_text}%"
+            query = query.filter(db.or_(Expense.memo.ilike(like_pattern), Expense.category.ilike(like_pattern)))
+
+        expenses = query.order_by(Expense.expense_date.desc(), Expense.created_at.desc()).all()
+        return jsonify([e.to_dict() for e in expenses]), 200
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+@app.route('/api/expenses', methods=['POST'])
+def create_expense():
+    """Create an expense"""
+    try:
+        data = request.get_json() or {}
+        if data.get('amount') is None:
+            return error_response('amount is required', 400)
+        if not data.get('expense_date'):
+            return error_response('expense_date is required', 400)
+
+        expense_date = parse_iso_date(data.get('expense_date'), 'expense_date')
+
+        if data.get('property_id'):
+            prop = Property.query.get(data.get('property_id'))
+            if not prop:
+                return error_response('Invalid property', 400)
+        if data.get('lease_id'):
+            lease = Lease.query.get(data.get('lease_id'))
+            if not lease:
+                return error_response('Invalid lease', 400)
+        if data.get('maintenance_id'):
+            maint = Maintenance.query.get(data.get('maintenance_id'))
+            if not maint:
+                return error_response('Invalid maintenance', 400)
+
+        exp = Expense(
+            property_id=data.get('property_id'),
+            lease_id=data.get('lease_id'),
+            maintenance_id=data.get('maintenance_id'),
+            category=data.get('category'),
+            amount=data.get('amount'),
+            expense_date=expense_date,
+            status=data.get('status', 'recorded'),
+            memo=data.get('memo')
+        )
+        db.session.add(exp)
+        db.session.commit()
+        return jsonify(exp.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
+
+
+@app.route('/api/expenses/<int:expense_id>', methods=['PUT'])
+def update_expense(expense_id):
+    exp = Expense.query.get(expense_id)
+    if not exp:
+        return error_response('Expense not found', 404)
+    try:
+        data = request.get_json() or {}
+        if 'amount' in data:
+            exp.amount = data.get('amount')
+        if 'category' in data:
+            exp.category = data.get('category')
+        if 'expense_date' in data:
+            exp.expense_date = parse_iso_date(data.get('expense_date'), 'expense_date')
+        if 'status' in data:
+            exp.status = data.get('status')
+        if 'memo' in data:
+            exp.memo = data.get('memo')
+        if 'property_id' in data:
+            if data.get('property_id'):
+                prop = Property.query.get(data.get('property_id'))
+                if not prop:
+                    return error_response('Invalid property', 400)
+                exp.property_id = data.get('property_id')
+            else:
+                exp.property_id = None
+        if 'lease_id' in data:
+            if data.get('lease_id'):
+                lease = Lease.query.get(data.get('lease_id'))
+                if not lease:
+                    return error_response('Invalid lease', 400)
+                exp.lease_id = data.get('lease_id')
+            else:
+                exp.lease_id = None
+        if 'maintenance_id' in data:
+            if data.get('maintenance_id'):
+                maint = Maintenance.query.get(data.get('maintenance_id'))
+                if not maint:
+                    return error_response('Invalid maintenance', 400)
+                exp.maintenance_id = data.get('maintenance_id')
+            else:
+                exp.maintenance_id = None
+
+        db.session.commit()
+        return jsonify(exp.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
+
+
+@app.route('/api/expenses/<int:expense_id>', methods=['DELETE'])
+def delete_expense(expense_id):
+    exp = Expense.query.get(expense_id)
+    if not exp:
+        return error_response('Expense not found', 404)
+    try:
+        db.session.delete(exp)
+        db.session.commit()
+        return jsonify({'message': 'Expense deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e), 500)
+# ========== Transactions (Accounting) Endpoints ==========
+
+@app.route('/api/transactions', methods=['GET'])
+def list_transactions():
+    """List transactions with optional filtering"""
+    try:
+        property_id = request.args.get('property_id', type=int)
+        txn_type = request.args.get('txn_type')
+        month = request.args.get('month')  # YYYY-MM
+
+        query = Transaction.query
+        if property_id:
+            query = query.filter_by(property_id=property_id)
+        if txn_type in ['income', 'expense']:
+            query = query.filter_by(txn_type=txn_type)
+        if month:
+            try:
+                year, m = month.split('-')
+                month_start = date(int(year), int(m), 1)
+                next_month = (month_start + timedelta(days=32)).replace(day=1)
+                query = query.filter(Transaction.txn_date >= month_start, Transaction.txn_date < next_month)
+            except Exception:
+                return error_response('month must be YYYY-MM', 400)
+
+        items = query.order_by(Transaction.txn_date.desc(), Transaction.id.desc()).all()
+        return jsonify([t.to_dict() for t in items]), 200
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+@app.route('/api/transactions', methods=['POST'])
+def create_transaction():
+    """Create a transaction"""
+    try:
+        data = request.get_json() or {}
+        if data.get('txn_type') not in ['income', 'expense']:
+            return error_response('txn_type must be income or expense', 400)
+        if data.get('amount') is None:
+            return error_response('amount is required', 400)
+        if data.get('txn_date') is None:
+            return error_response('txn_date is required', 400)
+
+        txn_date = parse_iso_date(data.get('txn_date'), 'txn_date')
+
+        if data.get('property_id'):
+            prop = Property.query.get(data.get('property_id'))
+            if not prop:
+                return error_response('Invalid property', 400)
+        if data.get('lease_id'):
+            lease = Lease.query.get(data.get('lease_id'))
+            if not lease:
+                return error_response('Invalid lease', 400)
+
+        txn = Transaction(
+            property_id=data.get('property_id'),
+            lease_id=data.get('lease_id'),
+            txn_type=data.get('txn_type'),
+            category=data.get('category'),
+            amount=data.get('amount'),
+            txn_date=txn_date,
+            status=data.get('status', 'cleared'),
+            memo=data.get('memo')
+        )
+        db.session.add(txn)
+        db.session.commit()
+        return jsonify(txn.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
+
+
+@app.route('/api/transactions/<int:txn_id>', methods=['PUT'])
+def update_transaction(txn_id):
+    """Update a transaction"""
+    txn = Transaction.query.get(txn_id)
+    if not txn:
+        return error_response('Transaction not found', 404)
+
+    try:
+        data = request.get_json() or {}
+
+        if 'txn_type' in data:
+            if data.get('txn_type') not in ['income', 'expense']:
+                return error_response('txn_type must be income or expense', 400)
+            txn.txn_type = data.get('txn_type')
+        if 'amount' in data:
+            txn.amount = data.get('amount')
+        if 'category' in data:
+            txn.category = data.get('category')
+        if 'txn_date' in data:
+            txn.txn_date = parse_iso_date(data.get('txn_date'), 'txn_date')
+        if 'status' in data:
+            txn.status = data.get('status')
+        if 'memo' in data:
+            txn.memo = data.get('memo')
+        if 'property_id' in data:
+            if data.get('property_id'):
+                prop = Property.query.get(data.get('property_id'))
+                if not prop:
+                    return error_response('Invalid property', 400)
+                txn.property_id = data.get('property_id')
+            else:
+                txn.property_id = None
+        if 'lease_id' in data:
+            if data.get('lease_id'):
+                lease = Lease.query.get(data.get('lease_id'))
+                if not lease:
+                    return error_response('Invalid lease', 400)
+                txn.lease_id = data.get('lease_id')
+            else:
+                txn.lease_id = None
+
+        db.session.commit()
+        return jsonify(txn.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        if isinstance(e, ValueError):
+            return error_response(str(e), 400)
+        return error_response(str(e), 500)
+
+
+@app.route('/api/transactions/<int:txn_id>', methods=['DELETE'])
+def delete_transaction(txn_id):
+    """Delete a transaction"""
+    txn = Transaction.query.get(txn_id)
+    if not txn:
+        return error_response('Transaction not found', 404)
+    try:
+        db.session.delete(txn)
+        db.session.commit()
+        return jsonify({'message': 'Transaction deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e), 500)
+
+
+@app.route('/api/admin/summary', methods=['GET'])
+def admin_summary():
+    """Admin/accounting summary with net, income, expense, and monthly cashflow"""
+    try:
+        months = request.args.get('months', default=6, type=int)
+        today = date.today()
+
+        income_total = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(Transaction.txn_type == 'income').scalar()
+        expense_total = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(Transaction.txn_type == 'expense').scalar()
+        net_cash = float((income_total or 0) - (expense_total or 0))
+
+        cashflow = []
+        for i in range(months):
+            month = month_start_for(today, i)
+            next_month = month_start_for(today, i - 1)
+            income = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(
+                Transaction.txn_type == 'income',
+                Transaction.txn_date >= month,
+                Transaction.txn_date < next_month
+            ).scalar()
+            expense = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0.0)).filter(
+                Transaction.txn_type == 'expense',
+                Transaction.txn_date >= month,
+                Transaction.txn_date < next_month
+            ).scalar()
+            cashflow.append({
+                'month': month.strftime('%Y-%m'),
+                'income': float(income or 0),
+                'expense': float(expense or 0),
+                'net': float((income or 0) - (expense or 0))
+            })
+
+        return jsonify({
+            'income_total': float(income_total or 0),
+            'expense_total': float(expense_total or 0),
+            'net_cash': net_cash,
+            'cashflow': list(reversed(cashflow))
+        }), 200
+    except Exception as e:
+        return error_response(str(e), 500)
 
 
 # ==================== DATABASE INITIALIZATION ====================
@@ -848,139 +1662,7 @@ def init_db():
             conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS due_date DATE")
             conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
 
-        # Add sample data if no properties exist
-        if Property.query.count() == 0:
-            print("Adding sample data...")
-
-            # Create properties
-            prop1 = Property(
-                name='Harbor View Apartments',
-                address='101 Waterfront Dr',
-                city='Toronto',
-                province='ON',
-                country='Canada',
-                units_total=24,
-                manager_name='Sofia Lee',
-                manager_phone='555-900-1111',
-                manager_email='sofia.lee@harborview.com',
-                postal_code='M5J 1A1',
-                latitude=43.6408,
-                longitude=-79.3853
-            )
-            prop2 = Property(
-                name='Maple Grove Townhomes',
-                address='77 Cedar Ave',
-                city='Mississauga',
-                province='ON',
-                country='Canada',
-                units_total=16,
-                manager_name='Daniel Green',
-                manager_phone='555-222-3333',
-                manager_email='daniel.green@maplegrove.com',
-                postal_code='L5A 1B2',
-                latitude=43.5890,
-                longitude=-79.6441
-            )
-            db.session.add_all([prop1, prop2])
-            db.session.flush()
-
-            # Create tenants
-            tenant1 = Tenant(
-                full_name='Alex Morgan',
-                email='alex.morgan@example.com',
-                phone='555-100-2000'
-            )
-            tenant2 = Tenant(
-                full_name='Jamie Patel',
-                email='jamie.patel@example.com',
-                phone='555-300-4000'
-            )
-            db.session.add_all([tenant1, tenant2])
-            db.session.flush()
-
-            # Create leases
-            lease1 = Lease(
-                property_id=prop1.id,
-                tenant_id=tenant1.id,
-                unit='A-201',
-                start_date=date(2025, 1, 1),
-                end_date=date(2025, 12, 31),
-                rent=2200,
-                rent_due_day=1,
-                deposit_amount=2200,
-                status='active'
-            )
-            lease2 = Lease(
-                property_id=prop2.id,
-                tenant_id=tenant2.id,
-                unit='B-104',
-                start_date=date(2025, 2, 1),
-                end_date=date(2026, 1, 31),
-                rent=1850,
-                rent_due_day=1,
-                deposit_amount=1850,
-                status='draft'
-            )
-            db.session.add_all([lease1, lease2])
-
-            # Create maintenance requests
-            m1 = Maintenance(
-                property_id=prop1.id,
-                tenant_id=tenant1.id,
-                title='Leaky faucet',
-                description='Kitchen faucet dripping',
-                priority='low',
-                due_date=date(2025, 1, 15),
-                status='pending'
-            )
-            m2 = Maintenance(
-                property_id=prop2.id,
-                tenant_id=tenant2.id,
-                title='Heating issue',
-                description='Living room heater not warming',
-                priority='high',
-                due_date=date(2025, 1, 10),
-                status='in_progress'
-            )
-            db.session.add_all([m1, m2])
-
-            # Create staff
-            staff1 = Staff(
-                property_id=prop1.id,
-                full_name='Sofia Lee',
-                role='Property Manager',
-                department='Operations',
-                email='sofia.lee@harborview.com',
-                phone='555-900-1111',
-                start_date=date(2024, 6, 1),
-                notes='Primary contact for Harbor View'
-            )
-            staff2 = Staff(
-                property_id=prop2.id,
-                full_name='Daniel Green',
-                role='Property Manager',
-                department='Operations',
-                email='daniel.green@maplegrove.com',
-                phone='555-222-3333',
-                start_date=date(2024, 7, 15),
-                notes='Covers Maple Grove maintenance scheduling'
-            )
-            staff3 = Staff(
-                property_id=None,
-                full_name='Jamie Lee',
-                role='Leasing Coordinator',
-                department='Leasing',
-                email='jamie.lee@qhitz.com',
-                phone='555-888-1212',
-                start_date=date(2024, 8, 1),
-                notes='Floats across properties'
-            )
-            db.session.add_all([staff1, staff2, staff3])
-
-            db.session.commit()
-            print("Sample data added successfully")
-
 
 if __name__ == '__main__':
     init_db()
-    app.run(host='0.0.0.0', port=5050, debug=True)
+    app.run(host='0.0.0.0', port=5050, debug=False)

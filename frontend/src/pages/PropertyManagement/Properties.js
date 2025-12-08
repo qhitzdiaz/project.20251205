@@ -50,6 +50,7 @@ const Properties = () => {
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [currentProperty, setCurrentProperty] = useState(null);
   const [geocoding, setGeocoding] = useState(false);
   const [autoGeocodeEnabled, setAutoGeocodeEnabled] = useState(true);
@@ -245,6 +246,11 @@ const Properties = () => {
     }
   };
 
+  const handleRowClick = (property) => {
+    setCurrentProperty(property);
+    setDetailOpen(true);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -401,7 +407,18 @@ const Properties = () => {
                     </TableRow>
                   ) : (
                     properties.map((property) => (
-                      <TableRow key={property.id} hover>
+                      <TableRow
+                        key={property.id}
+                        hover
+                        onClick={() => handleRowClick(property)}
+                        sx={{
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                          },
+                          transition: 'background-color 0.2s',
+                        }}
+                      >
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <BusinessIcon sx={{ color: '#1976d2', fontSize: 20 }} />
@@ -451,21 +468,28 @@ const Properties = () => {
                         <TableCell align="right">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/property/${property.id}`)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/property/${property.id}`);
+                            }}
                             sx={{ color: '#2e7d32' }}
                           >
                             <ViewIcon fontSize="small" />
                           </IconButton>
                           <IconButton
                             size="small"
-                            onClick={() => handleOpenDialog(property)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDialog(property);
+                            }}
                             sx={{ color: '#1976d2' }}
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
                           <IconButton
                             size="small"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setCurrentProperty(property);
                               setDeleteDialogOpen(true);
                             }}
@@ -785,6 +809,134 @@ const Properties = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Property Detail Dialog */}
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">Property Details</Typography>
+            {currentProperty?.latitude && currentProperty?.longitude && (
+              <Chip
+                icon={<LocationIcon />}
+                label="On Map"
+                size="small"
+                color="success"
+                variant="outlined"
+              />
+            )}
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {currentProperty && (
+            <Box sx={{ py: 1 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <BusinessIcon sx={{ color: '#1976d2', fontSize: 24 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentProperty.name}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary">Address</Typography>
+                  <Typography variant="body1">{currentProperty.address}</Typography>
+                  {currentProperty.city && (
+                    <Typography variant="body2" color="text.secondary">
+                      {currentProperty.city}{currentProperty.province ? `, ${currentProperty.province}` : ''} {currentProperty.postal_code || ''}
+                    </Typography>
+                  )}
+                  {currentProperty.country && (
+                    <Typography variant="body2" color="text.secondary">{currentProperty.country}</Typography>
+                  )}
+                </Grid>
+                {currentProperty.units_total > 0 && (
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Total Units</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{currentProperty.units_total}</Typography>
+                  </Grid>
+                )}
+                {(currentProperty.manager_name || currentProperty.manager_phone || currentProperty.manager_email) && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">Property Manager</Typography>
+                      {currentProperty.manager_name && (
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>{currentProperty.manager_name}</Typography>
+                      )}
+                      {currentProperty.manager_phone && (
+                        <Typography variant="body2">{currentProperty.manager_phone}</Typography>
+                      )}
+                      {currentProperty.manager_email && (
+                        <Typography variant="body2">{currentProperty.manager_email}</Typography>
+                      )}
+                    </Grid>
+                  </>
+                )}
+                {currentProperty.latitude && currentProperty.longitude && (
+                  <>
+                    <Grid item xs={12}>
+                      <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">Coordinates</Typography>
+                      <Typography variant="body2">
+                        Lat: {currentProperty.latitude}, Lng: {currentProperty.longitude}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<MapIcon />}
+                          href={`https://www.google.com/maps?q=${currentProperty.latitude},${currentProperty.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Google Maps
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<MapIcon />}
+                          href={`https://maps.apple.com/?q=${currentProperty.latitude},${currentProperty.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Apple Maps
+                        </Button>
+                      </Box>
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailOpen(false)}>Close</Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setDetailOpen(false);
+              navigate(`/property/${currentProperty?.id}`);
+            }}
+          >
+            View Full Details
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setDetailOpen(false);
+              handleOpenDialog(currentProperty);
+            }}
+          >
+            Edit
           </Button>
         </DialogActions>
       </Dialog>

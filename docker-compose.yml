@@ -100,6 +100,26 @@ services:
       retries: 5
     restart: unless-stopped
 
+  postgres-serbisyo:
+    image: postgres:15-alpine
+    container_name: qhitz-postgres-serbisyo
+    environment:
+      POSTGRES_DB: serbisyo_db
+      POSTGRES_USER: serbisyo_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-serbiyopass123}
+    ports:
+      - "5480:5432"
+    volumes:
+      - postgres-serbisyo-data:/var/lib/postgresql/data
+    networks:
+      - qhitz-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U serbisyo_user -d serbisyo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # ==================== CORE APIS ====================
   backend-api:
     build:
@@ -112,8 +132,7 @@ services:
       - ./backend:/app:z
     environment:
       - DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-auth:5432/auth_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
+      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
@@ -136,8 +155,7 @@ services:
       - media-uploads:/app/uploads
     environment:
       - MEDIA_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-media:5432/media_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
+      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
@@ -160,8 +178,7 @@ services:
       - cloud-storage:/app/storage
     environment:
       - CLOUD_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-cloud:5432/cloud_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
+      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
@@ -184,8 +201,7 @@ services:
       - ./property-management/backend:/app:z
     environment:
       - DATABASE_URL=postgresql://property_user:${POSTGRES_PASSWORD:-propertypass123}@postgres-property:5432/property_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
+      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
@@ -208,14 +224,36 @@ services:
       - ./supply-chain/backend:/app:z
     environment:
       - DATABASE_URL=postgresql://supply_user:${POSTGRES_PASSWORD:-supplypass123}@postgres-supply:5432/supply_chain_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
+      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-supply:
         condition: service_healthy
     command: gunicorn -w 2 -b 0.0.0.0:5070 app:app
+    networks:
+      - qhitz-network
+    restart: unless-stopped
+
+  # ==================== SERBISYO24x7 ====================
+  backend-serbisyo:
+    build:
+      context: ./serbisyo24x7/backend
+      dockerfile: Dockerfile
+    container_name: qhitz-backend-serbisyo
+    ports:
+      - "0.0.0.0:5080:5080"
+    volumes:
+      - ./serbisyo24x7/backend:/app:z
+    environment:
+      - DATABASE_URL=postgresql://serbisyo_user:${POSTGRES_PASSWORD:-serbiyopass123}@postgres-serbisyo:5432/serbisyo_db
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    depends_on:
+      postgres-serbisyo:
+        condition: service_healthy
+    command: gunicorn -w 2 -b 0.0.0.0:5080 app:app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -270,6 +308,8 @@ volumes:
     name: qhitz-postgres-property-data
   postgres-supply-data:
     name: qhitz-postgres-supply-data
+  postgres-serbisyo-data:
+    name: qhitz-postgres-serbisyo-data
   media-uploads:
     name: qhitz-media-uploads
   cloud-storage:
