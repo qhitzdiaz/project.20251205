@@ -193,9 +193,16 @@ npm install
 - ✅ **Property Management (FastAPI + React)**
   - Modern dashboard with real-time statistics
   - Full CRUD for properties, tenants, and maintenance
+  - **Interactive Maps & Geocoding**
+    - Automatic address geocoding using OpenStreetMap
+    - Side-by-side property list and map view
+    - Multiple map provider links (Google Maps, Apple Maps, OpenStreetMap, Waze)
+    - Visual property location tracking with embedded maps
+    - Auto-detection of coordinates when entering addresses
   - Property and tenant tracking with detailed forms
   - Lease management with active/inactive status
   - Maintenance request tracking with priority levels
+  - Staff management with department and role tracking
   - Theme-aware UI with responsive design
 
 - ✅ **Supply Chain Management (FastAPI + React)**
@@ -293,14 +300,32 @@ For quick reference, see individual service files:
 
 ## 📞 Support
 
-- Version: 2.2.0
+- Version: 2.3.0
 - Platform: macOS
 - Build Date: December 7, 2025
 - Last Updated: December 7, 2025
 - Email: qhitz@qhitz.com
 
-## 🎉 Recent Updates (v2.2.0)
+## 🎉 Recent Updates (v2.3.0)
 
+### New Features
+- 🗺️ **Interactive Maps & Geocoding for Property Management**
+  - Automatic address geocoding using free OpenStreetMap API
+  - Real-time coordinate detection when entering property addresses
+  - Side-by-side scrollable property list and interactive map view
+  - Visual map markers for all properties with location data
+  - Multiple map provider integration (Google Maps, Apple Maps, OpenStreetMap, Waze)
+  - Smart debouncing to prevent excessive API calls
+  - Auto-centering map based on property locations
+  - Location status indicators ("On Map" badges)
+
+- 👥 **Staff Management Module**
+  - Staff member tracking with roles and departments
+  - Assignment to properties
+  - Contact information and employment dates
+  - Active/inactive status tracking
+
+### Improvements
 - ✨ Modernized UI with clean header and organized sidebar
 - ✨ Complete Property Management application with full CRUD operations
 - ✨ Complete Supply Chain Management application with full CRUD operations

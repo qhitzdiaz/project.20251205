@@ -16,6 +16,7 @@ import {
 import {
   Apartment as PropertyIcon,
   People as TenantsIcon,
+  PeopleAlt as StaffIcon,
   Build as MaintenanceIcon,
   TrendingUp as TrendingIcon,
   Warning as WarningIcon,
@@ -36,6 +37,7 @@ const Dashboard = () => {
     activeLeases: 0,
     maintenanceRequests: 0,
     pendingMaintenance: 0,
+    staff: 0,
   });
 
   useEffect(() => {
@@ -61,6 +63,8 @@ const Dashboard = () => {
       const tenants = await tenantsRes.json();
       const leases = await leasesRes.json();
       const maintenance = await maintenanceRes.json();
+      const staffRes = await fetch(`${API_URLS.PROPERTY}/staff`);
+      const staffData = staffRes.ok ? await staffRes.json() : [];
 
       setStats({
         totalProperties: properties.length,
@@ -68,6 +72,7 @@ const Dashboard = () => {
         activeLeases: leases.filter(l => l.status === 'active').length,
         maintenanceRequests: maintenance.length,
         pendingMaintenance: maintenance.filter(m => m.status === 'pending' || m.status === 'in_progress').length,
+        staff: staffData.length,
       });
     } catch (err) {
       setError('Unable to connect to Property Management API. Please ensure the backend is running.');
@@ -103,6 +108,15 @@ const Dashboard = () => {
       color: '#ed6c02',
       bgColor: isDark ? 'rgba(237,108,2,0.15)' : 'rgba(237,108,2,0.1)',
       action: () => navigate('/property/maintenance'),
+    },
+    {
+      title: 'Staff',
+      value: stats.staff,
+      subtitle: 'Active team members',
+      icon: <StaffIcon sx={{ fontSize: 40 }} />,
+      color: '#6a1b9a',
+      bgColor: isDark ? 'rgba(106,27,154,0.15)' : 'rgba(106,27,154,0.1)',
+      action: () => navigate('/property/staff'),
     },
   ];
 

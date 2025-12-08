@@ -162,6 +162,44 @@ class Maintenance(db.Model):
         }
 
 
+class Staff(db.Model):
+    """Staff members assigned to properties"""
+    __tablename__ = 'staff'
+
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id'))
+    full_name = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(100))
+    email = db.Column(db.String(255))
+    phone = db.Column(db.String(100))
+    department = db.Column(db.String(100))
+    address = db.Column(db.Text)
+    date_of_birth = db.Column(db.Date)
+    start_date = db.Column(db.Date)
+    notes = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    property = db.relationship('Property', backref=db.backref('staff', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'property_id': self.property_id,
+            'full_name': self.full_name,
+            'role': self.role,
+            'email': self.email,
+            'phone': self.phone,
+            'department': self.department,
+            'address': self.address,
+            'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'notes': self.notes,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
 # ==================== ROUTES ====================
 
 @app.route('/health', methods=['GET'])
@@ -196,6 +234,7 @@ def ensure_schema():
 
         conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS due_date DATE")
         conn.exec_driver_sql("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
+        conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS staff (id SERIAL PRIMARY KEY, property_id INTEGER REFERENCES properties(id), full_name VARCHAR(255) NOT NULL, role VARCHAR(100), email VARCHAR(255), phone VARCHAR(100), department VARCHAR(100), address TEXT, date_of_birth DATE, start_date DATE, notes TEXT, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
     _schema_ready = True
 
 
@@ -627,14 +666,112 @@ def get_dashboard():
         tenant_count = Tenant.query.count()
         lease_count = Lease.query.count()
         open_tickets = Maintenance.query.filter(~Maintenance.status.in_(['completed', 'cancelled'])).count()
+        staff_count = Staff.query.filter_by(is_active=True).count()
 
         return jsonify({
             'properties': prop_count,
             'tenants': tenant_count,
             'leases': lease_count,
-            'open_tickets': open_tickets
+            'open_tickets': open_tickets,
+            'staff': staff_count
         }), 200
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ========== Staff Endpoints ==========
+
+@app.route('/api/staff', methods=['GET'])
+def list_staff():
+    """List staff members with optional filtering by property_id and active flag"""
+    try:
+        property_id = request.args.get('property_id', type=int)
+        active_only = request.args.get('active_only', 'true').lower() == 'true'
+
+        query = Staff.query
+        if property_id:
+            query = query.filter_by(property_id=property_id)
+        if active_only:
+            query = query.filter_by(is_active=True)
+
+        staff = query.order_by(Staff.full_name.asc()).all()
+        return jsonify([s.to_dict() for s in staff]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/staff', methods=['POST'])
+def create_staff():
+    """Create a staff member"""
+    try:
+        data = request.get_json() or {}
+
+        if not data.get('full_name'):
+            return jsonify({'error': 'full_name is required'}), 400
+
+        staff = Staff(
+            property_id=data.get('property_id'),
+            full_name=data.get('full_name'),
+            role=data.get('role'),
+            email=data.get('email'),
+            phone=data.get('phone'),
+            department=data.get('department'),
+            address=data.get('address'),
+            date_of_birth=datetime.fromisoformat(data['date_of_birth']).date() if data.get('date_of_birth') else None,
+            start_date=datetime.fromisoformat(data['start_date']).date() if data.get('start_date') else None,
+            is_active=data.get('is_active', True)
+        )
+        db.session.add(staff)
+        db.session.commit()
+
+        return jsonify(staff.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/staff/<int:staff_id>', methods=['PUT'])
+def update_staff(staff_id):
+    """Update a staff member"""
+    staff = Staff.query.get(staff_id)
+    if not staff:
+        return jsonify({'error': 'Staff not found'}), 404
+
+    try:
+        data = request.get_json() or {}
+
+        for field in ['property_id', 'full_name', 'role', 'email', 'phone', 'is_active']:
+            if field in data:
+                setattr(staff, field, data[field])
+        if 'department' in data:
+            staff.department = data.get('department')
+        if 'address' in data:
+            staff.address = data.get('address')
+        if 'date_of_birth' in data:
+            staff.date_of_birth = datetime.fromisoformat(data['date_of_birth']).date() if data.get('date_of_birth') else None
+        if 'start_date' in data:
+            staff.start_date = datetime.fromisoformat(data['start_date']).date() if data.get('start_date') else None
+
+        db.session.commit()
+        return jsonify(staff.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
+def delete_staff(staff_id):
+    """Delete a staff member"""
+    staff = Staff.query.get(staff_id)
+    if not staff:
+        return jsonify({'error': 'Staff not found'}), 404
+
+    try:
+        db.session.delete(staff)
+        db.session.commit()
+        return jsonify({'message': 'Staff deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 
