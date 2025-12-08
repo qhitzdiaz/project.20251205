@@ -42,6 +42,8 @@ class Property(db.Model):
     province = db.Column(db.String(100))
     country = db.Column(db.String(100))
     units_total = db.Column(db.Integer, default=0)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
     manager_name = db.Column(db.String(255))
     manager_phone = db.Column(db.String(100))
     manager_email = db.Column(db.String(255))
@@ -59,6 +61,8 @@ class Property(db.Model):
             'province': self.province,
             'country': self.country,
             'units_total': self.units_total,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
             'manager_name': self.manager_name,
             'manager_phone': self.manager_phone,
             'manager_email': self.manager_email,
@@ -140,7 +144,7 @@ class Maintenance(db.Model):
     priority = db.Column(db.String(50), default='medium')  # low, medium, high
     due_date = db.Column(db.Date)
     completed_at = db.Column(db.DateTime)
-    status = db.Column(db.String(50), default='open')  # open, in_progress, closed
+    status = db.Column(db.String(50), default='pending')  # pending, in_progress, completed, cancelled
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -183,6 +187,8 @@ def ensure_schema():
         conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_phone VARCHAR(100)")
         conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255)")
         conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)")
+        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS latitude FLOAT")
+        conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS longitude FLOAT")
 
         conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS rent_due_day INTEGER DEFAULT 1")
         conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_amount FLOAT DEFAULT 0")
@@ -235,6 +241,8 @@ def create_property():
             province=data.get('province'),
             country=data.get('country'),
             units_total=data.get('units_total', 0),
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude'),
             manager_name=data.get('manager_name'),
             manager_phone=data.get('manager_phone'),
             manager_email=data.get('manager_email'),
@@ -245,6 +253,58 @@ def create_property():
         db.session.commit()
 
         return jsonify(property_obj.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/properties/<int:property_id>', methods=['PUT'])
+def update_property(property_id):
+    """Update an existing property"""
+    prop = Property.query.get(property_id)
+    if not prop:
+        return jsonify({'error': 'Property not found'}), 404
+
+    try:
+        data = request.get_json() or {}
+
+        fields = [
+            'name',
+            'address',
+            'city',
+            'province',
+            'country',
+            'units_total',
+            'latitude',
+            'longitude',
+            'manager_name',
+            'manager_phone',
+            'manager_email',
+            'postal_code'
+        ]
+
+        for field in fields:
+            if field in data:
+                setattr(prop, field, data.get(field))
+
+        db.session.commit()
+        return jsonify(prop.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/properties/<int:property_id>', methods=['DELETE'])
+def delete_property(property_id):
+    """Delete a property and its related leases"""
+    prop = Property.query.get(property_id)
+    if not prop:
+        return jsonify({'error': 'Property not found'}), 404
+
+    try:
+        db.session.delete(prop)
+        db.session.commit()
+        return jsonify({'message': 'Property deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -291,6 +351,44 @@ def create_tenant():
         db.session.commit()
 
         return jsonify(tenant.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/tenants/<int:tenant_id>', methods=['PUT'])
+def update_tenant(tenant_id):
+    """Update tenant details"""
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        return jsonify({'error': 'Tenant not found'}), 404
+
+    try:
+        data = request.get_json() or {}
+
+        tenant.full_name = data.get('full_name', tenant.full_name)
+        tenant.email = data.get('email', tenant.email)
+        tenant.phone = data.get('phone', tenant.phone)
+        tenant.notes = data.get('notes', tenant.notes)
+
+        db.session.commit()
+        return jsonify(tenant.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/tenants/<int:tenant_id>', methods=['DELETE'])
+def delete_tenant(tenant_id):
+    """Delete a tenant"""
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        return jsonify({'error': 'Tenant not found'}), 404
+
+    try:
+        db.session.delete(tenant)
+        db.session.commit()
+        return jsonify({'message': 'Tenant deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -351,6 +449,69 @@ def create_lease():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/leases/<int:lease_id>', methods=['GET'])
+def get_lease(lease_id):
+    """Get a specific lease"""
+    lease = Lease.query.get(lease_id)
+    if not lease:
+        return jsonify({'error': 'Lease not found'}), 404
+    return jsonify(lease.to_dict()), 200
+
+
+@app.route('/api/leases/<int:lease_id>', methods=['PUT'])
+def update_lease(lease_id):
+    """Update an existing lease"""
+    lease = Lease.query.get(lease_id)
+    if not lease:
+        return jsonify({'error': 'Lease not found'}), 404
+
+    try:
+        data = request.get_json() or {}
+
+        if 'property_id' in data:
+            lease.property_id = data.get('property_id')
+        if 'tenant_id' in data:
+            lease.tenant_id = data.get('tenant_id')
+        if 'unit' in data:
+            lease.unit = data.get('unit')
+        if 'start_date' in data:
+            lease.start_date = datetime.fromisoformat(data['start_date']).date() if data.get('start_date') else None
+        if 'end_date' in data:
+            lease.end_date = datetime.fromisoformat(data['end_date']).date() if data.get('end_date') else None
+        if 'rent' in data:
+            lease.rent = data.get('rent')
+        if 'rent_due_day' in data:
+            lease.rent_due_day = data.get('rent_due_day')
+        if 'deposit_amount' in data:
+            lease.deposit_amount = data.get('deposit_amount')
+        if 'status' in data:
+            lease.status = data.get('status')
+        if 'notice_given_at' in data:
+            lease.notice_given_at = datetime.fromisoformat(data['notice_given_at']).replace(tzinfo=None) if data.get('notice_given_at') else None
+
+        db.session.commit()
+        return jsonify(lease.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/leases/<int:lease_id>', methods=['DELETE'])
+def delete_lease(lease_id):
+    """Delete a lease"""
+    lease = Lease.query.get(lease_id)
+    if not lease:
+        return jsonify({'error': 'Lease not found'}), 404
+
+    try:
+        db.session.delete(lease)
+        db.session.commit()
+        return jsonify({'message': 'Lease deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 # ========== Maintenance Endpoints ==========
 
 @app.route('/api/maintenance', methods=['GET'])
@@ -394,13 +555,63 @@ def create_maintenance():
             priority=data.get('priority', 'medium'),
             due_date=date.fromisoformat(data.get('due_date')) if data.get('due_date') else None,
             completed_at=datetime.fromisoformat(data.get('completed_at')) if data.get('completed_at') else None,
-            status=data.get('status', 'open')
+            status=data.get('status', 'pending')
         )
 
         db.session.add(maintenance)
         db.session.commit()
 
         return jsonify(maintenance.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/maintenance/<int:maintenance_id>', methods=['PUT'])
+def update_maintenance(maintenance_id):
+    """Update a maintenance request"""
+    ticket = Maintenance.query.get(maintenance_id)
+    if not ticket:
+        return jsonify({'error': 'Maintenance not found'}), 404
+
+    try:
+        data = request.get_json() or {}
+
+        if 'property_id' in data:
+            ticket.property_id = data.get('property_id')
+        if 'tenant_id' in data:
+            ticket.tenant_id = data.get('tenant_id')
+        if 'title' in data:
+            ticket.title = data.get('title')
+        if 'description' in data:
+            ticket.description = data.get('description')
+        if 'priority' in data:
+            ticket.priority = data.get('priority')
+        if 'status' in data:
+            ticket.status = data.get('status')
+        if 'due_date' in data:
+            ticket.due_date = date.fromisoformat(data['due_date']) if data.get('due_date') else None
+        if 'completed_at' in data:
+            ticket.completed_at = datetime.fromisoformat(data['completed_at']) if data.get('completed_at') else None
+
+        db.session.commit()
+        return jsonify(ticket.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/maintenance/<int:maintenance_id>', methods=['DELETE'])
+def delete_maintenance(maintenance_id):
+    """Delete a maintenance request"""
+    ticket = Maintenance.query.get(maintenance_id)
+    if not ticket:
+        return jsonify({'error': 'Maintenance not found'}), 404
+
+    try:
+        db.session.delete(ticket)
+        db.session.commit()
+        return jsonify({'message': 'Maintenance deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -415,7 +626,7 @@ def get_dashboard():
         prop_count = Property.query.count()
         tenant_count = Tenant.query.count()
         lease_count = Lease.query.count()
-        open_tickets = Maintenance.query.filter(Maintenance.status != 'closed').count()
+        open_tickets = Maintenance.query.filter(~Maintenance.status.in_(['completed', 'cancelled'])).count()
 
         return jsonify({
             'properties': prop_count,
@@ -425,6 +636,55 @@ def get_dashboard():
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ========== Geocoding Endpoint ==========
+
+@app.route('/api/geocode', methods=['POST'])
+def geocode_address():
+    """Geocode an address using Nominatim (OpenStreetMap)"""
+    try:
+        import urllib.parse
+        import urllib.request
+        import json
+
+        data = request.get_json()
+        address = data.get('address', '')
+
+        if not address:
+            return jsonify({'error': 'Address is required'}), 400
+
+        # Build full address string
+        parts = [
+            data.get('address', ''),
+            data.get('city', ''),
+            data.get('province', ''),
+            data.get('country', '')
+        ]
+        full_address = ', '.join([p for p in parts if p])
+
+        # Use Nominatim API (OpenStreetMap)
+        encoded_address = urllib.parse.quote(full_address)
+        url = f'https://nominatim.openstreetmap.org/search?q={encoded_address}&format=json&limit=1'
+
+        req = urllib.request.Request(url)
+        req.add_header('User-Agent', 'PropertyManagementApp/1.0')
+
+        with urllib.request.urlopen(req, timeout=5) as response:
+            results = json.loads(response.read().decode())
+
+        if not results:
+            return jsonify({'error': 'Address not found'}), 404
+
+        result = results[0]
+        return jsonify({
+            'latitude': float(result['lat']),
+            'longitude': float(result['lon']),
+            'display_name': result.get('display_name', '')
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Geocoding failed: {str(e)}'}), 500
 
 
 # ==================== DATABASE INITIALIZATION ====================
@@ -441,6 +701,8 @@ def init_db():
             conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_phone VARCHAR(100)")
             conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255)")
             conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS latitude FLOAT")
+            conn.exec_driver_sql("ALTER TABLE properties ADD COLUMN IF NOT EXISTS longitude FLOAT")
 
             conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS rent_due_day INTEGER DEFAULT 1")
             conn.exec_driver_sql("ALTER TABLE leases ADD COLUMN IF NOT EXISTS deposit_amount FLOAT DEFAULT 0")
@@ -532,7 +794,7 @@ def init_db():
                 description='Kitchen faucet dripping',
                 priority='low',
                 due_date=date(2025, 1, 15),
-                status='open'
+                status='pending'
             )
             m2 = Maintenance(
                 property_id=prop2.id,

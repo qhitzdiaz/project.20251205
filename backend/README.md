@@ -1,10 +1,10 @@
 # Qhitz Complete Backend System v1.0.0
 
-Complete microservices architecture with 4 separate Flask applications and 4 PostgreSQL databases.
+Complete microservices architecture with 3 separate Flask applications and 3 PostgreSQL databases.
 
 **Version:** 1.0.0  
 **Architecture:** Microservices  
-**Databases:** 4 separate PostgreSQL instances
+**Databases:** 3 separate PostgreSQL instances
 
 ---
 
@@ -26,16 +26,6 @@ Complete microservices architecture with 4 separate Flask applications and 4 Pos
 │  │   Port 5432  │  │   Port 5433  │  │   Port 5434  │ │
 │  └──────────────┘  └──────────────┘  └──────────────┘ │
 │                                                          │
-│  ┌──────────────┐                                       │
-│  │  Dental App  │                                       │
-│  │  Port 5003   │                                       │
-│  └──────┬───────┘                                       │
-│         │                                                │
-│  ┌──────▼───────┐                                       │
-│  │  dental_db   │                                       │
-│  │  PostgreSQL  │                                       │
-│  │   Port 5435  │                                       │
-│  └──────────────┘                                       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -70,18 +60,6 @@ Complete microservices architecture with 4 separate Flask applications and 4 Pos
   - User storage quotas
   - Support for 500MB files
 
-### **4. Dental Appointment System (Port 5003)**
-- **Database:** dental_db
-- **Features:**
-  - Patient management
-  - Dentist management
-  - Appointment scheduling
-  - Treatment records
-  - Billing/payments
-  - Practice statistics
-
----
-
 ## 📦 Quick Start
 
 ### **Step 1: Extract Package**
@@ -115,9 +93,9 @@ sleep 30
 docker-compose ps
 ```
 
-You should see 8 containers running:
-- 4 PostgreSQL databases
-- 4 Flask API services
+You should see 6 containers running:
+- 3 PostgreSQL databases
+- 3 Flask API services
 
 ### **Step 4: Test Services**
 
@@ -130,9 +108,6 @@ curl http://localhost:5001/api/health
 
 # Cloud Storage
 curl http://localhost:5002/api/health
-
-# Dental App
-curl http://localhost:5003/api/health
 ```
 
 ---
@@ -232,95 +207,6 @@ GET /api/cloud/shared/<share_link>
 GET /api/cloud/stats?user_id=1
 ```
 
-### **Dental App (Port 5003)**
-
-```bash
-# ===== Patients =====
-# Create Patient
-POST /api/dental/patients
-Body: {
-  "first_name": "John",
-  "last_name": "Doe",
-  "email": "john@email.com",
-  "phone": "555-0100",
-  "date_of_birth": "1990-01-15",
-  "address": "123 Main St",
-  "insurance_provider": "Delta Dental",
-  "medical_notes": "No allergies",
-  "allergies": "None"
-}
-
-# Get All Patients
-GET /api/dental/patients?search=john&active_only=true
-
-# Get Patient Details
-GET /api/dental/patient/<patient_id>
-
-# Update Patient
-PUT /api/dental/patient/<patient_id>
-Body: {patient fields}
-
-# ===== Dentists =====
-# Create Dentist
-POST /api/dental/dentists
-Body: {
-  "first_name": "Jane",
-  "last_name": "Smith",
-  "email": "dr.smith@dental.com",
-  "phone": "555-0200",
-  "specialization": "Orthodontics",
-  "license_number": "DDS12345"
-}
-
-# Get All Dentists
-GET /api/dental/dentists?active_only=true
-
-# ===== Appointments =====
-# Create Appointment
-POST /api/dental/appointments
-Body: {
-  "patient_id": 1,
-  "dentist_id": 1,
-  "appointment_date": "2024-12-15T10:00:00",
-  "duration": 30,
-  "appointment_type": "checkup",
-  "reason": "Regular checkup"
-}
-
-# Get Appointments
-GET /api/dental/appointments?date_from=2024-12-01&date_to=2024-12-31&patient_id=1
-
-# Update Appointment
-PUT /api/dental/appointment/<appointment_id>
-Body: {"status": "confirmed"}
-
-# Cancel Appointment
-DELETE /api/dental/appointment/<appointment_id>
-
-# ===== Treatments =====
-# Create Treatment
-POST /api/dental/treatments
-Body: {
-  "patient_id": 1,
-  "appointment_id": 1,
-  "treatment_name": "Cavity Filling",
-  "description": "Filled cavity on tooth #14",
-  "tooth_number": "14",
-  "treatment_date": "2024-12-01T14:00:00",
-  "cost": 250.00,
-  "payment_status": "paid"
-}
-
-# Get Treatments
-GET /api/dental/treatments?patient_id=1
-
-# ===== Statistics =====
-# Get Practice Stats
-GET /api/dental/stats
-```
-
----
-
 ## 🗄️ Database Schemas
 
 ### **1. auth_db (Main API)**
@@ -349,27 +235,6 @@ GET /api/dental/stats
 - owner_id, uploaded_at, modified_at, version
 - is_shared, shared_link
 
-### **4. dental_db (Dental App)**
-
-**patients table:**
-- id, first_name, last_name, email, phone
-- date_of_birth, address, emergency_contact
-- insurance_provider, medical_notes, allergies
-- created_at, is_active
-
-**dentists table:**
-- id, first_name, last_name, email, phone
-- specialization, license_number, is_active
-
-**appointments table:**
-- id, patient_id, dentist_id, appointment_date
-- duration, appointment_type, status, reason, notes
-
-**treatments table:**
-- id, patient_id, appointment_id, treatment_name
-- description, tooth_number, treatment_date
-- cost, payment_status, notes
-
 ---
 
 ## 🔧 Management
@@ -384,7 +249,6 @@ docker-compose logs -f
 docker-compose logs -f backend-api
 docker-compose logs -f backend-media
 docker-compose logs -f backend-cloud
-docker-compose logs -f backend-dental
 ```
 
 ### **Restart Services:**
@@ -414,9 +278,6 @@ docker-compose exec postgres-media psql -U qhitz_user -d media_db
 
 # Connect to cloud database
 docker-compose exec postgres-cloud psql -U qhitz_user -d cloud_db
-
-# Connect to dental database
-docker-compose exec postgres-dental psql -U qhitz_user -d dental_db
 
 # List tables
 \dt
@@ -448,10 +309,6 @@ curl -s http://localhost:5001/api/health
 echo "3. Cloud Storage..."
 curl -s http://localhost:5002/api/health
 
-# Test Dental App
-echo "4. Dental App..."
-curl -s http://localhost:5003/api/health
-
 echo "✅ All services tested!"
 ```
 
@@ -464,7 +321,6 @@ echo "✅ All services tested!"
 | Main API | 5000 | auth_db | 5432 |
 | Media | 5001 | media_db | 5433 |
 | Cloud | 5002 | cloud_db | 5434 |
-| Dental | 5003 | dental_db | 5435 |
 
 ---
 
@@ -473,7 +329,7 @@ echo "✅ All services tested!"
 - [ ] Package extracted
 - [ ] .env configured
 - [ ] Docker Compose built
-- [ ] 8 containers running (4 DB + 4 API)
+- [ ] 6 containers running (3 DB + 3 API)
 - [ ] All databases healthy
 - [ ] All health checks pass
 - [ ] Firewall allows ports 5000-5003
@@ -497,18 +353,11 @@ echo "✅ All services tested!"
 - Team collaboration
 - File sharing
 
-### **Dental App:**
-- Dental practice management
-- Patient records
-- Appointment scheduling
-- Treatment tracking
-- Billing
-
 ---
 
-**Complete Backend System - 4 Services, 4 Databases, Production Ready!** 🚀
+**Complete Backend System - 3 Services, 3 Databases, Production Ready!** 🚀
 
 **VM:** 192.168.2.98  
-**Ports:** 5000, 5001, 5002, 5003  
-**Databases:** 4 separate PostgreSQL instances  
+**Ports:** 5000, 5001, 5002  
+**Databases:** 3 separate PostgreSQL instances  
 **Deploy:** 10 minutes

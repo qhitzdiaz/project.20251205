@@ -1,6 +1,6 @@
-# Qhitz Inc - Rebuild & Deployment Guide
+# Qhitz Inc., - Rebuild & Deployment Guide
 
-This guide explains how to use the rebuild scripts to manage your Qhitz Inc application.
+This guide explains how to use the rebuild scripts to manage your Qhitz Inc., application.
 
 ## Available Scripts
 
@@ -99,7 +99,6 @@ This guide explains how to use the rebuild scripts to manage your Qhitz Inc appl
 | Auth DB | 5432 | qhitz-postgres-auth |
 | Media DB | 5433 | qhitz-postgres-media |
 | Cloud DB | 5434 | qhitz-postgres-cloud |
-| Dental DB | 5435 | qhitz-postgres-dental |
 
 ---
 

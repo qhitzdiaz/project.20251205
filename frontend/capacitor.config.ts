@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.qhitz.mui',
-  appName: 'Qhitz Inc',
+  appName: 'Qhitz Inc.,',
   webDir: 'build',
   server: {
     // Use homelab IP for development

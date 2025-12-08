@@ -19,7 +19,6 @@ export const API_URLS = {
   AUTH: `http://${baseHost}:5010/api`,
   MEDIA: `http://${baseHost}:5011/api`,
   CLOUD: `http://${baseHost}:5012/api`,
-  DENTAL: `http://${baseHost}:5013/api`,
   PROPERTY: `http://${baseHost}:5050/api`,
   SUPPLY: `http://${baseHost}:5070`,
 };

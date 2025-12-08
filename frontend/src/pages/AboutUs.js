@@ -57,7 +57,7 @@ function AboutUs() {
     {
       name: 'Michael Chen',
       role: 'Head of Product',
-      bio: 'Expert in dental practice management'
+      bio: 'Expert in SaaS productivity and workflow design'
     },
     {
       name: 'Emily Davis',
@@ -78,8 +78,8 @@ function AboutUs() {
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto', mt: 3 }}>
           Founded in 2024, Qhitz has become a leading provider of comprehensive business management 
-          software. Our platform combines dental practice management, multimedia storage, and cloud 
-          file management into one seamless solution.
+          software. Our platform combines media management, cloud file storage, and operational tools 
+          into one seamless solution.
         </Typography>
       </Box>
 

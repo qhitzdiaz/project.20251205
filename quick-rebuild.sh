@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Qhitz Inc - Quick Rebuild Script (No cleanup)
+# Qhitz Inc., - Quick Rebuild Script (No cleanup)
 # This script quickly rebuilds services without stopping everything or cleaning up
 
 set -e  # Exit on any error
@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Qhitz Inc - Quick Rebuild${NC}"
+echo -e "${BLUE}  Qhitz Inc., - Quick Rebuild${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 

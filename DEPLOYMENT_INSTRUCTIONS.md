@@ -31,8 +31,7 @@ This will start:
 - **Auth API** on port 5010
 - **Media Server** on port 5011
 - **Cloud Storage** on port 5012
-- **Dental App** on port 5013
-- PostgreSQL databases on ports 5432-5435
+- PostgreSQL databases on ports 5432-5434
 
 ### 3. Verify Backend Services
 
@@ -40,15 +39,13 @@ This will start:
 docker ps
 ```
 
-You should see 8 containers running:
+You should see 6 containers running:
 - qhitz-backend-api
 - qhitz-backend-media
 - qhitz-backend-cloud
-- qhitz-backend-dental
 - qhitz-postgres-auth
 - qhitz-postgres-media
 - qhitz-postgres-cloud
-- qhitz-postgres-dental
 
 ### 4. Test Backend APIs
 
@@ -56,7 +53,6 @@ You should see 8 containers running:
 curl http://192.168.2.98:5010/api/health
 curl http://192.168.2.98:5011/api/media/music
 curl http://192.168.2.98:5012/api/cloud/files
-curl http://192.168.2.98:5013/api/dental/patients
 ```
 
 ---
@@ -169,20 +165,13 @@ The app is pre-configured to connect to: `http://192.168.2.98:5010-5013`
 - Search functionality
 - Play, pause, shuffle controls
 
-### 2. Dental Management (`/dental`)
-- Patient management
-- Appointment scheduling
-- Treatment records
-- Document upload
-- Philippine Peso currency (₱)
-
-### 3. Cloud Storage (`/cloud`)
+### 2. Cloud Storage (`/cloud`)
 - File upload/download
 - Folder management
 - Multiple file selection
 - File preview
 
-### 4. Authentication (`/`)
+### 3. Authentication (`/`)
 - User registration
 - User login
 - Session management
@@ -216,10 +205,9 @@ The app is pre-configured to connect to: `http://192.168.2.98:5010-5013`
 docker logs qhitz-backend-api
 docker logs qhitz-backend-media
 docker logs qhitz-backend-cloud
-docker logs qhitz-backend-dental
 
 # Restart services
-docker restart qhitz-backend-api qhitz-backend-media qhitz-backend-cloud qhitz-backend-dental
+docker restart qhitz-backend-api qhitz-backend-media qhitz-backend-cloud
 ```
 
 ### Frontend Not Loading
@@ -283,7 +271,7 @@ docker stop qhitz-frontend
 
 ```bash
 docker exec qhitz-postgres-auth pg_dump -U postgres auth_db > auth_backup.sql
-docker exec qhitz-postgres-dental pg_dump -U postgres dental_db > dental_backup.sql
+docker exec qhitz-postgres-auth pg_dump -U postgres auth_db > auth_backup.sql
 docker exec qhitz-postgres-media pg_dump -U postgres media_db > media_backup.sql
 docker exec qhitz-postgres-cloud pg_dump -U postgres cloud_db > cloud_backup.sql
 ```
@@ -292,7 +280,7 @@ docker exec qhitz-postgres-cloud pg_dump -U postgres cloud_db > cloud_backup.sql
 
 ```bash
 cat auth_backup.sql | docker exec -i qhitz-postgres-auth psql -U postgres auth_db
-cat dental_backup.sql | docker exec -i qhitz-postgres-dental psql -U postgres dental_db
+cat auth_backup.sql | docker exec -i qhitz-postgres-auth psql -U postgres auth_db
 cat media_backup.sql | docker exec -i qhitz-postgres-media psql -U postgres media_db
 cat cloud_backup.sql | docker exec -i qhitz-postgres-cloud psql -U postgres cloud_db
 ```

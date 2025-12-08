@@ -62,27 +62,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # PostgreSQL Database for Dental (Port 7435)
-  postgres-dental-standalone:
-    image: postgres:15-alpine
-    container_name: qhitz-postgres-dental-standalone
-    environment:
-      POSTGRES_USER: qhitz_user
-      POSTGRES_PASSWORD: devpass123
-      POSTGRES_DB: dental_db
-    ports:
-      - "7435:5432"
-    volumes:
-      - postgres-dental-data-standalone:/var/lib/postgresql/data
-    networks:
-      - qhitz-network-standalone
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U qhitz_user -d dental_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Main Authentication API (Port 6010)
   backend-api-standalone:
     build:
@@ -173,37 +152,6 @@ services:
     restart: unless-stopped
     command: gunicorn -w 2 -b 0.0.0.0:5012 cloud_server:app
 
-  # Dental Management API (Port 6013)
-  backend-dental-standalone:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: qhitz-backend-dental-standalone
-    ports:
-      - "6013:5013"
-    environment:
-      - FLASK_APP=dental_app.py
-      - FLASK_ENV=development
-      - FLASK_DEBUG=True
-      - SECRET_KEY=dev_secret_key_standalone
-      - DENTAL_DATABASE_URL=postgresql://qhitz_user:devpass123@postgres-dental-standalone:5432/dental_db
-      - POSTGRES_USER=qhitz_user
-      - POSTGRES_PASSWORD=devpass123
-      - POSTGRES_HOST=postgres-dental-standalone
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=dental_db
-      - UPLOAD_FOLDER=/app/uploads/dental
-      - CORS_ORIGINS=*
-    volumes:
-      - dental-scanned-docs-standalone:/app/uploads/dental
-    networks:
-      - qhitz-network-standalone
-    depends_on:
-      postgres-dental-standalone:
-        condition: service_healthy
-    restart: unless-stopped
-    command: gunicorn -w 2 -b 0.0.0.0:5013 dental_app:app
-
 networks:
   qhitz-network-standalone:
     driver: bridge
@@ -215,11 +163,7 @@ volumes:
     driver: local
   postgres-cloud-data-standalone:
     driver: local
-  postgres-dental-data-standalone:
-    driver: local
   media-uploads-standalone:
     driver: local
   cloud-storage-standalone:
-    driver: local
-  dental-scanned-docs-standalone:
     driver: local

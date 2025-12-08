@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Qhitz Inc - Complete Rebuild Script
+# Qhitz Inc., - Complete Rebuild Script
 # This script rebuilds all backend services, frontend, reverse proxy, and syncs the mobile app
 
 set -e  # Exit on any error
@@ -18,7 +18,7 @@ BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 REVERSE_PROXY_DIR="$SCRIPT_DIR/reverse-proxy"
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Qhitz Inc - Complete Rebuild Script${NC}"
+echo -e "${BLUE}  Qhitz Inc., - Complete Rebuild Script${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 

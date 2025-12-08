@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Qhitz Inc - Build Android APK Script
+# Qhitz Inc., - Build Android APK Script
 # This script builds the Android mobile app
 
 set -e  # Exit on any error
@@ -18,7 +18,7 @@ FRONTEND_DIR="$SCRIPT_DIR/frontend"
 ANDROID_DIR="$FRONTEND_DIR/android"
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Qhitz Inc - Build Android APK${NC}"
+echo -e "${BLUE}  Qhitz Inc., - Build Android APK${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 

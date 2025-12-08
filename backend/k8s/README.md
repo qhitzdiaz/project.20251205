@@ -36,13 +36,11 @@ kubectl apply -f backend/k8s/persistent-volumes.yaml
 kubectl apply -f backend/k8s/postgres-auth.yaml
 kubectl apply -f backend/k8s/postgres-media.yaml
 kubectl apply -f backend/k8s/postgres-cloud.yaml
-kubectl apply -f backend/k8s/postgres-dental.yaml
 
 # Flask / Gunicorn services
 kubectl apply -f backend/k8s/backend-api.yaml
 kubectl apply -f backend/k8s/backend-media.yaml
 kubectl apply -f backend/k8s/backend-cloud.yaml
-kubectl apply -f backend/k8s/backend-dental.yaml
 ```
 
 Verify pods:
@@ -51,12 +49,12 @@ Verify pods:
 kubectl get pods -n qhitz-backend
 ```
 
-Each API has a `Service` of type `LoadBalancer` that exposes ports 5010–5013. Change the service type to `NodePort` or expose them with an Ingress if your cluster does not support external load balancers.
+Each API has a `Service` of type `LoadBalancer` that exposes ports 5010–5012. Change the service type to `NodePort` or expose them with an Ingress if your cluster does not support external load balancers.
 
 ## 4. Persistent data
 
 - PostgreSQL StatefulSets use their own `volumeClaimTemplates`.
-- Media/Cloud/Dental services mount dedicated PVCs for uploads, storage, and scanned documents (`persistent-volumes.yaml`). Ensure your cluster's default `StorageClass` satisfies the requested capacities, or set `storageClassName`.
+- Media/Cloud services mount dedicated PVCs for uploads and storage (`persistent-volumes.yaml`). Ensure your cluster's default `StorageClass` satisfies the requested capacities, or set `storageClassName`.
 
 ## 5. Environment variables
 

@@ -35,17 +35,12 @@ while [[ $# -gt 0 ]]; do
       SERVICES+=("backend-cloud")
       shift
       ;;
-    dental)
-      SERVICES+=("backend-dental")
-      shift
-      ;;
     *)
-      echo "Usage: $0 [--all|auth|media|cloud|dental]"
+      echo "Usage: $0 [--all|auth|media|cloud]"
       echo "  --all    Rebuild core backend services (auth, media, cloud)"
       echo "  auth     Rebuild auth API service (port 5010)"
       echo "  media    Rebuild media service (port 5011)"
       echo "  cloud    Rebuild cloud storage service (port 5012)"
-      echo "  dental   Rebuild dental service (port 5013) [opt-in]"
       exit 1
       ;;
   esac

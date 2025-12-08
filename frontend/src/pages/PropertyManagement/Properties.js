@@ -35,6 +35,8 @@ import {
   Visibility as ViewIcon,
   LocationOn as LocationIcon,
   Business as BusinessIcon,
+  MyLocation as MyLocationIcon,
+  Map as MapIcon,
 } from '@mui/icons-material';
 import { API_URLS } from '../../config/apiConfig';
 
@@ -49,6 +51,8 @@ const Properties = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentProperty, setCurrentProperty] = useState(null);
+  const [geocoding, setGeocoding] = useState(false);
+  const [autoGeocodeEnabled, setAutoGeocodeEnabled] = useState(true);
   const [form, setForm] = useState({
     name: '',
     address: '',
@@ -60,11 +64,24 @@ const Properties = () => {
     manager_name: '',
     manager_phone: '',
     manager_email: '',
+    latitude: '',
+    longitude: '',
   });
 
   useEffect(() => {
     loadProperties();
   }, []);
+
+  // Auto-geocode when address changes
+  useEffect(() => {
+    if (!autoGeocodeEnabled || !form.address || !form.city) return;
+
+    const timeoutId = setTimeout(() => {
+      handleGeocode(true);
+    }, 1500); // Wait 1.5 seconds after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [form.address, form.city, form.province, form.country]);
 
   const loadProperties = async () => {
     setLoading(true);
@@ -84,6 +101,7 @@ const Properties = () => {
   const handleOpenDialog = (property = null) => {
     if (property) {
       setCurrentProperty(property);
+      setAutoGeocodeEnabled(false); // Disable auto-geocode when editing existing property
       setForm({
         name: property.name || '',
         address: property.address || '',
@@ -95,9 +113,12 @@ const Properties = () => {
         manager_name: property.manager_name || '',
         manager_phone: property.manager_phone || '',
         manager_email: property.manager_email || '',
+        latitude: property.latitude || '',
+        longitude: property.longitude || '',
       });
     } else {
       setCurrentProperty(null);
+      setAutoGeocodeEnabled(true); // Enable auto-geocode for new properties
       setForm({
         name: '',
         address: '',
@@ -109,6 +130,8 @@ const Properties = () => {
         manager_name: '',
         manager_phone: '',
         manager_email: '',
+        latitude: '',
+        longitude: '',
       });
     }
     setDialogOpen(true);
@@ -134,6 +157,8 @@ const Properties = () => {
       const payload = {
         ...form,
         units_total: form.units_total ? parseInt(form.units_total, 10) : 0,
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
       };
 
       const response = await fetch(url, {
@@ -168,6 +193,55 @@ const Properties = () => {
       setError('');
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleGeocode = async (isAuto = false) => {
+    if (!form.address) {
+      if (!isAuto) {
+        setError('Please enter an address first');
+      }
+      return;
+    }
+
+    setGeocoding(true);
+    if (!isAuto) {
+      setError('');
+    }
+
+    try {
+      const response = await fetch(`${API_URLS.PROPERTY}/geocode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: form.address,
+          city: form.city,
+          province: form.province,
+          country: form.country,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Geocoding failed');
+      }
+
+      const data = await response.json();
+      setForm({
+        ...form,
+        latitude: data.latitude.toString(),
+        longitude: data.longitude.toString(),
+      });
+      if (!isAuto) {
+        setError('');
+      }
+    } catch (err) {
+      // Only show error if manual geocoding
+      if (!isAuto) {
+        setError(err.message);
+      }
+    } finally {
+      setGeocoding(false);
     }
   };
 
@@ -241,32 +315,85 @@ const Properties = () => {
           </Alert>
         )}
 
-        {/* Properties Table */}
-        <Card
-          elevation={isDark ? 0 : 2}
-          sx={{
-            background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
-            border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none',
-          }}
-        >
-          <CardContent>
-            <TableContainer component={Paper} sx={{ background: 'transparent', boxShadow: 'none' }}>
-              <Table>
+        <Grid container spacing={3}>
+          {/* Properties Table */}
+          <Grid item xs={12} lg={7}>
+            <Card
+              elevation={isDark ? 0 : 2}
+              sx={{
+                background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                height: '600px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 0 }}>
+                <TableContainer
+                  component={Paper}
+                  sx={{
+                    background: 'transparent',
+                    boxShadow: 'none',
+                    flex: 1,
+                    overflow: 'auto',
+                  }}
+                >
+                  <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Property Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Address</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>City</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Province</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Units</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Manager</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                        borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : undefined,
+                      }}
+                    >
+                      Property Name
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                        borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : undefined,
+                      }}
+                    >
+                      Address
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                        borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : undefined,
+                      }}
+                    >
+                      City
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                        borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : undefined,
+                      }}
+                      align="right"
+                    >
+                      Units
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                        borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : undefined,
+                      }}
+                      align="right"
+                    >
+                      Actions
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {properties.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                         <Typography variant="body1" sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }}>
                           No properties found. Click "Add Property" to create one.
                         </Typography>
@@ -278,31 +405,48 @@ const Properties = () => {
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <BusinessIcon sx={{ color: '#1976d2', fontSize: 20 }} />
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                              {property.name}
-                            </Typography>
+                            <Box>
+                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {property.name}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>
+                                {property.manager_name || 'No manager'}
+                              </Typography>
+                            </Box>
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <LocationIcon sx={{ fontSize: 16, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
-                            {property.address}
+                            <Box>
+                              <Typography variant="body2">{property.address}</Typography>
+                              {property.city && (
+                                <Typography variant="caption" sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>
+                                  {property.city}{property.province ? `, ${property.province}` : ''}
+                                </Typography>
+                              )}
+                            </Box>
                           </Box>
                         </TableCell>
-                        <TableCell>{property.city || '-'}</TableCell>
-                        <TableCell>{property.province || '-'}</TableCell>
+                        <TableCell>
+                          {property.latitude && property.longitude ? (
+                            <Chip
+                              icon={<LocationIcon />}
+                              label="On Map"
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                            />
+                          ) : (
+                            <Chip
+                              label="No coords"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </TableCell>
                         <TableCell align="right">
                           <Chip label={property.units_total || 0} size="small" color="primary" />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {property.manager_name || '-'}
-                          </Typography>
-                          {property.manager_phone && (
-                            <Typography variant="caption" sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>
-                              {property.manager_phone}
-                            </Typography>
-                          )}
                         </TableCell>
                         <TableCell align="right">
                           <IconButton
@@ -338,6 +482,118 @@ const Properties = () => {
             </TableContainer>
           </CardContent>
         </Card>
+      </Grid>
+
+          {/* Map View */}
+          <Grid item xs={12} lg={5}>
+            <Card
+              elevation={isDark ? 0 : 2}
+              sx={{
+                background: isDark ? 'rgba(255,255,255,0.05)' : 'white',
+                border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                height: '600px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                  Property Locations
+                </Typography>
+                {(() => {
+                  const propertiesWithCoords = properties.filter(p => p.latitude && p.longitude);
+
+                  if (propertiesWithCoords.length === 0) {
+                    return (
+                      <Box
+                        sx={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                          borderRadius: 2,
+                          p: 3,
+                        }}
+                      >
+                        <Box sx={{ textAlign: 'center' }}>
+                          <LocationIcon sx={{ fontSize: 48, color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', mb: 2 }} />
+                          <Typography variant="body1" sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }}>
+                            No properties with location data yet
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', mt: 1 }}>
+                            Add coordinates to properties to see them on the map
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  }
+
+                  // Calculate center point (average of all coordinates)
+                  const avgLat = propertiesWithCoords.reduce((sum, p) => sum + Number(p.latitude), 0) / propertiesWithCoords.length;
+                  const avgLng = propertiesWithCoords.reduce((sum, p) => sum + Number(p.longitude), 0) / propertiesWithCoords.length;
+
+                  // Build marker list for URL
+                  const markers = propertiesWithCoords
+                    .map((p, idx) => `marker=${p.latitude},${p.longitude}`)
+                    .join('&');
+
+                  const mapUrl = `https://www.openstreetmap.org/export/embed.html?layer=mapnik&${markers}&bbox=${avgLng - 0.1},${avgLat - 0.1},${avgLng + 0.1},${avgLat + 0.1}`;
+
+                  return (
+                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Box
+                        sx={{
+                          flex: 1,
+                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                          borderRadius: 2,
+                          overflow: 'hidden',
+                          mb: 2,
+                        }}
+                      >
+                        <iframe
+                          title="Properties Map"
+                          src={mapUrl}
+                          style={{ width: '100%', height: '100%', border: 0 }}
+                          loading="lazy"
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Typography variant="caption" sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', mb: 1 }}>
+                          Showing {propertiesWithCoords.length} {propertiesWithCoords.length === 1 ? 'property' : 'properties'} on map
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<MapIcon />}
+                            href={`https://www.google.com/maps/search/?api=1&query=${avgLat},${avgLng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ flex: 1, minWidth: '110px' }}
+                          >
+                            Google Maps
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<MapIcon />}
+                            href={`https://www.openstreetmap.org/?mlat=${avgLat}&mlon=${avgLng}#map=12/${avgLat}/${avgLng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ flex: 1, minWidth: '110px' }}
+                          >
+                            OpenStreetMap
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Container>
 
       {/* Add/Edit Dialog */}
@@ -429,6 +685,84 @@ const Properties = () => {
                 fullWidth
               />
             </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Location Coordinates
+                  {geocoding && (
+                    <Typography component="span" variant="caption" sx={{ ml: 1, color: 'primary.main' }}>
+                      (auto-detecting...)
+                    </Typography>
+                  )}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={geocoding ? <CircularProgress size={16} /> : <MyLocationIcon />}
+                  onClick={() => handleGeocode(false)}
+                  disabled={geocoding || !form.address}
+                  sx={{ ml: 'auto' }}
+                >
+                  {geocoding ? 'Finding...' : 'Get Coordinates'}
+                </Button>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Latitude"
+                type="number"
+                placeholder="43.6532"
+                value={form.latitude}
+                onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Longitude"
+                type="number"
+                placeholder="-79.3832"
+                value={form.longitude}
+                onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                fullWidth
+              />
+            </Grid>
+            {form.latitude && form.longitude && (
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    size="small"
+                    variant="text"
+                    startIcon={<MapIcon />}
+                    href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open in Google Maps
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="text"
+                    startIcon={<MapIcon />}
+                    href={`https://maps.apple.com/?q=${form.latitude},${form.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open in Apple Maps
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="text"
+                    startIcon={<MapIcon />}
+                    href={`https://www.openstreetmap.org/?mlat=${form.latitude}&mlon=${form.longitude}#map=16/${form.latitude}/${form.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open in OpenStreetMap
+                  </Button>
+                </Box>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>

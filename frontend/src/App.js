@@ -322,7 +322,7 @@ function AppContent() {
             }}
             onClick={() => navigate('/')}
           >
-            Qhitz Inc.
+            Qhitz Inc.,
           </Typography>
 
           {/* Theme Toggle */}
@@ -401,7 +401,7 @@ function AppContent() {
         <Box sx={{ width: 250, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ pt: 2 }}>
             <Box sx={{ px: 2, pb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Qhitz Inc.</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Qhitz Inc.,</Typography>
             </Box>
             <Divider />
 
@@ -673,7 +673,7 @@ function AppContent() {
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Qhitz Inc.</Typography>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Qhitz Inc.,</Typography>
               <Typography variant="body2" color="text.secondary">
                 Complete business management system with multimedia, cloud storage, property, and a dedicated supply chain workspace.
               </Typography>
@@ -698,7 +698,7 @@ function AppContent() {
           </Grid>
           <Divider sx={{ my: 3 }} />
           <Typography variant="body2" color="text.secondary" align="center">
-            © {new Date().getFullYear()} Qhitz Inc. All rights reserved.
+            © {new Date().getFullYear()} Qhitz Inc., All rights reserved.
           </Typography>
         </Container>
       </Box>
