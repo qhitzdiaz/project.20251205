@@ -125,20 +125,62 @@ echo ""
 # Step 6: Import database data from backup
 echo -e "${YELLOW}[6/8] Importing database data from backup...${NC}"
 
+# Function to check if database is empty
+is_db_empty() {
+    local container_name=$1
+    local db_name=$2
+    local db_user=$3
+
+    local table_count=$(docker exec "$container_name" psql -U "$db_user" "$db_name" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' ')
+
+    if [ -z "$table_count" ] || [ "$table_count" -eq "0" ]; then
+        return 0  # Empty
+    else
+        return 1  # Not empty
+    fi
+}
+
+# Function to find the latest backup
+find_latest_backup() {
+    local db_filename=$1
+
+    # Find the most recent backup directory with this file
+    find "$BACKUP_DIR" -name "$db_filename" -type f ! -size 0 | sort -r | head -1
+}
+
 # Function to import PostgreSQL database
 import_postgres_db() {
     local container_name=$1
     local db_name=$2
     local db_user=$3
     local backup_file=$4
+    local db_filename=$(basename "$backup_file")
 
+    # First, try to import from current backup
     if [ -f "$backup_file" ] && [ -s "$backup_file" ]; then
-        echo "  Importing $db_name to $container_name..."
+        echo "  Importing $db_name from current backup..."
         docker exec -i "$container_name" psql -U "$db_user" "$db_name" < "$backup_file" 2>/dev/null && \
             echo -e "${GREEN}  ✓ Imported $db_name${NC}" || \
-            echo -e "${YELLOW}  ⚠️  Warning: Failed to import $db_name${NC}"
+            echo -e "${YELLOW}  ⚠️  Warning: Failed to import $db_name from current backup${NC}"
     else
-        echo "  Skipping $db_name (no backup file found)"
+        echo -e "${YELLOW}  No current backup for $db_name${NC}"
+    fi
+
+    # Check if database is empty, if so, try to import from latest backup
+    if is_db_empty "$container_name" "$db_name" "$db_user"; then
+        echo -e "${YELLOW}  Database $db_name is empty, searching for latest backup...${NC}"
+
+        local latest_backup=$(find_latest_backup "$db_filename")
+
+        if [ -n "$latest_backup" ] && [ -f "$latest_backup" ]; then
+            echo "  Found backup: $latest_backup"
+            echo "  Importing $db_name from latest backup..."
+            docker exec -i "$container_name" psql -U "$db_user" "$db_name" < "$latest_backup" 2>/dev/null && \
+                echo -e "${GREEN}  ✓ Imported $db_name from latest backup${NC}" || \
+                echo -e "${RED}  ✗ Failed to import $db_name from latest backup${NC}"
+        else
+            echo -e "${YELLOW}  ⚠️  No previous backups found for $db_name${NC}"
+        fi
     fi
 }
 
@@ -154,19 +196,35 @@ import_postgres_db "qhitz-postgres-supply" "supply_chain_db" "supply_user" "$BAC
 import_postgres_db "qhitz-postgres-property" "property_db" "property_user" "$BACKUP_PATH/property_db.sql"
 
 # Restore media uploads and cloud storage volumes
-if [ -f "$BACKUP_PATH/media-uploads.tar.gz" ]; then
-    echo "  Restoring media uploads..."
-    docker run --rm -v qhitz-media-uploads:/data -v "$BACKUP_PATH":/backup alpine tar xzf /backup/media-uploads.tar.gz -C /data 2>/dev/null && \
-        echo -e "${GREEN}  ✓ Restored media uploads${NC}" || \
-        echo -e "${YELLOW}  ⚠️  Warning: Failed to restore media uploads${NC}"
-fi
+restore_volume() {
+    local volume_name=$1
+    local backup_filename=$2
+    local current_backup="$BACKUP_PATH/$backup_filename"
 
-if [ -f "$BACKUP_PATH/cloud-storage.tar.gz" ]; then
-    echo "  Restoring cloud storage..."
-    docker run --rm -v qhitz-cloud-storage:/data -v "$BACKUP_PATH":/backup alpine tar xzf /backup/cloud-storage.tar.gz -C /data 2>/dev/null && \
-        echo -e "${GREEN}  ✓ Restored cloud storage${NC}" || \
-        echo -e "${YELLOW}  ⚠️  Warning: Failed to restore cloud storage${NC}"
-fi
+    # Try current backup first
+    if [ -f "$current_backup" ]; then
+        echo "  Restoring $volume_name from current backup..."
+        docker run --rm -v "$volume_name":/data -v "$BACKUP_PATH":/backup alpine tar xzf "/backup/$backup_filename" -C /data 2>/dev/null && \
+            echo -e "${GREEN}  ✓ Restored $volume_name${NC}" && return 0
+    fi
+
+    # If failed or no current backup, find latest backup
+    echo -e "${YELLOW}  Searching for latest backup of $volume_name...${NC}"
+    local latest_backup=$(find "$BACKUP_DIR" -name "$backup_filename" -type f ! -size 0 | sort -r | head -1)
+
+    if [ -n "$latest_backup" ] && [ -f "$latest_backup" ]; then
+        local latest_dir=$(dirname "$latest_backup")
+        echo "  Found backup: $latest_backup"
+        docker run --rm -v "$volume_name":/data -v "$latest_dir":/backup alpine tar xzf "/backup/$backup_filename" -C /data 2>/dev/null && \
+            echo -e "${GREEN}  ✓ Restored $volume_name from latest backup${NC}" || \
+            echo -e "${YELLOW}  ⚠️  Warning: Failed to restore $volume_name${NC}"
+    else
+        echo -e "${YELLOW}  ⚠️  No backups found for $volume_name${NC}"
+    fi
+}
+
+restore_volume "qhitz-media-uploads" "media-uploads.tar.gz"
+restore_volume "qhitz-cloud-storage" "cloud-storage.tar.gz"
 
 echo -e "${GREEN}✓ Database import complete${NC}"
 echo ""
