@@ -21,4 +21,4 @@ COPY . .
 EXPOSE 5070
 
 # Default command uses Uvicorn for FastAPI
-CMD ["uvicorn", "fastapi_supply:app", "--host", "0.0.0.0", "--port", "5070"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5070"]

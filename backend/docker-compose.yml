@@ -83,7 +83,7 @@ services:
     depends_on:
       postgres-auth:
         condition: service_healthy
-    command: uvicorn fastapi_app:app --host 0.0.0.0 --port 5010 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 5010 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -106,7 +106,7 @@ services:
     depends_on:
       postgres-media:
         condition: service_healthy
-    command: uvicorn fastapi_media:app --host 0.0.0.0 --port 5011 --reload
+    command: uvicorn media:app --host 0.0.0.0 --port 5011 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -129,7 +129,7 @@ services:
     depends_on:
       postgres-cloud:
         condition: service_healthy
-    command: uvicorn fastapi_cloud:app --host 0.0.0.0 --port 5012 --reload
+    command: uvicorn cloud:app --host 0.0.0.0 --port 5012 --reload
     networks:
       - qhitz-network
     restart: unless-stopped

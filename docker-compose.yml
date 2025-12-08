@@ -137,7 +137,7 @@ services:
     depends_on:
       postgres-auth:
         condition: service_healthy
-    command: uvicorn fastapi_app:app --host 0.0.0.0 --port 5010 --reload --reload-dir /app
+    command: uvicorn app:app --host 0.0.0.0 --port 5010 --reload --reload-dir /app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -159,7 +159,7 @@ services:
     depends_on:
       postgres-media:
         condition: service_healthy
-    command: uvicorn fastapi_media:app --host 0.0.0.0 --port 5011 --reload --reload-dir /app
+    command: uvicorn media:app --host 0.0.0.0 --port 5011 --reload --reload-dir /app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -181,7 +181,7 @@ services:
     depends_on:
       postgres-cloud:
         condition: service_healthy
-    command: uvicorn fastapi_cloud:app --host 0.0.0.0 --port 5012 --reload --reload-dir /app
+    command: uvicorn cloud:app --host 0.0.0.0 --port 5012 --reload --reload-dir /app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -203,7 +203,7 @@ services:
     depends_on:
       postgres-property:
         condition: service_healthy
-    command: uvicorn fastapi_property:app --host 0.0.0.0 --port 5050 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 5050 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -225,7 +225,7 @@ services:
     depends_on:
       postgres-supply:
         condition: service_healthy
-    command: uvicorn fastapi_supply:app --host 0.0.0.0 --port 5070 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 5070 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -247,7 +247,7 @@ services:
     depends_on:
       postgres-serbisyo:
         condition: service_healthy
-    command: uvicorn fastapi_serbisyo:app --host 0.0.0.0 --port 5080 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 5080 --reload
     networks:
       - qhitz-network
     restart: unless-stopped

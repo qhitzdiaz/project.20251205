@@ -284,12 +284,12 @@ SELECT * FROM users;
 **Complete API documentation is available in [API_DOCUMENTATION.md](API_DOCUMENTATION.md)**
 
 For quick reference, see individual service files:
-- `backend/fastapi_app.py` - Auth endpoints
-- `backend/fastapi_media.py` - Media endpoints
-- `backend/fastapi_cloud.py` - Cloud endpoints
-- `property-management/backend/fastapi_property.py` - Property management endpoints
-- `supply-chain/backend/fastapi_supply.py` - Supply chain endpoints
-- `serbisyo24x7/backend/fastapi_serbisyo.py` - Serbisyo24x7 endpoints
+- `backend/app.py` - Auth endpoints
+- `backend/media.py` - Media endpoints
+- `backend/cloud.py` - Cloud endpoints
+- `property-management/backend/app.py` - Property management endpoints
+- `supply-chain/backend/app.py` - Supply chain endpoints
+- `serbisyo24x7/backend/app.py` - Serbisyo24x7 endpoints
 
 ## 🔒 Environment Variables
 

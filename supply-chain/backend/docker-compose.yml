@@ -37,7 +37,7 @@ services:
     depends_on:
       postgres-supply:
         condition: service_healthy
-    command: uvicorn fastapi_supply:app --host 0.0.0.0 --port 5070 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 5070 --reload
     networks:
       - supply-network
     restart: unless-stopped
