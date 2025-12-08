@@ -300,15 +300,44 @@ For quick reference, see individual service files:
 
 ## 📞 Support
 
-- Version: 2.3.0
+- Version: 2.4.0
 - Platform: macOS
-- Build Date: December 7, 2025
-- Last Updated: December 7, 2025
+- Build Date: December 8, 2025
+- Last Updated: December 8, 2025
 - Email: qhitz@qhitz.com
 
-## 🎉 Recent Updates (v2.3.0)
+## 🎉 Recent Updates (v2.4.0)
 
 ### New Features
+- 📄 **Contracts Management Module**
+  - Service contracts, vendor agreements, and lease tracking
+  - Contract status management (active, pending, expired, terminated)
+  - Contract value and date range tracking
+  - Integrated into Property Management Dashboard as 6th stat card
+  - Full CRUD operations with detail dialogs
+  - Status filtering and searchability
+
+- 🎯 **Serbisyo24x7 Service Module**
+  - 24/7 service management system
+  - Service catalog management
+  - Job request tracking
+  - Scheduling and status tracking
+  - Dedicated dashboard and services page
+  - Full PostgreSQL backend integration
+
+- 🔄 **Enhanced Rebuild System**
+  - Automatic backup cleanup (retains only 10 most recent backups)
+  - Improved backup management to prevent disk space issues
+  - Command-line options: `--quick`, `--no-backup`, `--no-prune`
+  - Automatic latest backup restoration on rebuild
+
+- ✅ **Selectable Lists Across Property Management**
+  - All lists now clickable with detail dialogs
+  - Properties, Tenants, Maintenance, Staff, Invoices, Expenses all enhanced
+  - Consistent hover effects and visual feedback
+  - Quick actions accessible from list items
+
+### Previous Features (v2.3.0)
 - 🗺️ **Interactive Maps & Geocoding for Property Management**
   - Automatic address geocoding using free OpenStreetMap API
   - Real-time coordinate detection when entering property addresses
@@ -326,6 +355,7 @@ For quick reference, see individual service files:
   - Active/inactive status tracking
 
 ### Improvements
+- ✨ Expanded Property Management dashboard to 6 cards (2 rows × 3 columns)
 - ✨ Modernized UI with clean header and organized sidebar
 - ✨ Complete Property Management application with full CRUD operations
 - ✨ Complete Supply Chain Management application with full CRUD operations
@@ -334,6 +364,7 @@ For quick reference, see individual service files:
 - ✨ Centralized API configuration for easier maintenance
 - 🔧 Fixed CORS configuration for Supply Chain API
 - 🔧 Improved navigation structure with section headers
+- 🔧 Database backup automation with retention policies
 
 ---
 

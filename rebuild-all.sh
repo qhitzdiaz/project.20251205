@@ -441,6 +441,27 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${GREEN}Latest backup:${NC}"
 echo "  $BACKUP_PATH"
 echo ""
+
+# Clean up old backups (keep only 10 most recent)
+if [ "$SKIP_BACKUP" = false ]; then
+    echo -e "${YELLOW}Cleaning up old backups (keeping 10 most recent)...${NC}"
+    BACKUP_COUNT=$(ls -1d "$BACKUP_DIR"/*/ 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$BACKUP_COUNT" -gt 10 ]; then
+        OLD_BACKUPS=$(ls -1td "$BACKUP_DIR"/*/ | tail -n +11)
+        if [ -n "$OLD_BACKUPS" ]; then
+            echo "$OLD_BACKUPS" | while read backup_path; do
+                echo "  Removing old backup: $(basename "$backup_path")"
+                rm -rf "$backup_path"
+            done
+            REMOVED_COUNT=$((BACKUP_COUNT - 10))
+            echo -e "${GREEN}✓ Removed $REMOVED_COUNT old backup(s)${NC}"
+        fi
+    else
+        echo "  No old backups to remove (total: $BACKUP_COUNT)"
+    fi
+    echo ""
+fi
+
 echo -e "${YELLOW}Note:${NC} Backups are stored in $BACKUP_DIR"
 echo -e "${YELLOW}This rebuild includes full container, image, and volume pruning with automatic data restoration${NC}"
 echo ""

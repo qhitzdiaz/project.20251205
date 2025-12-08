@@ -342,6 +342,34 @@ class Expense(db.Model):
         }
 
 
+class Contract(db.Model):
+    """Contract model for service contracts, vendor agreements, and leases"""
+    __tablename__ = 'contracts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    contract_type = db.Column(db.String(100))  # service, vendor, lease, etc.
+    party_name = db.Column(db.String(255))  # contractor/vendor name
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+    value = db.Column(db.Float, default=0.0)
+    status = db.Column(db.String(50), default='active')  # active, pending, expired, terminated
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'contract_type': self.contract_type,
+            'party_name': self.party_name,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'value': self.value,
+            'status': self.status,
+            'description': self.description,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 # ==================== ROUTES ====================
 
 @app.route('/health', methods=['GET'])
@@ -1635,6 +1663,104 @@ def admin_summary():
             'cashflow': list(reversed(cashflow))
         }), 200
     except Exception as e:
+        return error_response(str(e), 500)
+
+
+# ==================== CONTRACTS ====================
+
+@app.route('/api/contracts', methods=['GET'])
+def get_contracts():
+    """Get all contracts with optional status filter"""
+    ensure_schema()
+    status = request.args.get('status')
+    query = Contract.query
+    if status:
+        query = query.filter_by(status=status)
+    contracts = query.order_by(Contract.created_at.desc()).all()
+    return jsonify([c.to_dict() for c in contracts]), 200
+
+
+@app.route('/api/contracts/<int:contract_id>', methods=['GET'])
+def get_contract(contract_id):
+    """Get a single contract by ID"""
+    ensure_schema()
+    contract = Contract.query.get_or_404(contract_id)
+    return jsonify(contract.to_dict()), 200
+
+
+@app.route('/api/contracts', methods=['POST'])
+def create_contract():
+    """Create a new contract"""
+    ensure_schema()
+    data = request.get_json()
+    if not data:
+        return error_response("Request body must be JSON"), 400
+
+    try:
+        contract = Contract()
+        contract.contract_type = data.get('contract_type', '')
+        contract.party_name = data.get('party_name', '')
+        contract.start_date = parse_iso_date(data.get('start_date'), 'start_date')
+        contract.end_date = parse_iso_date(data.get('end_date'), 'end_date')
+        contract.value = float(data.get('value', 0))
+        contract.status = data.get('status', 'active')
+        contract.description = data.get('description', '')
+
+        db.session.add(contract)
+        db.session.commit()
+        return jsonify(contract.to_dict()), 201
+    except ValueError as e:
+        return error_response(str(e), 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e), 500)
+
+
+@app.route('/api/contracts/<int:contract_id>', methods=['PUT'])
+def update_contract(contract_id):
+    """Update an existing contract"""
+    ensure_schema()
+    contract = Contract.query.get_or_404(contract_id)
+    data = request.get_json()
+    if not data:
+        return error_response("Request body must be JSON"), 400
+
+    try:
+        if 'contract_type' in data:
+            contract.contract_type = data['contract_type']
+        if 'party_name' in data:
+            contract.party_name = data['party_name']
+        if 'start_date' in data:
+            contract.start_date = parse_iso_date(data['start_date'], 'start_date')
+        if 'end_date' in data:
+            contract.end_date = parse_iso_date(data['end_date'], 'end_date')
+        if 'value' in data:
+            contract.value = float(data['value'])
+        if 'status' in data:
+            contract.status = data['status']
+        if 'description' in data:
+            contract.description = data['description']
+
+        db.session.commit()
+        return jsonify(contract.to_dict()), 200
+    except ValueError as e:
+        return error_response(str(e), 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e), 500)
+
+
+@app.route('/api/contracts/<int:contract_id>', methods=['DELETE'])
+def delete_contract(contract_id):
+    """Delete a contract"""
+    ensure_schema()
+    contract = Contract.query.get_or_404(contract_id)
+    try:
+        db.session.delete(contract)
+        db.session.commit()
+        return jsonify({'message': 'Contract deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
         return error_response(str(e), 500)
 
 

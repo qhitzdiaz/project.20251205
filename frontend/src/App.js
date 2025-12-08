@@ -86,6 +86,7 @@ import PropertyAdmin from './pages/PropertyManagement/Admin';
 import PropertyInvoices from './pages/PropertyManagement/Invoices';
 import PropertyPricing from './pages/PropertyManagement/Pricing';
 import PropertyExpenses from './pages/PropertyManagement/Expenses';
+import PropertyContracts from './pages/PropertyManagement/Contracts';
 import UserManagement from './pages/UserManagement';
 
 function AppContent() {
@@ -666,6 +667,7 @@ function AppContent() {
           <Route path="/property/invoices" element={isLoggedIn ? <PropertyInvoices /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/pricing" element={isLoggedIn ? <PropertyPricing /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/expenses" element={isLoggedIn ? <PropertyExpenses /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/property/contracts" element={isLoggedIn ? <PropertyContracts /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/staff" element={isLoggedIn ? <PropertyStaff /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/add" element={isLoggedIn ? <AddPropertyPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/property/:id" element={isLoggedIn ? <PropertyDetailPage /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />

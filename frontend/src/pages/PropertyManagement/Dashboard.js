@@ -22,6 +22,7 @@ import {
   TrendingUp as TrendingIcon,
   Warning as WarningIcon,
   CheckCircle as CheckIcon,
+  Description as ContractsIcon,
 } from '@mui/icons-material';
 import { API_URLS } from '../../config/apiConfig';
 
@@ -39,6 +40,7 @@ const Dashboard = () => {
     maintenanceRequests: 0,
     pendingMaintenance: 0,
     staff: 0,
+    contracts: 0,
     netCash: 0,
     income: 0,
     expense: 0,
@@ -71,6 +73,8 @@ const Dashboard = () => {
       const dashboard = await dashboardRes.json();
       const staffRes = await fetch(`${API_URLS.PROPERTY}/staff`);
       const staffData = staffRes.ok ? await staffRes.json() : [];
+      const contractsRes = await fetch(`${API_URLS.PROPERTY}/contracts`);
+      const contractsData = contractsRes.ok ? await contractsRes.json() : [];
       const admin = dashboard?.admin || {};
 
       setStats({
@@ -80,6 +84,7 @@ const Dashboard = () => {
         maintenanceRequests: maintenance.length,
         pendingMaintenance: maintenance.filter(m => m.status === 'pending' || m.status === 'in_progress').length,
         staff: staffData.length,
+        contracts: contractsData.length,
         netCash: admin.net_cash ?? 0,
         income: admin.income_total ?? 0,
         expense: admin.expense_total ?? 0,
@@ -127,6 +132,15 @@ const Dashboard = () => {
       color: '#6a1b9a',
       bgColor: isDark ? 'rgba(106,27,154,0.15)' : 'rgba(106,27,154,0.1)',
       action: () => navigate('/property/staff'),
+    },
+    {
+      title: 'Contracts',
+      value: stats.contracts,
+      subtitle: 'Active contracts',
+      icon: <ContractsIcon sx={{ fontSize: 40 }} />,
+      color: '#d32f2f',
+      bgColor: isDark ? 'rgba(211,47,47,0.15)' : 'rgba(211,47,47,0.1)',
+      action: () => navigate('/property/contracts'),
     },
     {
       title: 'Admin / Cash',
