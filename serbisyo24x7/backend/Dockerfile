@@ -3,4 +3,4 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5080", "app:app"]
+CMD ["uvicorn", "fastapi_serbisyo:app", "--host", "0.0.0.0", "--port", "5080"]

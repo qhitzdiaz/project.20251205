@@ -4,7 +4,7 @@ Branch: `property-management`
 
 Structure:
 - `property-management/frontend` — client SPA (to be scaffolded; React recommended).
-- `property-management/backend` — API service (to be scaffolded; e.g., Flask/FastAPI/Node).
+- `property-management/backend` — API service (FastAPI with PostgreSQL).
 
 Next steps:
 1) Initialize backend service in `property-management/backend` (separate DB, env, and compose).

@@ -32,14 +32,12 @@ services:
       - .:/app:z
     environment:
       - DATABASE_URL=postgresql://supply_user:${POSTGRES_PASSWORD:-supplypass123}@postgres-supply:5432/supply_chain_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-supply:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5070 app:app
+    command: uvicorn fastapi_supply:app --host 0.0.0.0 --port 5070 --reload
     networks:
       - supply-network
     restart: unless-stopped

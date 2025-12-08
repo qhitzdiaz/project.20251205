@@ -26,9 +26,9 @@ The Qhitz application consists of multiple microservices, each running independe
 
 | Service | Port | Database | Technology | Description |
 |---------|------|----------|------------|-------------|
-| Auth API | 5010 | auth_db | Flask | User authentication and authorization |
-| Media Server | 5011 | media_db | Flask | Music and video file management |
-| Cloud Storage | 5012 | cloud_db | Flask | File storage and sharing |
+| Auth API | 5010 | auth_db | FastAPI | User authentication and authorization |
+| Media Server | 5011 | media_db | FastAPI | Music and video file management |
+| Cloud Storage | 5012 | cloud_db | FastAPI | File storage and sharing |
 | Property Management | 5050 | property_db | FastAPI | Property and lease management |
 | Supply Chain | 5070 | supplychain_db | FastAPI | Supply chain and inventory |
 
@@ -54,7 +54,7 @@ The Qhitz application consists of multiple microservices, each running independe
 
 **Base URL:** `http://localhost:5010/api`
 **Database:** auth_db
-**Technology:** Flask + PostgreSQL
+**Technology:** FastAPI + PostgreSQL
 
 ### Endpoints
 
@@ -247,7 +247,7 @@ Authorization: Bearer <token>
 
 **Base URL:** `http://localhost:5011/api`
 **Database:** media_db
-**Technology:** Flask + PostgreSQL
+**Technology:** FastAPI + PostgreSQL
 
 ### Endpoints
 
@@ -443,7 +443,7 @@ GET /media/stats
 
 **Base URL:** `http://localhost:5012/api`
 **Database:** cloud_db
-**Technology:** Flask + PostgreSQL
+**Technology:** FastAPI + PostgreSQL
 
 ### Endpoints
 

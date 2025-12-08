@@ -132,13 +132,12 @@ services:
       - ./backend:/app:z
     environment:
       - DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-auth:5432/auth_db
-      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-auth:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5010 app:app
+    command: uvicorn fastapi_app:app --host 0.0.0.0 --port 5010 --reload --reload-dir /app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -155,13 +154,12 @@ services:
       - media-uploads:/app/uploads
     environment:
       - MEDIA_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-media:5432/media_db
-      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-media:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5011 media_server:app
+    command: uvicorn fastapi_media:app --host 0.0.0.0 --port 5011 --reload --reload-dir /app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -178,13 +176,12 @@ services:
       - cloud-storage:/app/storage
     environment:
       - CLOUD_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-cloud:5432/cloud_db
-      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-cloud:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5012 cloud_server:app
+    command: uvicorn fastapi_cloud:app --host 0.0.0.0 --port 5012 --reload --reload-dir /app
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -201,13 +198,12 @@ services:
       - ./property-management/backend:/app:z
     environment:
       - DATABASE_URL=postgresql://property_user:${POSTGRES_PASSWORD:-propertypass123}@postgres-property:5432/property_db
-      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-property:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5050 app:app
+    command: uvicorn fastapi_property:app --host 0.0.0.0 --port 5050 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -224,13 +220,12 @@ services:
       - ./supply-chain/backend:/app:z
     environment:
       - DATABASE_URL=postgresql://supply_user:${POSTGRES_PASSWORD:-supplypass123}@postgres-supply:5432/supply_chain_db
-      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-supply:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5070 app:app
+    command: uvicorn fastapi_supply:app --host 0.0.0.0 --port 5070 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -247,13 +242,12 @@ services:
       - ./serbisyo24x7/backend:/app:z
     environment:
       - DATABASE_URL=postgresql://serbisyo_user:${POSTGRES_PASSWORD:-serbiyopass123}@postgres-serbisyo:5432/serbisyo_db
-      - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-serbisyo:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5080 app:app
+    command: uvicorn fastapi_serbisyo:app --host 0.0.0.0 --port 5080 --reload
     networks:
       - qhitz-network
     restart: unless-stopped

@@ -4,7 +4,7 @@ This directory contains standalone manifests for running the four backend APIs a
 
 ## 1. Build and publish the backend image
 
-All Flask services share the same Docker image (`backend/Dockerfile`). Build it and push to a registry that your cluster can pull from, then update the `image:` field in every `backend-*.yaml` file.
+All FastAPI services share the same Docker image (`backend/Dockerfile`). Build it and push to a registry that your cluster can pull from, then update the `image:` field in every `backend-*.yaml` file.
 
 ```bash
 cd backend
@@ -37,7 +37,7 @@ kubectl apply -f backend/k8s/postgres-auth.yaml
 kubectl apply -f backend/k8s/postgres-media.yaml
 kubectl apply -f backend/k8s/postgres-cloud.yaml
 
-# Flask / Gunicorn services
+# FastAPI / Uvicorn services
 kubectl apply -f backend/k8s/backend-api.yaml
 kubectl apply -f backend/k8s/backend-media.yaml
 kubectl apply -f backend/k8s/backend-cloud.yaml

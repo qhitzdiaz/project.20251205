@@ -20,5 +20,5 @@ COPY . .
 # Expose port
 EXPOSE 5070
 
-# Default command uses Gunicorn
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5070", "app:app"]
+# Default command uses Uvicorn for FastAPI
+CMD ["uvicorn", "fastapi_supply:app", "--host", "0.0.0.0", "--port", "5070"]

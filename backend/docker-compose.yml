@@ -78,19 +78,17 @@ services:
       - .:/app:z
     environment:
       - DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-auth:5432/auth_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-auth:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5010 app:app
+    command: uvicorn fastapi_app:app --host 0.0.0.0 --port 5010 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
 
-  # Media Server
+  # Media Server - FastAPI
   backend-media:
     build:
       context: .
@@ -103,19 +101,17 @@ services:
       - media-uploads:/app/uploads
     environment:
       - MEDIA_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-media:5432/media_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-media:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5011 media_server:app
+    command: uvicorn fastapi_media:app --host 0.0.0.0 --port 5011 --reload
     networks:
       - qhitz-network
     restart: unless-stopped
 
-  # Cloud Storage Server
+  # Cloud Storage Server - FastAPI
   backend-cloud:
     build:
       context: .
@@ -128,14 +124,12 @@ services:
       - cloud-storage:/app/storage
     environment:
       - CLOUD_DATABASE_URL=postgresql://qhitz_user:${POSTGRES_PASSWORD:-devpass123}@postgres-cloud:5432/cloud_db
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       postgres-cloud:
         condition: service_healthy
-    command: gunicorn -w 2 -b 0.0.0.0:5012 cloud_server:app
+    command: uvicorn fastapi_cloud:app --host 0.0.0.0 --port 5012 --reload
     networks:
       - qhitz-network
     restart: unless-stopped

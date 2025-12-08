@@ -1,6 +1,6 @@
-# Qhitz Development Package for macOS v2.1.0
+# Qhitz Development Package for macOS v2.4.0
 
-Complete development environment for macOS.
+Complete development environment for macOS using FastAPI microservices.
 
 ## 📋 Prerequisites
 
@@ -16,7 +16,7 @@ Complete development environment for macOS.
 tar -xzf qhitz-dev-macos-v2.1.0.tar.gz
 cd qhitz-dev-macos
 
-# Run setup script
+# Run setup script (installs deps, creates env files, starts Docker)
 bash setup-macos.sh
 
 # This will:
@@ -48,7 +48,8 @@ bash setup-macos.sh
 - **Cloud API**: http://localhost:5012
 - **Property API**: http://localhost:5050
 - **Supply Chain API**: http://localhost:5070
-- **Reverse Proxy**: http://localhost (routes `/api/auth`, `/api/media`, `/api/cloud`, `/api/property`, `/api/supply`)
+- **Serbisyo24x7 API**: http://localhost:5080
+- **Reverse Proxy**: http://localhost (routes `/api/auth`, `/api/media`, `/api/cloud`, `/api/property`, `/api/supply`, `/api/serbisyo`)
 
 ### Start/Stop Property & Supply stacks
 
@@ -72,43 +73,46 @@ Use the helper scripts in `scripts/`:
 
 ```
 qhitz-dev-macos/
-├── backend/                  # Flask APIs: auth, media, cloud
-│   ├── app.py                # Authentication service
-│   ├── media_server.py       # Media management service
-│   ├── cloud_server.py       # Cloud storage service
-│   ├── requirements.txt
-│   └── docker-compose.yml    # Core services only
-├── frontend/                 # React application
+├── backend/                          # FastAPI services: auth, media, cloud
+│   ├── fastapi_app.py                # Authentication service (JWT auth)
+│   ├── fastapi_media.py              # Media management service
+│   ├── fastapi_cloud.py              # Cloud storage service
+│   ├── requirements.txt              # Shared deps (FastAPI/SQLAlchemy/etc.)
+│   └── docker-compose.yml            # Core services only
+├── frontend/                         # React application (main PWA)
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── PropertyManagement/  # Property Management pages
-│   │   │   │   ├── Dashboard.js     # Property dashboard
-│   │   │   │   ├── Properties.js    # Properties CRUD
-│   │   │   │   ├── Tenants.js       # Tenants CRUD
-│   │   │   │   └── Maintenance.js   # Maintenance CRUD
-│   │   │   └── SupplyChain/         # Supply Chain pages
-│   │   │       ├── Dashboard.js     # Supply Chain dashboard
-│   │   │       ├── Suppliers.js     # Suppliers CRUD
-│   │   │       ├── Products.js      # Products CRUD
-│   │   │       └── PurchaseOrders.js # Purchase Orders CRUD
-│   │   ├── config/
-│   │   │   └── apiConfig.js         # Centralized API URLs
-│   │   └── App.js                   # Main app with modern UI
+│   │   │   ├── PropertyManagement/   # Property Mgmt pages (dashboard, CRUD, contracts)
+│   │   │   ├── SupplyChain/          # Supply Chain pages
+│   │   │   ├── Serbisyo24x7/         # Service/jobs pages
+│   │   │   └── ...other feature pages
+│   │   ├── config/apiConfig.js       # Centralized API URLs
+│   │   └── App.js                    # Main app shell
 │   ├── public/
 │   └── package.json
-├── reverse-proxy/            # Nginx reverse proxy
-├── property-management/      # Property management backend (FastAPI + Postgres)
-│   └── backend/
-│       ├── app.py            # FastAPI application
+├── property-management/              # Property management app (FastAPI + Postgres)
+│   ├── backend/
+│   │   ├── fastapi_property.py       # Property API (leases, maintenance, contracts)
+│   │   ├── docker-compose.yml
+│   │   └── requirements.txt
+│   └── frontend/                     # Dedicated PM frontend (MUI)
+│       ├── src/
+│       │   ├── pages/                # Dashboard + PM UI
+│       │   ├── components/
+│       │   └── App.js
+│       └── package.json
+├── supply-chain/
+│   └── backend/                      # Supply Chain API (FastAPI + Postgres)
+│       ├── fastapi_supply.py
 │       ├── docker-compose.yml
 │       └── requirements.txt
-├── supply-chain/             # Supply chain backend (FastAPI + Postgres)
+├── serbisyo24x7/                     # Services/jobs API (FastAPI + Postgres)
 │   └── backend/
-│       ├── app.py            # FastAPI application
+│       ├── fastapi_serbisyo.py
 │       ├── docker-compose.yml
 │       └── requirements.txt
-├── user-admin/               # Admin UI
-├── scripts/                  # Helper scripts
+├── reverse-proxy/                    # Nginx reverse proxy
+├── scripts/                          # Helper scripts (start/stop/rebuild)
 ├── logs/
 ├── start-backend.sh
 ├── start-frontend.sh
@@ -120,16 +124,17 @@ qhitz-dev-macos/
 
 ## 🔧 Manual Setup (if needed)
 
-### Backend
+### Backend (FastAPI services)
 
 ```bash
 cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-docker-compose up -d
-python app.py  # Start one service
+uvicorn fastapi_app:app --host 0.0.0.0 --port 5010
 ```
+
+Use analogous uvicorn commands for `fastapi_media.py` (5011) and `fastapi_cloud.py` (5012). Property/Supply/Serbisyo backends run from their own folders with their respective `fastapi_*.py` entry points.
 
 ### Frontend
 
@@ -174,7 +179,7 @@ npm install
 ## 📝 Features
 
 ### Core Services
-- ✅ Complete backend API services (Flask + FastAPI)
+- ✅ Complete backend API services (FastAPI)
 - ✅ React PWA frontend with Material-UI
 - ✅ PostgreSQL databases for each service
 - ✅ JWT authentication and authorization
@@ -255,7 +260,7 @@ Each application includes a dedicated dashboard with:
 
 ### Backend Development
 
-Backend services use Flask with auto-reload enabled. Changes to Python files will automatically restart the service.
+Backend services use FastAPI with auto-reload enabled. Changes to Python files will automatically restart the service.
 
 ### Frontend Development
 
@@ -279,19 +284,19 @@ SELECT * FROM users;
 **Complete API documentation is available in [API_DOCUMENTATION.md](API_DOCUMENTATION.md)**
 
 For quick reference, see individual service files:
-- `backend/app.py` - Auth endpoints
-- `backend/media_server.py` - Media endpoints
-- `backend/cloud_server.py` - Cloud endpoints
-- `property-management/backend/app.py` - Property management endpoints
-- `supply-chain/backend/app.py` - Supply chain endpoints
+- `backend/fastapi_app.py` - Auth endpoints
+- `backend/fastapi_media.py` - Media endpoints
+- `backend/fastapi_cloud.py` - Cloud endpoints
+- `property-management/backend/fastapi_property.py` - Property management endpoints
+- `supply-chain/backend/fastapi_supply.py` - Supply chain endpoints
+- `serbisyo24x7/backend/fastapi_serbisyo.py` - Serbisyo24x7 endpoints
 
 ## 🔒 Environment Variables
 
 ### Backend `.env`
-- `FLASK_ENV` - development/production
-- `POSTGRES_USER` - Database user
-- `POSTGRES_PASSWORD` - Database password
-- `CORS_ORIGINS` - Allowed origins
+- `SECRET_KEY` - JWT signing key
+- `POSTGRES_USER` / `POSTGRES_PASSWORD` - Database credentials (per service)
+- `CORS_ORIGIN` - Allowed origins
 
 ### Frontend `.env.development`
 - `REACT_APP_*_API_URL` - API endpoints

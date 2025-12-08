@@ -473,7 +473,7 @@ echo -e "${BLUE}========================================${NC}"
 
 # Count running services
 RUNNING_SERVICES=$(docker ps --filter "name=qhitz-" --format "{{.Names}}" | wc -l | tr -d ' ')
-TOTAL_SERVICES=11  # auth, media, cloud, property, supply, serbisyo, frontend, proxy, + 6 databases
+TOTAL_SERVICES=14  # 6 databases + 6 APIs + frontend + proxy
 
 echo -e "${GREEN}Services Running:${NC} $RUNNING_SERVICES / $TOTAL_SERVICES"
 

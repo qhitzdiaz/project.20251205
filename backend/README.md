@@ -1,6 +1,6 @@
 # Qhitz Complete Backend System v1.0.0
 
-Complete microservices architecture with 3 separate Flask applications and 3 PostgreSQL databases.
+Complete microservices architecture with 3 separate FastAPI applications and 3 PostgreSQL databases.
 
 **Version:** 1.0.0  
 **Architecture:** Microservices  
@@ -17,7 +17,7 @@ Complete microservices architecture with 3 separate Flask applications and 3 Pos
 │                                                          │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
 │  │   Main API   │  │ Media Server │  │ Cloud Server │ │
-│  │   Port 5000  │  │  Port 5001   │  │  Port 5002   │ │
+│  │   Port 5010  │  │  Port 5011   │  │  Port 5012   │ │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘ │
 │         │                  │                  │          │
 │  ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐ │
@@ -33,7 +33,7 @@ Complete microservices architecture with 3 separate Flask applications and 3 Pos
 
 ## 🚀 Services
 
-### **1. Main API Server (Port 5000)**
+### **1. Main API Server (Port 5010)**
 - **Database:** auth_db
 - **Features:**
   - User authentication
@@ -42,7 +42,7 @@ Complete microservices architecture with 3 separate Flask applications and 3 Pos
   - User registration/login
   - Profile management
 
-### **2. Media Server (Port 5001)**
+### **2. Media Server (Port 5011)**
 - **Database:** media_db
 - **Features:**
   - File upload (images, videos, documents, audio)
@@ -51,7 +51,7 @@ Complete microservices architecture with 3 separate Flask applications and 3 Pos
   - File statistics
   - Support for 100MB files
 
-### **3. Cloud Storage Server (Port 5002)**
+### **3. Cloud Storage Server (Port 5012)**
 - **Database:** cloud_db
 - **Features:**
   - Folder management
@@ -95,7 +95,7 @@ docker-compose ps
 
 You should see 6 containers running:
 - 3 PostgreSQL databases
-- 3 Flask API services
+- 3 FastAPI services
 
 ### **Step 4: Test Services**
 
@@ -114,7 +114,7 @@ curl http://localhost:5002/api/health
 
 ## 📋 API Endpoints
 
-### **Main API (Port 5000)**
+### **Main API (Port 5010)**
 
 #### **Authentication:**
 ```bash
@@ -145,7 +145,7 @@ Headers: Authorization: Bearer <token>
 Body: {"current_password": "old", "new_password": "new"}
 ```
 
-### **Media Server (Port 5001)**
+### **Media Server (Port 5011)**
 
 ```bash
 # Upload File
@@ -168,7 +168,7 @@ DELETE /api/media/file/<file_id>
 GET /api/media/stats
 ```
 
-### **Cloud Storage (Port 5002)**
+### **Cloud Storage (Port 5012)**
 
 ```bash
 # Create Folder
