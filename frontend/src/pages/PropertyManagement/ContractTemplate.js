@@ -15,10 +15,13 @@ import {
 import { Print as PrintIcon, PictureAsPdf as PdfIcon, Close as CloseIcon } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { API_URLS } from '../../config/apiConfig';
 
 const ContractTemplate = ({ open, onClose, contractType = 'lease', propertyData, tenantData }) => {
   const contractRef = useRef(null);
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const [contractData, setContractData] = useState({
     // Lessor (Property Owner) Information
@@ -70,6 +73,26 @@ const ContractTemplate = ({ open, onClose, contractType = 'lease', propertyData,
     executionPlace: 'Philippines',
   });
 
+  const buildSummaryDescription = () => {
+    if (contractType === 'property_management') {
+      return [
+        `Owner: ${contractData.clientName || '[PROPERTY OWNER]'}`,
+        `Manager: ${contractData.managerBusinessName || contractData.managerName || '[PROPERTY MANAGER]'}`,
+        `Property: ${contractData.propertyAddress || '[PROPERTY ADDRESS]'}, ${contractData.propertyCity || '[CITY]'}, ${contractData.propertyProvince || '[PROVINCE]'}`,
+        `Service term: ${contractData.serviceDuration || 12} months (${contractData.leaseStartDate || '[START DATE]'} to ${contractData.leaseEndDate || '[END DATE]'})`,
+        `Fee: ${contractData.managementFeePercentage ? `${contractData.managementFeePercentage}%` : ''}${contractData.managementFeeFixed ? ` / ₱${Number(contractData.managementFeeFixed || 0).toLocaleString('en-PH')}` : ''}`
+      ].join(' | ');
+    }
+
+    return [
+      `Lessor: ${contractData.lessorName || '[LESSOR NAME]'} (${contractData.lessorAddress || '[LESSOR ADDRESS]'})`,
+      `Lessee: ${contractData.lesseeName || '[LESSEE NAME]'} (${contractData.lesseeAddress || '[LESSEE ADDRESS]'})`,
+      `Premises: Unit ${contractData.unitNumber || '[UNIT]'}, ${contractData.propertyAddress || '[PROPERTY ADDRESS]'}, ${contractData.propertyCity || '[CITY]'}, ${contractData.propertyProvince || '[PROVINCE]'}`,
+      `Term: ${contractData.leaseDuration || 12} months (${contractData.leaseStartDate || '[START DATE]'} to ${contractData.leaseEndDate || '[END DATE]'})`,
+      `Rent: ₱${Number(contractData.monthlyRent || 0).toLocaleString('en-PH')}, Deposit: ₱${Number(contractData.securityDeposit || 0).toLocaleString('en-PH')}, Advance: ${contractData.advanceRent || 0} month(s)`
+    ].join(' | ');
+  };
+
   const handleGeneratePDF = async () => {
     setGenerating(true);
     try {
@@ -96,8 +119,11 @@ const ContractTemplate = ({ open, onClose, contractType = 'lease', propertyData,
 
       pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
 
-      // Save the PDF
-      const fileName = `Lease_Contract_${contractData.lesseeName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const baseName =
+        contractType === 'property_management'
+          ? `Property_Management_Agreement_${(contractData.managerBusinessName || 'Agreement').replace(/\s+/g, '_')}`
+          : `Lease_Contract_${(contractData.lesseeName || 'Contract').replace(/\s+/g, '_')}`;
+      const fileName = `${baseName}_${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(fileName);
 
       alert('PDF generated successfully!');
@@ -106,6 +132,96 @@ const ContractTemplate = ({ open, onClose, contractType = 'lease', propertyData,
       alert('Error generating PDF. Please try again.');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaveError('');
+    try {
+      const requiredLeaseFields = [
+        { key: 'lessorName', label: 'Lessor Full Name' },
+        { key: 'lessorAddress', label: 'Lessor Address' },
+        { key: 'lesseeName', label: 'Lessee Full Name' },
+        { key: 'lesseeAddress', label: 'Lessee Address' },
+        { key: 'unitNumber', label: 'Unit Number' },
+        { key: 'propertyAddress', label: 'Property Address' },
+        { key: 'propertyCity', label: 'Property City' },
+        { key: 'leaseStartDate', label: 'Start Date' },
+        { key: 'leaseEndDate', label: 'End Date' },
+        { key: 'monthlyRent', label: 'Monthly Rent' },
+      ];
+
+      const requiredPMAFields = [
+        { key: 'clientName', label: 'Owner Name' },
+        { key: 'clientAddress', label: 'Owner Address' },
+        { key: 'managerName', label: 'Manager Name' },
+        { key: 'managerAddress', label: 'Manager Address' },
+        { key: 'propertyAddress', label: 'Property Address' },
+        { key: 'propertyCity', label: 'Property City' },
+        { key: 'leaseStartDate', label: 'Start Date' },
+        { key: 'leaseEndDate', label: 'End Date' },
+      ];
+
+      const missing = [];
+      if (contractType === 'property_management') {
+        requiredPMAFields.forEach(({ key, label }) => {
+          if (!contractData[key]) missing.push(label);
+        });
+      } else {
+        requiredLeaseFields.forEach(({ key, label }) => {
+          if (!contractData[key]) missing.push(label);
+        });
+      }
+
+      if (missing.length) {
+        setSaveError(`Please fill all required fields: ${missing.join(', ')}`);
+        return;
+      }
+
+      setSaving(true);
+      const payload = {
+        contract_type: contractType === 'property_management' ? 'property_management' : 'lease',
+        contract_number: contractType === 'property_management'
+          ? `PM-${(contractData.clientName || 'CLIENT').replace(/\s+/g, '').slice(0, 6).toUpperCase()}-${new Date().toISOString().slice(0, 10)}`
+          : `LEASE-${(contractData.lesseeName || 'TENANT').replace(/\s+/g, '').slice(0, 6).toUpperCase()}-${new Date().toISOString().slice(0, 10)}`,
+        party_name: contractType === 'property_management'
+          ? contractData.clientName || ''
+          : contractData.lesseeName || '',
+        party_email: contractType === 'property_management' ? contractData.clientAddress || null : contractData.lesseeAddress || null,
+        party_phone: contractType === 'property_management' ? contractData.managerPhone || null : contractData.managerPhone || null,
+        start_date: contractData.leaseStartDate || null,
+        end_date: contractData.leaseEndDate || null,
+        value: contractData.monthlyRent ? Number(contractData.monthlyRent) : 0,
+        status: 'active',
+        description: buildSummaryDescription(),
+        payment_terms: contractType === 'property_management'
+          ? `Management fee: ${contractData.managementFeePercentage ? `${contractData.managementFeePercentage}%` : ''}${contractData.managementFeeFixed ? ` or ₱${Number(contractData.managementFeeFixed).toLocaleString('en-PH')}` : ''}`
+          : `Monthly rent ₱${Number(contractData.monthlyRent || 0).toLocaleString('en-PH')}`,
+        renewal_terms: contractType === 'property_management'
+          ? `Service duration ${contractData.serviceDuration || 12} months`
+          : `Lease duration ${contractData.leaseDuration || 12} months`,
+        termination_notice_days: 30,
+        auto_renew: false,
+        signed_at: contractData.executionDate || null,
+        signed_by: contractType === 'property_management'
+          ? contractData.managerName || ''
+          : contractData.lessorName || '',
+      };
+
+      const res = await fetch(`${API_URLS.PROPERTY}/contracts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save contract');
+      }
+      onClose();
+    } catch (err) {
+      setSaveError(err.message || 'Unable to save contract');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -158,7 +274,9 @@ const ContractTemplate = ({ open, onClose, contractType = 'lease', propertyData,
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Philippine Lease Contract Generator</Typography>
+          <Typography variant="h6">
+            {contractType === 'property_management' ? 'Property Management Agreement Generator' : 'Philippine Lease Contract Generator'}
+          </Typography>
           <Button onClick={onClose} color="inherit" size="small">
             <CloseIcon />
           </Button>
@@ -170,6 +288,11 @@ const ContractTemplate = ({ open, onClose, contractType = 'lease', propertyData,
           This contract template complies with Philippine laws including the Civil Code of the Philippines (Republic Act No. 386)
           and the Rent Control Act of 2009 (Republic Act No. 9653).
         </Alert>
+        {saveError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {saveError}
+          </Alert>
+        )}
 
         {/* Contract Data Form */}
         <Box sx={{ mb: 4 }}>
@@ -604,6 +727,14 @@ const ContractTemplate = ({ open, onClose, contractType = 'lease', propertyData,
           disabled={generating}
         >
           {generating ? 'Generating PDF...' : 'Download PDF'}
+        </Button>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Saving…' : 'Save to database'}
         </Button>
       </DialogActions>
     </Dialog>

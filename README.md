@@ -198,6 +198,10 @@ npm install
     - Side-by-side property list and map view
     - Multiple map provider links (Google Maps, Apple Maps, OpenStreetMap, Waze)
     - Visual property location tracking with embedded maps
+  - **Contracts & Agreements**
+    - Generate Philippine lease contracts and property management agreements with printable/PDF templates
+    - Required field validation with placeholders to guide completion
+    - Save generated agreements directly to the Property API for tracking
     - Auto-detection of coordinates when entering addresses
   - Property and tenant tracking with detailed forms
   - Lease management with active/inactive status

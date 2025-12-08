@@ -23,7 +23,7 @@ import {
   CircularProgress,
   ButtonGroup,
 } from '@mui/material';
-import { Description as ContractIcon, Add as AddIcon } from '@mui/icons-material';
+import { Description as ContractIcon } from '@mui/icons-material';
 import { API_URLS } from '../../config/apiConfig';
 import ContractTemplate from './ContractTemplate';
 
@@ -41,21 +41,11 @@ const Contracts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
   const [contractTemplateOpen, setContractTemplateOpen] = useState(false);
   const [contractType, setContractType] = useState('lease'); // 'lease' or 'property_management'
-  const [form, setForm] = useState({
-    contract_type: '',
-    party_name: '',
-    start_date: '',
-    end_date: '',
-    value: '',
-    status: 'active',
-    description: '',
-  });
+  const [saving, setSaving] = useState(false);
 
   const fetchContracts = useCallback(async () => {
     setLoading(true);
@@ -78,52 +68,140 @@ const Contracts = () => {
     fetchContracts();
   }, [fetchContracts]);
 
-  const handleSubmit = async () => {
-    setSaving(true);
-    setError('');
-    try {
-      const payload = {
-        contract_type: form.contract_type || '',
-        party_name: form.party_name || '',
-        start_date: form.start_date || null,
-        end_date: form.end_date || null,
-        value: form.value ? Number(form.value) : 0,
-        status: form.status || 'active',
-        description: form.description || '',
-      };
-
-      const res = await fetch(`${API_URLS.PROPERTY}/contracts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to create contract');
-      }
-
-      setOpen(false);
-      setForm({
-        contract_type: '',
-        party_name: '',
-        start_date: '',
-        end_date: '',
-        value: '',
-        status: 'active',
-        description: '',
-      });
-      fetchContracts();
-    } catch (err) {
-      setError(err.message || 'Unable to create contract. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleContractClick = (contract) => {
     setSelectedContract(contract);
     setDetailOpen(true);
+  };
+
+  const handlePrint = (contract) => {
+    if (!contract) return;
+
+    const lessorName = contract.signed_by || '[LESSOR NAME]';
+    const lessorAddress = contract.description || '[LESSOR ADDRESS]';
+    const lesseeName = contract.party_name || '[LESSEE NAME]';
+    const lesseeAddress = contract.party_email || '[LESSEE ADDRESS]';
+    const unit = contract.contract_number || '[UNIT]';
+    const propertyAddress = contract.payment_terms || '[PROPERTY ADDRESS]';
+    const city = contract.renewal_terms || '[CITY]';
+    const startDate = contract.start_date || '[START DATE]';
+    const endDate = contract.end_date || '[END DATE]';
+    const monthlyRent = Number(contract.value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    const securityDeposit = Number(contract.value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    const advanceMonths = contract.termination_notice_days || '[NUMBER]';
+    const executionDate = contract.signed_at || '[DATE]';
+    const executionPlace = 'Philippines';
+
+    const html = `
+      <html>
+        <head>
+          <title>Lease Contract</title>
+          <style>
+            body { font-family: 'Times New Roman', serif; line-height: 1.6; padding: 40px; color: #111; }
+            h1, h2 { text-align: center; margin: 0 0 10px; }
+            h1 { font-size: 20px; letter-spacing: 0.5px; }
+            h2 { font-size: 14px; font-weight: 600; }
+            .section-title { font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; }
+            p { text-align: justify; margin: 10px 0; }
+            .article { margin: 14px 0; }
+            .signature-block { margin-top: 40px; display: flex; gap: 40px; }
+            .sig { flex: 1; text-align: center; }
+            .sig .name { margin-top: 40px; font-weight: 700; border-top: 1px solid #000; padding-top: 6px; display: inline-block; min-width: 180px; }
+            .witnesses { margin-top: 40px; }
+            .witnesses .name { margin-top: 20px; font-weight: 700; border-top: 1px solid #000; padding-top: 6px; display: inline-block; min-width: 180px; }
+            .metadata { margin-bottom: 20px; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <h1>LEASE CONTRACT</h1>
+          <h2>(Compliant with Philippine Law - Civil Code & RA 9653)</h2>
+          <div class="metadata"><strong>Contract #</strong> ${contract.contract_number || 'N/A'} • <strong>Status</strong> ${contract.status || 'pending'}</div>
+
+          <p><strong>KNOW ALL MEN BY THESE PRESENTS:</strong></p>
+          <p>This LEASE CONTRACT is entered into by and between:</p>
+          <p><strong>${lessorName}</strong>, of legal age, Filipino citizen, with address at ${lessorAddress}, hereinafter referred to as the <strong>LESSOR</strong>;</p>
+          <p><strong>${lesseeName}</strong>, of legal age, Filipino citizen, with address at ${lesseeAddress}, hereinafter referred to as the <strong>LESSEE</strong>;</p>
+          <p><strong>WITNESSETH:</strong> That</p>
+
+          <div class="article">
+            <div class="section-title">ARTICLE I - PREMISES</div>
+            <p>The LESSOR hereby leases to the LESSEE the premises located at Unit ${unit}, ${propertyAddress}, ${city}, Metro Manila, Philippines, hereinafter referred to as the <strong>LEASED PREMISES</strong>.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE II - TERM OF LEASE</div>
+            <p>The term of this lease shall be for a period of 12 (12) months, commencing on ${startDate} and ending on ${endDate}, unless sooner terminated as herein provided.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE III - RENTAL AND PAYMENT TERMS</div>
+            <p>3.1. The monthly rental for the LEASED PREMISES is <strong>₱${monthlyRent}</strong> (Philippine Pesos), payable on or before the 5th day of each month.</p>
+            <p>3.2. The LESSEE shall pay a security deposit of <strong>₱${securityDeposit}</strong> to guarantee the faithful performance of all obligations under this Contract.</p>
+            <p>3.3. Advance rental payment of ${advanceMonths} month(s) amounting to <strong>₱${monthlyRent}</strong> shall be paid upon signing of this Contract.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE IV - USE OF PREMISES</div>
+            <p>4.1. The LEASED PREMISES shall be used exclusively for residential purposes and shall not be used for any illegal, immoral, or nuisance-creating activities.</p>
+            <p>4.2. The LESSEE shall not sublet the LEASED PREMISES or any portion thereof without the prior written consent of the LESSOR.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE V - MAINTENANCE AND REPAIRS</div>
+            <p>5.1. The LESSEE shall maintain the LEASED PREMISES in good, clean, and tenantable condition at all times.</p>
+            <p>5.2. Major repairs and maintenance affecting the structural integrity of the premises shall be the responsibility of the LESSOR.</p>
+            <p>5.3. Minor repairs and ordinary wear and tear shall be the responsibility of the LESSEE.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE VI - UTILITIES AND SERVICES</div>
+            <p>The LESSEE shall be responsible for the payment of all utilities including but not limited to electricity, water, internet, and other services consumed in the LEASED PREMISES during the term of this Contract.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE VII - TERMINATION</div>
+            <p>7.1. This Contract may be terminated by either party upon thirty (30) days prior written notice to the other party.</p>
+            <p>7.2. The LESSOR may terminate this Contract immediately for just causes including but not limited to: non-payment of rent, violation of any terms herein, illegal use of premises, or conduct causing nuisance.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE VIII - RETURN OF SECURITY DEPOSIT</div>
+            <p>Upon termination of this Contract and surrender of the premises in good condition, normal wear and tear excepted, the security deposit shall be returned to the LESSEE within thirty (30) days, less any deductions for unpaid rent or damages.</p>
+          </div>
+
+          <div class="article">
+            <div class="section-title">ARTICLE IX - GOVERNING LAW</div>
+            <p>This Contract shall be governed by and construed in accordance with the laws of the Republic of the Philippines, particularly the Civil Code of the Philippines (Republic Act No. 386) and the Rent Control Act of 2009 (Republic Act No. 9653).</p>
+          </div>
+
+          <p><strong>IN WITNESS WHEREOF</strong>, the parties have hereunto set their hands this ${executionDate} at ${executionPlace}.</p>
+
+          <div class="signature-block">
+            <div class="sig">
+              <div class="name">${lessorName}</div>
+              <div>LESSOR</div>
+            </div>
+            <div class="sig">
+              <div class="name">${lesseeName}</div>
+              <div>LESSEE</div>
+            </div>
+          </div>
+
+          <div class="witnesses">
+            <div class="name">Witness #1</div><br/>
+            <div class="name">Witness #2</div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 250);
   };
 
   const handleUpdateStatus = async (newStatus) => {
@@ -187,9 +265,6 @@ const Contracts = () => {
                 Property Management Agreement
               </Button>
             </ButtonGroup>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
-              Quick Create
-            </Button>
           </Box>
         </Box>
 
@@ -256,7 +331,7 @@ const Contracts = () => {
                     >
                       <ListItemText
                         primary={`${contract.contract_type || 'Contract'} • ${contract.party_name || 'N/A'}`}
-                        secondary={`${contract.start_date || 'No start'} to ${contract.end_date || 'No end'} • $${Number(contract.value || 0).toLocaleString()}`}
+                        secondary={`${contract.start_date || 'No start'} to ${contract.end_date || 'No end'} • PHP ${Number(contract.value || 0).toLocaleString('en-PH')}`}
                       />
                       <Chip
                         label={contract.status || 'pending'}
@@ -274,88 +349,6 @@ const Contracts = () => {
           </Card>
         )}
       </Container>
-
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Create Contract</DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Contract Type"
-                fullWidth
-                value={form.contract_type}
-                onChange={(e) => setForm({ ...form, contract_type: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Party Name"
-                fullWidth
-                value={form.party_name}
-                onChange={(e) => setForm({ ...form, party_name: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Start Date"
-                type="date"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="End Date"
-                type="date"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                value={form.end_date}
-                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Value"
-                type="number"
-                fullWidth
-                value={form.value}
-                onChange={(e) => setForm({ ...form, value: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Status"
-                fullWidth
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-              >
-                {['active', 'pending', 'expired', 'terminated'].map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Description"
-                fullWidth
-                multiline
-                minRows={2}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Contract Detail Dialog */}
       <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} fullWidth maxWidth="sm">
@@ -375,12 +368,24 @@ const Contracts = () => {
             <Box sx={{ py: 1 }}>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Contract #</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedContract.contract_number || '—'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Contract Type</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedContract.contract_type || 'N/A'}</Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Party Name</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedContract.party_name || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Party Email</Typography>
+                  <Typography variant="body1">{selectedContract.party_email || '—'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Party Phone</Typography>
+                  <Typography variant="body1">{selectedContract.party_phone || '—'}</Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Start Date</Typography>
@@ -390,9 +395,33 @@ const Contracts = () => {
                   <Typography variant="caption" color="text.secondary">End Date</Typography>
                   <Typography variant="body1">{selectedContract.end_date || 'Not set'}</Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Value</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>${Number(selectedContract.value || 0).toLocaleString()}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>PHP {Number(selectedContract.value || 0).toLocaleString('en-PH')}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Payment Terms</Typography>
+                  <Typography variant="body2">{selectedContract.payment_terms || '—'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Renewal Terms</Typography>
+                  <Typography variant="body2">{selectedContract.renewal_terms || '—'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Termination Notice</Typography>
+                  <Typography variant="body2">{selectedContract.termination_notice_days || 0} days</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Auto Renew</Typography>
+                  <Typography variant="body2">{selectedContract.auto_renew ? 'Yes' : 'No'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Signed At</Typography>
+                  <Typography variant="body2">{selectedContract.signed_at || '—'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Signed By</Typography>
+                  <Typography variant="body2">{selectedContract.signed_by || '—'}</Typography>
                 </Grid>
                 {selectedContract.description && (
                   <>
@@ -409,6 +438,9 @@ const Contracts = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailOpen(false)}>Close</Button>
+          <Button onClick={() => handlePrint(selectedContract)} variant="outlined">
+            Print
+          </Button>
           {selectedContract?.status === 'active' && (
             <Button
               variant="outlined"
