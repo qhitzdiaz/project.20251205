@@ -6,6 +6,7 @@ import PropertiesPage from './pages/PropertiesPage';
 import TenantsPage from './pages/TenantsPage';
 import MaintenancePage from './pages/MaintenancePage';
 import StaffPage from './pages/StaffPage';
+import ContractsPage from './pages/ContractsPage';
 import Navigation from './components/Navigation';
 
 // Prefer explicit API override, else use dev localhost, else same-origin (for prod behind proxy)
@@ -48,6 +49,7 @@ function App() {
               <Route path="/tenants" element={<TenantsPage apiBase={apiBase} />} />
               <Route path="/maintenance" element={<MaintenancePage apiBase={apiBase} />} />
               <Route path="/staff" element={<StaffPage apiBase={apiBase} />} />
+              <Route path="/contracts" element={<ContractsPage apiBase={apiBase} />} />
             </Routes>
           </Box>
         </Box>

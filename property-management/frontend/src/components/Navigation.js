@@ -19,6 +19,7 @@ import {
   People as PeopleIcon,
   Build as BuildIcon,
   Groups as GroupsIcon,
+  Description as DescriptionIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
 } from '@mui/icons-material';
@@ -32,6 +33,7 @@ const menuItems = [
   { text: 'Tenants', icon: <PeopleIcon />, path: '/tenants' },
   { text: 'Maintenance', icon: <BuildIcon />, path: '/maintenance' },
   { text: 'Staff', icon: <GroupsIcon />, path: '/staff' },
+  { text: 'Contracts', icon: <DescriptionIcon />, path: '/contracts' },
 ];
 
 function Navigation({ apiBase, darkMode, toggleDarkMode }) {

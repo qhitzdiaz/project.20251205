@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
   Box,
@@ -57,7 +57,7 @@ const Invoices = () => {
     memo: '',
   });
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -75,11 +75,11 @@ const Invoices = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus, query, filterProperty, filterLease]);
 
   useEffect(() => {
     fetchInvoices();
-  }, [filterStatus, query, filterProperty, filterLease]);
+  }, [fetchInvoices]);
 
   const handleSubmit = async () => {
     setSaving(true);

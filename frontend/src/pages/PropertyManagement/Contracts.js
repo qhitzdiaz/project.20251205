@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
   Box,
@@ -21,8 +21,11 @@ import {
   DialogActions,
   Alert,
   CircularProgress,
+  ButtonGroup,
 } from '@mui/material';
+import { Description as ContractIcon, Add as AddIcon } from '@mui/icons-material';
 import { API_URLS } from '../../config/apiConfig';
+import ContractTemplate from './ContractTemplate';
 
 const statusColors = {
   active: 'success',
@@ -42,6 +45,8 @@ const Contracts = () => {
   const [saving, setSaving] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
+  const [contractTemplateOpen, setContractTemplateOpen] = useState(false);
+  const [contractType, setContractType] = useState('lease'); // 'lease' or 'property_management'
   const [form, setForm] = useState({
     contract_type: '',
     party_name: '',
@@ -52,7 +57,7 @@ const Contracts = () => {
     description: '',
   });
 
-  const fetchContracts = async () => {
+  const fetchContracts = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -67,11 +72,11 @@ const Contracts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   useEffect(() => {
     fetchContracts();
-  }, [filterStatus]);
+  }, [fetchContracts]);
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -161,7 +166,31 @@ const Contracts = () => {
               Manage service contracts, vendor agreements, and leases.
             </Typography>
           </Box>
-          <Button variant="contained" onClick={() => setOpen(true)}>Create Contract</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <ButtonGroup variant="contained">
+              <Button
+                startIcon={<ContractIcon />}
+                onClick={() => {
+                  setContractType('lease');
+                  setContractTemplateOpen(true);
+                }}
+              >
+                Generate Lease Contract
+              </Button>
+              <Button
+                startIcon={<ContractIcon />}
+                onClick={() => {
+                  setContractType('property_management');
+                  setContractTemplateOpen(true);
+                }}
+              >
+                Property Management Agreement
+              </Button>
+            </ButtonGroup>
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
+              Quick Create
+            </Button>
+          </Box>
         </Box>
 
         {error && (
@@ -402,6 +431,13 @@ const Contracts = () => {
           )}
         </DialogActions>
       </Dialog>
+
+      {/* Contract Template Generator */}
+      <ContractTemplate
+        open={contractTemplateOpen}
+        onClose={() => setContractTemplateOpen(false)}
+        contractType={contractType}
+      />
     </Box>
   );
 };

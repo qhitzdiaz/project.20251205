@@ -243,6 +243,12 @@ import_postgres_db() {
     local backup_file=$4
     local db_filename=$(basename "$backup_file")
 
+    # Only import when the database is empty to avoid duplicate constraint errors
+    if ! is_db_empty "$container_name" "$db_name" "$db_user"; then
+        echo -e "${CYAN}  Skipping import for $db_name (database already has tables)${NC}"
+        return
+    fi
+
     # First, try to import from current backup
     if [ -f "$backup_file" ] && [ -s "$backup_file" ]; then
         echo "  Importing $db_name from current backup..."
@@ -253,7 +259,7 @@ import_postgres_db() {
         echo -e "${YELLOW}  No current backup for $db_name${NC}"
     fi
 
-    # Check if database is empty, if so, try to import from latest backup
+    # If still empty, try the most recent prior backup
     if is_db_empty "$container_name" "$db_name" "$db_user"; then
         echo -e "${YELLOW}  Database $db_name is empty, searching for latest backup...${NC}"
 
@@ -486,7 +492,10 @@ echo ""
 echo -e "${CYAN}Database Sizes:${NC}"
 for container in qhitz-postgres-auth qhitz-postgres-media qhitz-postgres-cloud qhitz-postgres-property qhitz-postgres-supply qhitz-postgres-serbisyo; do
     if docker ps --filter "name=$container" --format "{{.Names}}" | grep -q "$container"; then
-        DB_SIZE=$(docker exec "$container" psql -U $(echo $container | sed 's/qhitz-postgres-//')_user -c "SELECT pg_size_pretty(pg_database_size(current_database()));" 2>/dev/null | sed -n '3p' | tr -d ' ' || echo "N/A")
+        DB_NAME=$(docker exec "$container" printenv POSTGRES_DB 2>/dev/null || echo "")
+        DB_USER=$(docker exec "$container" printenv POSTGRES_USER 2>/dev/null || echo "$(echo $container | sed 's/qhitz-postgres-//')_user")
+        DB_NAME=${DB_NAME:-$DB_USER}
+        DB_SIZE=$(docker exec "$container" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT pg_size_pretty(pg_database_size(current_database()));" 2>/dev/null | sed -n '3p' | tr -d ' ' || echo "N/A")
         echo "  $container: $DB_SIZE"
     fi
 done

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Alert,
   Box,
@@ -42,19 +42,9 @@ const AddPropertyPage = () => {
   const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
 
-  // Auto-geocode when address changes
-  useEffect(() => {
-    if (!form.address || !form.city) return;
-
-    const timeoutId = setTimeout(() => {
-      handleGeocode(true);
-    }, 1500); // Wait 1.5 seconds after user stops typing
-
-    return () => clearTimeout(timeoutId);
-  }, [form.address, form.city, form.state]);
-
-  const handleGeocode = async (isAuto = false) => {
-    if (!form.address) {
+  const handleGeocode = useCallback(async (isAuto = false) => {
+    const { address, city, state } = form;
+    if (!address) {
       if (!isAuto) {
         setError('Please enter an address first');
       }
@@ -71,9 +61,9 @@ const AddPropertyPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          address: form.address,
-          city: form.city,
-          province: form.state,
+          address,
+          city,
+          province: state,
           country: 'USA',
         }),
       });
@@ -84,11 +74,11 @@ const AddPropertyPage = () => {
       }
 
       const data = await response.json();
-      setForm({
-        ...form,
+      setForm((prev) => ({
+        ...prev,
         latitude: data.latitude.toString(),
         longitude: data.longitude.toString(),
-      });
+      }));
       if (!isAuto) {
         setError('');
       }
@@ -100,7 +90,18 @@ const AddPropertyPage = () => {
     } finally {
       setGeocoding(false);
     }
-  };
+  }, [form]);
+
+  // Auto-geocode when address changes
+  useEffect(() => {
+    if (!form.address || !form.city) return;
+
+    const timeoutId = setTimeout(() => {
+      handleGeocode(true);
+    }, 1500); // Wait 1.5 seconds after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [form.address, form.city, form.state, handleGeocode]);
 
   const handleSubmit = async () => {
     setError('');

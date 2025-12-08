@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -21,7 +21,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Stack,
   Alert,
   CircularProgress,
   useTheme,
@@ -69,6 +68,56 @@ const Properties = () => {
     longitude: '',
   });
 
+  const handleGeocode = useCallback(async (isAuto = false) => {
+    const { address, city, province, country } = form;
+    if (!address) {
+      if (!isAuto) {
+        setError('Please enter an address first');
+      }
+      return;
+    }
+
+    setGeocoding(true);
+    if (!isAuto) {
+      setError('');
+    }
+
+    try {
+      const response = await fetch(`${API_URLS.PROPERTY}/geocode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address,
+          city,
+          province,
+          country,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Geocoding failed');
+      }
+
+      const data = await response.json();
+      setForm((prev) => ({
+        ...prev,
+        latitude: data.latitude.toString(),
+        longitude: data.longitude.toString(),
+      }));
+      if (!isAuto) {
+        setError('');
+      }
+    } catch (err) {
+      // Only show error if manual geocoding
+      if (!isAuto) {
+        setError(err.message);
+      }
+    } finally {
+      setGeocoding(false);
+    }
+  }, [form]);
+
   useEffect(() => {
     loadProperties();
   }, []);
@@ -82,7 +131,7 @@ const Properties = () => {
     }, 1500); // Wait 1.5 seconds after user stops typing
 
     return () => clearTimeout(timeoutId);
-  }, [form.address, form.city, form.province, form.country]);
+  }, [autoGeocodeEnabled, form.address, form.city, form.province, form.country, handleGeocode]);
 
   const loadProperties = async () => {
     setLoading(true);
@@ -194,55 +243,6 @@ const Properties = () => {
       setError('');
     } catch (err) {
       setError(err.message);
-    }
-  };
-
-  const handleGeocode = async (isAuto = false) => {
-    if (!form.address) {
-      if (!isAuto) {
-        setError('Please enter an address first');
-      }
-      return;
-    }
-
-    setGeocoding(true);
-    if (!isAuto) {
-      setError('');
-    }
-
-    try {
-      const response = await fetch(`${API_URLS.PROPERTY}/geocode`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: form.address,
-          city: form.city,
-          province: form.province,
-          country: form.country,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Geocoding failed');
-      }
-
-      const data = await response.json();
-      setForm({
-        ...form,
-        latitude: data.latitude.toString(),
-        longitude: data.longitude.toString(),
-      });
-      if (!isAuto) {
-        setError('');
-      }
-    } catch (err) {
-      // Only show error if manual geocoding
-      if (!isAuto) {
-        setError(err.message);
-      }
-    } finally {
-      setGeocoding(false);
     }
   };
 

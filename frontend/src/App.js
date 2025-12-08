@@ -30,8 +30,6 @@ import {
   Snackbar,
   Alert,
   Divider,
-  Menu,
-  MenuItem,
   useMediaQuery,
 } from '@mui/material';
 import {
@@ -47,7 +45,6 @@ import {
   Info as InfoIcon,
   Description as DocIcon,
   Support as SupportIcon,
-  ArrowDropDown as ArrowDropDownIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
   LocalShipping as SupplyIcon,
@@ -57,7 +54,6 @@ import {
 // Import page components
 import MediaPlayerApp from './pages/MediaPlayerApp';
 import CloudStorageApp from './pages/CloudStorageApp';
-import PropertyApp from './pages/PropertyApp';
 import AddPropertyPage from './pages/AddPropertyPage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
 import TenantDetailPage from './pages/TenantDetailPage';
@@ -108,7 +104,6 @@ function AppContent() {
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [appsMenuAnchor, setAppsMenuAnchor] = useState(null);
 
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' });
 
@@ -224,7 +219,6 @@ function AppContent() {
     } else {
       navigate(path);
     }
-    setAppsMenuAnchor(null);
   };
 
   const applications = [

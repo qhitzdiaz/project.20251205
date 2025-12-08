@@ -149,6 +149,8 @@ env/
 ENV/
 *.egg-info/
 .pytest_cache/
+property-management/backend/instance/
+property-management/backend/*.db
 
 # Build directories
 build/

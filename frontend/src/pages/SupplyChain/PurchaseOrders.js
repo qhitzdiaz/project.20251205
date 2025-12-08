@@ -21,7 +21,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Stack,
   Alert,
   CircularProgress,
   useTheme,
@@ -32,7 +31,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   ArrowBack as BackIcon,
-  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import { API_URLS } from '../../config/apiConfig';
 
