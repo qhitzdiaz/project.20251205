@@ -243,12 +243,6 @@ import_postgres_db() {
     local backup_file=$4
     local db_filename=$(basename "$backup_file")
 
-    # Only import when the database is empty to avoid duplicate constraint errors
-    if ! is_db_empty "$container_name" "$db_name" "$db_user"; then
-        echo -e "${CYAN}  Skipping import for $db_name (database already has tables)${NC}"
-        return
-    fi
-
     # First, try to import from current backup
     if [ -f "$backup_file" ] && [ -s "$backup_file" ]; then
         echo "  Importing $db_name from current backup..."
