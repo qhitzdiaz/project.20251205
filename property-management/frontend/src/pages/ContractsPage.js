@@ -12,6 +12,7 @@ import {
   Divider,
   Grid,
   List,
+  ListItemButton,
   ListItem,
   ListItemText,
   MenuItem,
@@ -51,6 +52,8 @@ function ContractsPage({ apiBase }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
 
   const fetchContracts = async () => {
     setLoading(true);
@@ -112,6 +115,54 @@ function ContractsPage({ apiBase }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleOpenDetails = (contract) => {
+    setSelectedContract(contract);
+    setDetailOpen(true);
+  };
+
+  const handlePrint = (contract) => {
+    if (!contract) return;
+    const printWindow = window.open('', '_blank');
+    const styles = `
+      body { font-family: Arial, sans-serif; padding: 32px; color: #111; }
+      h1 { font-size: 20px; margin-bottom: 8px; }
+      h2 { font-size: 16px; margin: 16px 0 8px; }
+      .meta { color: #444; margin-bottom: 16px; }
+      .row { margin: 6px 0; }
+      .label { font-weight: 700; display: inline-block; min-width: 140px; }
+      .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #1d4ed8; font-weight: 600; font-size: 12px; }
+      .money { font-weight: 700; }
+    `;
+    const html = `
+      <html>
+        <head>
+          <title>Contract ${contract.id || ''}</title>
+          <style>${styles}</style>
+        </head>
+        <body>
+          <h1>Contract Summary</h1>
+          <div class="meta">Generated ${new Date().toLocaleString()}</div>
+          <div class="row"><span class="label">Type</span> <span class="pill">${contract.contract_type || 'N/A'}</span></div>
+          <div class="row"><span class="label">Status</span> <span class="pill">${contract.status || 'pending'}</span></div>
+          <div class="row"><span class="label">Party</span> ${contract.party_name || 'N/A'}</div>
+          <div class="row"><span class="label">Start</span> ${contract.start_date || '—'}</div>
+          <div class="row"><span class="label">End</span> ${contract.end_date || '—'}</div>
+          <div class="row"><span class="label">Value</span> <span class="money">PHP ${Number(contract.value || 0).toLocaleString('en-PH')}</span></div>
+          <div class="row"><span class="label">Created</span> ${contract.created_at || '—'}</div>
+          <h2>Notes</h2>
+          <div>${contract.description || 'No description provided.'}</div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
   };
 
   return (
@@ -208,7 +259,22 @@ function ContractsPage({ apiBase }) {
               <List>
                 {contracts.map((contract) => (
                   <React.Fragment key={contract.id}>
-                    <ListItem alignItems="flex-start">
+                    <ListItem
+                      alignItems="flex-start"
+                      disablePadding
+                      secondaryAction={
+                        <Button
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrint(contract);
+                          }}
+                        >
+                          Reprint
+                        </Button>
+                      }
+                    >
+                      <ListItemButton onClick={() => handleOpenDetails(contract)} sx={{ py: 1.5 }}>
                       <ListItemIconWrapper>
                         <DescriptionIcon fontSize="small" />
                       </ListItemIconWrapper>
@@ -238,6 +304,9 @@ function ContractsPage({ apiBase }) {
                                 minimumFractionDigits: 0,
                               })}
                             </Typography>
+                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                              Created: {contract.created_at || '—'}
+                            </Typography>
                             {contract.description && (
                               <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
                                 {contract.description}
@@ -246,6 +315,7 @@ function ContractsPage({ apiBase }) {
                           </Box>
                         }
                       />
+                      </ListItemButton>
                     </ListItem>
                     <Divider component="li" />
                   </React.Fragment>
@@ -373,6 +443,52 @@ function ContractsPage({ apiBase }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>
+          Contract details
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedContract ? (
+            <Stack spacing={1.5}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Chip
+                  label={selectedContract.contract_type || 'Contract'}
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                />
+                <Chip
+                  label={selectedContract.status || 'pending'}
+                  color={statusColors[selectedContract.status] || 'default'}
+                  size="small"
+                />
+              </Stack>
+              <DetailRow label="Party" value={selectedContract.party_name || '—'} />
+              <DetailRow label="Start date" value={selectedContract.start_date || '—'} />
+              <DetailRow label="End date" value={selectedContract.end_date || '—'} />
+              <DetailRow
+                label="Value"
+                value={`PHP ${Number(selectedContract.value || 0).toLocaleString('en-PH')}`}
+              />
+              <DetailRow label="Created" value={selectedContract.created_at || '—'} />
+              <DetailRow label="Description" value={selectedContract.description || '—'} multiline />
+            </Stack>
+          ) : (
+            <Typography variant="body2" color="text.secondary">No contract selected.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailOpen(false)}>Close</Button>
+          <Button
+            variant="contained"
+            onClick={() => handlePrint(selectedContract)}
+            disabled={!selectedContract}
+          >
+            Reprint
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
@@ -405,6 +521,19 @@ function ListItemIconWrapper({ children }) {
       }}
     >
       {children}
+    </Box>
+  );
+}
+
+function DetailRow({ label, value, multiline }) {
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
+        {label}
+      </Typography>
+      <Typography variant="body1" sx={{ fontWeight: multiline ? 400 : 600, whiteSpace: multiline ? 'pre-line' : 'normal' }}>
+        {value}
+      </Typography>
     </Box>
   );
 }
