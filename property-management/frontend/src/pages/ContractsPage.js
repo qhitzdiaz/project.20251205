@@ -35,13 +35,22 @@ const statusColors = {
 };
 
 const defaultForm = {
+  contract_number: '',
   contract_type: 'lease',
   party_name: '',
+  party_email: '',
+  party_phone: '',
   start_date: '',
   end_date: '',
   value: '',
   status: 'active',
   description: '',
+  payment_terms: '',
+  renewal_terms: '',
+  termination_notice_days: 30,
+  auto_renew: false,
+  signed_at: '',
+  signed_by: '',
 };
 
 function ContractsPage({ apiBase }) {
@@ -89,13 +98,22 @@ function ContractsPage({ apiBase }) {
     setError('');
     try {
       const payload = {
+        contract_number: form.contract_number?.trim() || null,
         contract_type: form.contract_type,
         party_name: form.party_name,
+        party_email: form.party_email?.trim() || null,
+        party_phone: form.party_phone?.trim() || null,
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         value: form.value ? Number(form.value) : 0,
         status: form.status,
         description: form.description,
+        payment_terms: form.payment_terms || null,
+        renewal_terms: form.renewal_terms || null,
+        termination_notice_days: form.termination_notice_days || 30,
+        auto_renew: form.auto_renew || false,
+        signed_at: form.signed_at || null,
+        signed_by: form.signed_by?.trim() || null,
       };
 
       const res = await fetch(`${apiBase}/contracts`, {
@@ -144,12 +162,21 @@ function ContractsPage({ apiBase }) {
         <body>
           <h1>Contract Summary</h1>
           <div class="meta">Generated ${new Date().toLocaleString()}</div>
+          <div class="row"><span class="label">Contract #</span> ${contract.contract_number || '—'}</div>
           <div class="row"><span class="label">Type</span> <span class="pill">${contract.contract_type || 'N/A'}</span></div>
           <div class="row"><span class="label">Status</span> <span class="pill">${contract.status || 'pending'}</span></div>
           <div class="row"><span class="label">Party</span> ${contract.party_name || 'N/A'}</div>
+          <div class="row"><span class="label">Email</span> ${contract.party_email || '—'}</div>
+          <div class="row"><span class="label">Phone</span> ${contract.party_phone || '—'}</div>
           <div class="row"><span class="label">Start</span> ${contract.start_date || '—'}</div>
           <div class="row"><span class="label">End</span> ${contract.end_date || '—'}</div>
           <div class="row"><span class="label">Value</span> <span class="money">PHP ${Number(contract.value || 0).toLocaleString('en-PH')}</span></div>
+          <div class="row"><span class="label">Payment terms</span> ${contract.payment_terms || '—'}</div>
+          <div class="row"><span class="label">Renewal terms</span> ${contract.renewal_terms || '—'}</div>
+          <div class="row"><span class="label">Termination notice</span> ${contract.termination_notice_days || 0} days</div>
+          <div class="row"><span class="label">Auto renew</span> ${contract.auto_renew ? 'Yes' : 'No'}</div>
+          <div class="row"><span class="label">Signed at</span> ${contract.signed_at || '—'}</div>
+          <div class="row"><span class="label">Signed by</span> ${contract.signed_by || '—'}</div>
           <div class="row"><span class="label">Created</span> ${contract.created_at || '—'}</div>
           <h2>Notes</h2>
           <div>${contract.description || 'No description provided.'}</div>
@@ -346,11 +373,20 @@ function ContractsPage({ apiBase }) {
         </Grid>
       </Grid>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>New contract</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Contract number (optional)"
+                value={form.contract_number}
+                onChange={(e) => setForm({ ...form, contract_number: e.target.value })}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
               <TextField
                 select
                 fullWidth
@@ -365,12 +401,30 @@ function ContractsPage({ apiBase }) {
                 <MenuItem value="vendor">Vendor</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Counterparty / company"
                 value={form.party_name}
                 onChange={(e) => setForm({ ...form, party_name: e.target.value })}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                label="Email"
+                value={form.party_email}
+                onChange={(e) => setForm({ ...form, party_email: e.target.value })}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                label="Phone"
+                value={form.party_phone}
+                onChange={(e) => setForm({ ...form, party_phone: e.target.value })}
                 size="small"
               />
             </Grid>
@@ -426,6 +480,72 @@ function ContractsPage({ apiBase }) {
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                label="Payment terms"
+                value={form.payment_terms}
+                onChange={(e) => setForm({ ...form, payment_terms: e.target.value })}
+                size="small"
+                minRows={2}
+                multiline
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Renewal terms"
+                value={form.renewal_terms}
+                onChange={(e) => setForm({ ...form, renewal_terms: e.target.value })}
+                size="small"
+                minRows={2}
+                multiline
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                label="Termination notice (days)"
+                value={form.termination_notice_days}
+                onChange={(e) => setForm({ ...form, termination_notice_days: e.target.value })}
+                size="small"
+                type="number"
+                inputProps={{ min: 0, step: 1 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                select
+                fullWidth
+                label="Auto renew"
+                value={form.auto_renew ? 'true' : 'false'}
+                onChange={(e) => setForm({ ...form, auto_renew: e.target.value === 'true' })}
+                size="small"
+              >
+                <MenuItem value="false">No</MenuItem>
+                <MenuItem value="true">Yes</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                label="Signed by"
+                value={form.signed_by}
+                onChange={(e) => setForm({ ...form, signed_by: e.target.value })}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                type="datetime-local"
+                fullWidth
+                label="Signed at"
+                value={form.signed_at}
+                onChange={(e) => setForm({ ...form, signed_at: e.target.value })}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
                 label="Notes / description"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -464,7 +584,10 @@ function ContractsPage({ apiBase }) {
                   size="small"
                 />
               </Stack>
+              <DetailRow label="Contract number" value={selectedContract.contract_number || '—'} />
               <DetailRow label="Party" value={selectedContract.party_name || '—'} />
+              <DetailRow label="Email" value={selectedContract.party_email || '—'} />
+              <DetailRow label="Phone" value={selectedContract.party_phone || '—'} />
               <DetailRow label="Start date" value={selectedContract.start_date || '—'} />
               <DetailRow label="End date" value={selectedContract.end_date || '—'} />
               <DetailRow
@@ -472,6 +595,12 @@ function ContractsPage({ apiBase }) {
                 value={`PHP ${Number(selectedContract.value || 0).toLocaleString('en-PH')}`}
               />
               <DetailRow label="Created" value={selectedContract.created_at || '—'} />
+              <DetailRow label="Payment terms" value={selectedContract.payment_terms || '—'} multiline />
+              <DetailRow label="Renewal terms" value={selectedContract.renewal_terms || '—'} multiline />
+              <DetailRow label="Termination notice" value={`${selectedContract.termination_notice_days || 0} days`} />
+              <DetailRow label="Auto renew" value={selectedContract.auto_renew ? 'Yes' : 'No'} />
+              <DetailRow label="Signed at" value={selectedContract.signed_at || '—'} />
+              <DetailRow label="Signed by" value={selectedContract.signed_by || '—'} />
               <DetailRow label="Description" value={selectedContract.description || '—'} multiline />
             </Stack>
           ) : (
