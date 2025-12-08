@@ -944,6 +944,39 @@ def init_db():
             )
             db.session.add_all([m1, m2])
 
+            # Create staff
+            staff1 = Staff(
+                property_id=prop1.id,
+                full_name='Sofia Lee',
+                role='Property Manager',
+                department='Operations',
+                email='sofia.lee@harborview.com',
+                phone='555-900-1111',
+                start_date=date(2024, 6, 1),
+                notes='Primary contact for Harbor View'
+            )
+            staff2 = Staff(
+                property_id=prop2.id,
+                full_name='Daniel Green',
+                role='Property Manager',
+                department='Operations',
+                email='daniel.green@maplegrove.com',
+                phone='555-222-3333',
+                start_date=date(2024, 7, 15),
+                notes='Covers Maple Grove maintenance scheduling'
+            )
+            staff3 = Staff(
+                property_id=None,
+                full_name='Jamie Lee',
+                role='Leasing Coordinator',
+                department='Leasing',
+                email='jamie.lee@qhitz.com',
+                phone='555-888-1212',
+                start_date=date(2024, 8, 1),
+                notes='Floats across properties'
+            )
+            db.session.add_all([staff1, staff2, staff3])
+
             db.session.commit()
             print("Sample data added successfully")
 
