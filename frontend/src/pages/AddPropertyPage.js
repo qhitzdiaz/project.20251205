@@ -28,8 +28,9 @@ const AddPropertyPage = () => {
     name: '',
     address: '',
     city: '',
-    state: '',
-    zip: '',
+    province: '',
+    barangay: '',
+    postalCode: '',
     units: '',
     manager: '',
     phone: '',
@@ -43,7 +44,7 @@ const AddPropertyPage = () => {
   const [geocoding, setGeocoding] = useState(false);
 
   const handleGeocode = useCallback(async (isAuto = false) => {
-    const { address, city, state } = form;
+    const { address, city, province } = form;
     if (!address) {
       if (!isAuto) {
         setError('Please enter an address first');
@@ -63,8 +64,8 @@ const AddPropertyPage = () => {
         body: JSON.stringify({
           address,
           city,
-          province: state,
-          country: 'USA',
+          province: province,
+          country: 'Philippines',
         }),
       });
 
@@ -101,7 +102,7 @@ const AddPropertyPage = () => {
     }, 1500); // Wait 1.5 seconds after user stops typing
 
     return () => clearTimeout(timeoutId);
-  }, [form.address, form.city, form.state, handleGeocode]);
+  }, [form.address, form.city, form.province, handleGeocode]);
 
   const handleSubmit = async () => {
     setError('');
@@ -115,13 +116,14 @@ const AddPropertyPage = () => {
         name: form.name,
         address: form.address,
         city: form.city,
-        province: form.state,
-        country: 'USA',
+        province: form.province,
+        barangay: form.barangay,
+        country: 'Philippines',
         units_total: form.units ? parseInt(form.units, 10) : 0,
         manager_name: form.manager,
         manager_phone: form.phone,
         manager_email: form.email,
-        postal_code: form.zip,
+        postal_code: form.postalCode,
         latitude: form.latitude ? parseFloat(form.latitude) : null,
         longitude: form.longitude ? parseFloat(form.longitude) : null,
       };
@@ -139,8 +141,9 @@ const AddPropertyPage = () => {
         name: '',
         address: '',
         city: '',
-        state: '',
-        zip: '',
+        province: '',
+        barangay: '',
+        postalCode: '',
         units: '',
         manager: '',
         phone: '',
@@ -206,7 +209,7 @@ const AddPropertyPage = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    label="City"
+                    label="City/Municipality"
                     fullWidth
                     required
                     value={form.city}
@@ -215,21 +218,29 @@ const AddPropertyPage = () => {
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <TextField
-                    label="State/Province"
+                    label="Province"
                     fullWidth
-                    value={form.state}
-                    onChange={(e) => setForm({ ...form, state: e.target.value })}
+                    value={form.province}
+                    onChange={(e) => setForm({ ...form, province: e.target.value })}
                   />
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <TextField
-                    label="ZIP/Postal"
+                    label="Barangay"
                     fullWidth
-                    value={form.zip}
-                    onChange={(e) => setForm({ ...form, zip: e.target.value })}
+                    value={form.barangay}
+                    onChange={(e) => setForm({ ...form, barangay: e.target.value })}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Postal Code"
+                    fullWidth
+                    value={form.postalCode}
+                    onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Unit count"
                     type="number"
@@ -238,7 +249,7 @@ const AddPropertyPage = () => {
                     onChange={(e) => setForm({ ...form, units: e.target.value })}
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Property manager"
                     fullWidth
@@ -246,7 +257,7 @@ const AddPropertyPage = () => {
                     onChange={(e) => setForm({ ...form, manager: e.target.value })}
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Manager phone"
                     fullWidth
@@ -289,7 +300,7 @@ const AddPropertyPage = () => {
                     label="Latitude"
                     type="number"
                     fullWidth
-                    placeholder="e.g., 43.6532"
+                    placeholder="e.g., 14.5995 (Manila)"
                     value={form.latitude}
                     onChange={(e) => setForm({ ...form, latitude: e.target.value })}
                     helperText="Optional: used for map preview"
@@ -300,7 +311,7 @@ const AddPropertyPage = () => {
                     label="Longitude"
                     type="number"
                     fullWidth
-                    placeholder="-79.3832"
+                    placeholder="e.g., 120.9842 (Manila)"
                     value={form.longitude}
                     onChange={(e) => setForm({ ...form, longitude: e.target.value })}
                     helperText="Optional: used for map preview"

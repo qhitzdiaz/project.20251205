@@ -297,6 +297,8 @@ For quick reference, see individual service files:
 - `SECRET_KEY` - JWT signing key
 - `POSTGRES_USER` / `POSTGRES_PASSWORD` - Database credentials (per service)
 - `CORS_ORIGIN` - Allowed origins
+ - `FIREBASE_ENABLED` - Set to `1` to enable Firebase ID token verification in backend
+ - `GOOGLE_APPLICATION_CREDENTIALS` - Path to Firebase service account JSON (required when `FIREBASE_ENABLED=1`)
 
 ### Frontend `.env.development`
 - `REACT_APP_*_API_URL` - API endpoints
@@ -374,6 +376,13 @@ For quick reference, see individual service files:
 - 🔧 Fixed CORS configuration for Supply Chain API
 - 🔧 Improved navigation structure with section headers
 - 🔧 Database backup automation with retention policies
+
+### Upcoming (v2.5.0)
+- 🔐 Firebase Auth integration for Tenant Mobile App
+  - Mobile app uses Firebase email/password
+  - Backend can verify Firebase ID tokens (optional)
+  - Property Management Tenants UI shows linked Firebase UID when available
+  - Username or email supported for identification; email recommended for Firebase sign-in
 
 ---
 

@@ -9,6 +9,27 @@ from typing import Optional
 
 import jwt
 from fastapi import FastAPI, Depends, HTTPException, status, Header
+FIREBASE_ENABLED = os.getenv("FIREBASE_ENABLED", "0") == "1"
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
+FIREBASE_AUTH_AUDIENCE = os.getenv("FIREBASE_AUTH_AUDIENCE", FIREBASE_PROJECT_ID)
+
+firebase_admin = None
+auth = None
+if FIREBASE_ENABLED:
+    try:
+        import firebase_admin
+        from firebase_admin import auth as fb_auth, credentials
+        # Initialize Firebase app using ADC or service account if provided
+        if not firebase_admin._apps:
+            cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            if cred_path and os.path.exists(cred_path):
+                firebase_admin.initialize_app(credentials.Certificate(cred_path))
+            else:
+                firebase_admin.initialize_app()
+        auth = fb_auth
+    except Exception as e:
+        print(f"[WARN] Firebase initialization failed: {e}")
+        FIREBASE_ENABLED = False
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, or_
@@ -108,19 +129,42 @@ def create_token(user_id: int) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 
+def _verify_firebase_token(id_token: str):
+    if not FIREBASE_ENABLED or auth is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Firebase not enabled")
+    try:
+        decoded = auth.verify_id_token(id_token)
+        return decoded  # contains 'uid', 'email', etc.
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Firebase token")
+
+
 def get_current_user(db: Session = Depends(get_db), authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is missing")
     token = authorization.split(" ", 1)[1]
+    # Try local JWT first; if fails and Firebase is enabled, try Firebase ID token
     try:
         data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user = db.query(User).filter(User.id == data["user_id"]).first()
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
         return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
-    except jwt.InvalidTokenError:
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        if FIREBASE_ENABLED:
+            decoded = _verify_firebase_token(token)
+            # Map Firebase UID/email to local user record by email or username
+            firebase_email = decoded.get("email")
+            firebase_uid = decoded.get("uid")
+            user = None
+            if firebase_email:
+                user = db.query(User).filter(User.email == firebase_email).first()
+            if not user and firebase_uid:
+                # Fallback: try username equals uid (if you decide to store it that way)
+                user = db.query(User).filter(User.username == firebase_uid).first()
+            if not user:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not linked")
+            return user
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
@@ -215,6 +259,24 @@ def verify_token(authorization: str = Header(None), db: Session = Depends(get_db
 @app.get("/api/auth/profile", summary="Current user profile")
 def get_profile(current_user: User = Depends(get_current_user)):
     return user_to_dict(current_user)
+
+
+@app.post("/api/auth/firebase/verify", response_model=VerifyResponse, summary="Verify Firebase ID token")
+def firebase_verify(authorization: str = Header(None), db: Session = Depends(get_db)):
+    if not FIREBASE_ENABLED:
+        raise HTTPException(status_code=400, detail="Firebase not enabled")
+    if not authorization or not authorization.startswith("Bearer "):
+        return {"valid": False}
+    token = authorization.split(" ", 1)[1]
+    try:
+        decoded = _verify_firebase_token(token)
+        firebase_email = decoded.get("email")
+        user = None
+        if firebase_email:
+            user = db.query(User).filter(User.email == firebase_email).first()
+        return {"valid": True, "user": user_to_dict(user) if user else None}
+    except HTTPException:
+        return {"valid": False}
 
 
 @app.get("/api/users", summary="List all users")

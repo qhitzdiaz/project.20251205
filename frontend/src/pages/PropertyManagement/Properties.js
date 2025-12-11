@@ -56,9 +56,12 @@ const Properties = () => {
   const [form, setForm] = useState({
     name: '',
     address: '',
+    address_unit: '',
+    address_street: '',
+    barangay: '',
     city: '',
     province: '',
-    country: 'USA',
+    country: 'Philippines',
     postal_code: '',
     units_total: '',
     manager_name: '',
@@ -87,7 +90,11 @@ const Properties = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          address,
+          address: address || [
+            form.address_unit,
+            form.address_street,
+            form.barangay,
+          ].filter(Boolean).join(', '),
           city,
           province,
           country,
@@ -152,12 +159,38 @@ const Properties = () => {
     if (property) {
       setCurrentProperty(property);
       setAutoGeocodeEnabled(false); // Disable auto-geocode when editing existing property
+      // Derive name parts from full_name if separate fields are missing
+      const fullName = (property.full_name || '').trim();
+      let first = property.first_name || '';
+      let middle = property.middle_name || '';
+      let last = property.last_name || '';
+      if (fullName && (!first || !last)) {
+        const tokens = fullName.split(/\s+/);
+        if (tokens.length === 1) {
+          first = tokens[0];
+        } else if (tokens.length === 2) {
+          first = tokens[0];
+          last = tokens[1];
+        } else {
+          first = tokens[0];
+          last = tokens[tokens.length - 1];
+          middle = tokens.slice(1, -1).join(' ');
+        }
+      }
+      // No reliable way to split monolithic address; keep provided split fields if any
       setForm({
         name: property.name || '',
         address: property.address || '',
+        full_name: fullName || '',
+        first_name: first,
+        middle_name: middle,
+        last_name: last,
+        address_unit: property.address_unit || '',
+        address_street: property.address_street || '',
+        barangay: property.barangay || '',
         city: property.city || '',
         province: property.province || '',
-        country: property.country || 'USA',
+        country: property.country || 'Philippines',
         postal_code: property.postal_code || '',
         units_total: property.units_total || '',
         manager_name: property.manager_name || '',
@@ -172,9 +205,12 @@ const Properties = () => {
       setForm({
         name: '',
         address: '',
+        address_unit: '',
+        address_street: '',
+        barangay: '',
         city: '',
         province: '',
-        country: 'USA',
+        country: 'Philippines',
         postal_code: '',
         units_total: '',
         manager_name: '',
@@ -193,7 +229,14 @@ const Properties = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.address) {
+    // Compose address from split parts if address not provided
+    const composedAddress = (form.address && form.address.trim())
+      ? form.address.trim()
+      : [form.address_unit, form.address_street, form.barangay, form.city, form.province, form.postal_code]
+          .filter(Boolean)
+          .join(', ');
+
+    if (!form.name || !composedAddress) {
       setError('Property name and address are required');
       return;
     }
@@ -204,8 +247,19 @@ const Properties = () => {
         : `${API_URLS.PROPERTY}/properties`;
       const method = currentProperty ? 'PUT' : 'POST';
 
+      // Compose full_name from first/middle/last if not explicitly provided
+      const composedFullName = `${(form.first_name || '').trim()}${form.middle_name ? ' ' + form.middle_name.trim() : ''}${form.last_name ? ' ' + form.last_name.trim() : ''}`.trim();
+
       const payload = {
         ...form,
+        address: composedAddress,
+        full_name: (form.full_name || composedFullName) || undefined,
+        first_name: form.first_name || undefined,
+        middle_name: form.middle_name || undefined,
+        last_name: form.last_name || undefined,
+        address_unit: form.address_unit || undefined,
+        address_street: form.address_street || undefined,
+        barangay: form.barangay || undefined,
         units_total: form.units_total ? parseInt(form.units_total, 10) : 0,
         latitude: form.latitude ? parseFloat(form.latitude) : null,
         longitude: form.longitude ? parseFloat(form.longitude) : null,
@@ -634,6 +688,37 @@ const Properties = () => {
                 fullWidth
               />
             </Grid>
+            {/* Full Name split into First, Middle, Last */}
+            <Grid item xs={12}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="First Name"
+                    value={form.first_name || ''}
+                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                    required
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Middle Name (optional)"
+                    value={form.middle_name || ''}
+                    onChange={(e) => setForm({ ...form, middle_name: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Last Name / Surname"
+                    value={form.last_name || ''}
+                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                    required
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 label="Address"
@@ -643,9 +728,41 @@ const Properties = () => {
                 fullWidth
               />
             </Grid>
+            {/* Address Details Grid (Split) */}
+            <Grid item xs={12}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Unit/Building"
+                    value={form.address_unit}
+                    onChange={(e) => setForm({ ...form, address_unit: e.target.value })}
+                    fullWidth
+                    helperText="e.g., Unit 5A, Building Name"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Street"
+                    value={form.address_street}
+                    onChange={(e) => setForm({ ...form, address_street: e.target.value })}
+                    fullWidth
+                    helperText="e.g., Katipunan Ave"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Barangay"
+                    value={form.barangay}
+                    onChange={(e) => setForm({ ...form, barangay: e.target.value })}
+                    fullWidth
+                    helperText="e.g., Barangay Loyola Heights"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="City"
+                label="City/Municipality"
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
                 fullWidth
@@ -653,7 +770,7 @@ const Properties = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Province/State"
+                label="Province"
                 value={form.province}
                 onChange={(e) => setForm({ ...form, province: e.target.value })}
                 fullWidth
@@ -665,6 +782,8 @@ const Properties = () => {
                 value={form.country}
                 onChange={(e) => setForm({ ...form, country: e.target.value })}
                 fullWidth
+                disabled
+                helperText="Fixed to Philippines"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -735,7 +854,7 @@ const Properties = () => {
               <TextField
                 label="Latitude"
                 type="number"
-                placeholder="43.6532"
+                placeholder="14.5995 (Manila)"
                 value={form.latitude}
                 onChange={(e) => setForm({ ...form, latitude: e.target.value })}
                 fullWidth
@@ -745,7 +864,7 @@ const Properties = () => {
               <TextField
                 label="Longitude"
                 type="number"
-                placeholder="-79.3832"
+                placeholder="120.9842 (Manila)"
                 value={form.longitude}
                 onChange={(e) => setForm({ ...form, longitude: e.target.value })}
                 fullWidth
@@ -885,11 +1004,24 @@ const Properties = () => {
                       <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
                     </Grid>
                     <Grid item xs={12}>
-                      <Typography variant="caption" color="text.secondary">Coordinates</Typography>
-                      <Typography variant="body2">
+                      <Typography variant="caption" color="text.secondary">Location</Typography>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
                         Lat: {currentProperty.latitude}, Lng: {currentProperty.longitude}
                       </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                      <Box
+                        component="iframe"
+                        src={`https://www.google.com/maps?q=${currentProperty.latitude},${currentProperty.longitude}&output=embed`}
+                        sx={{
+                          width: '100%',
+                          height: 300,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          mb: 1
+                        }}
+                        title="Property Location"
+                      />
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         <Button
                           size="small"
                           variant="outlined"

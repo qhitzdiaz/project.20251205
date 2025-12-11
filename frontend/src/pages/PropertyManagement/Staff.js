@@ -49,12 +49,22 @@ const StaffPage = () => {
   const [current, setCurrent] = useState(null);
   const [form, setForm] = useState({
     full_name: '',
+    first_name: '',
+    middle_name: '',
+    last_name: '',
     role: '',
     email: '',
     phone: '',
     property_id: '',
     department: '',
     address: '',
+    address_unit: '',
+    address_street: '',
+    barangay: '',
+    city: '',
+    province: '',
+    country: 'Philippines',
+    postal_code: '',
     date_of_birth: '',
     start_date: '',
     notes: '',
@@ -86,14 +96,42 @@ const StaffPage = () => {
   const handleOpen = (row = null) => {
     if (row) {
       setCurrent(row);
+      // Derive name parts from full_name if not present
+      const fullName = (row.full_name || '').trim();
+      let first = row.first_name || '';
+      let middle = row.middle_name || '';
+      let last = row.last_name || '';
+      if (fullName && (!first || !last)) {
+        const tokens = fullName.split(/\s+/);
+        if (tokens.length === 1) {
+          first = tokens[0];
+        } else if (tokens.length === 2) {
+          first = tokens[0];
+          last = tokens[1];
+        } else {
+          first = tokens[0];
+          last = tokens[tokens.length - 1];
+          middle = tokens.slice(1, -1).join(' ');
+        }
+      }
       setForm({
-        full_name: row.full_name || '',
+        full_name: fullName,
+        first_name: first,
+        middle_name: middle,
+        last_name: last,
         role: row.role || '',
         email: row.email || '',
         phone: row.phone || '',
         property_id: row.property_id || '',
         department: row.department || '',
         address: row.address || '',
+        address_unit: row.address_unit || '',
+        address_street: row.address_street || '',
+        barangay: row.barangay || '',
+        city: row.city || '',
+        province: row.province || '',
+        country: row.country || 'Philippines',
+        postal_code: row.postal_code || '',
         date_of_birth: row.date_of_birth || '',
         start_date: row.start_date || '',
         notes: row.notes || '',
@@ -103,12 +141,22 @@ const StaffPage = () => {
       setCurrent(null);
       setForm({
         full_name: '',
+        first_name: '',
+        middle_name: '',
+        last_name: '',
         role: '',
         email: '',
         phone: '',
         property_id: '',
         department: '',
         address: '',
+        address_unit: '',
+        address_street: '',
+        barangay: '',
+        city: '',
+        province: '',
+        country: 'Philippines',
+        postal_code: '',
         date_of_birth: '',
         start_date: '',
         notes: '',
@@ -119,7 +167,16 @@ const StaffPage = () => {
   };
 
   const handleSave = async () => {
-    if (!form.full_name) {
+    // Compose full name from parts if not explicitly provided
+    const composedFullName = `${(form.first_name || '').trim()}${form.middle_name ? ' ' + form.middle_name.trim() : ''}${form.last_name ? ' ' + form.last_name.trim() : ''}`.trim();
+    const fullName = (form.full_name || composedFullName).trim();
+    // Compose address from split parts if address not provided
+    const composedAddress = (form.address && form.address.trim())
+      ? form.address.trim()
+      : [form.address_unit, form.address_street, form.barangay, form.city, form.province, form.postal_code]
+          .filter(Boolean)
+          .join(', ');
+    if (!fullName) {
       setError('Name is required');
       return;
     }
@@ -128,6 +185,18 @@ const StaffPage = () => {
       const method = current ? 'PUT' : 'POST';
       const payload = {
         ...form,
+        full_name: fullName,
+        first_name: form.first_name || undefined,
+        middle_name: form.middle_name || undefined,
+        last_name: form.last_name || undefined,
+        address: composedAddress,
+        address_unit: form.address_unit || undefined,
+        address_street: form.address_street || undefined,
+        barangay: form.barangay || undefined,
+        city: form.city || undefined,
+        province: form.province || undefined,
+        country: form.country || 'Philippines',
+        postal_code: form.postal_code || undefined,
         property_id: form.property_id ? parseInt(form.property_id, 10) : null,
         date_of_birth: form.date_of_birth || null,
         start_date: form.start_date || null,
@@ -304,14 +373,36 @@ const StaffPage = () => {
         <DialogTitle>{current ? 'Edit Staff' : 'Add Staff'}</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            {/* Split Full Name */}
             <Grid item xs={12}>
-              <TextField
-                label="Full Name"
-                fullWidth
-                required
-                value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              />
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="First Name"
+                    fullWidth
+                    required
+                    value={form.first_name}
+                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Middle Name (optional)"
+                    fullWidth
+                    value={form.middle_name}
+                    onChange={(e) => setForm({ ...form, middle_name: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Last Name / Surname"
+                    fullWidth
+                    required
+                    value={form.last_name}
+                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
             </Grid>
             <Grid item xs={12}>
               <TextField label="Role" fullWidth value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
@@ -325,6 +416,7 @@ const StaffPage = () => {
             <Grid item xs={12}>
               <TextField label="Phone" fullWidth value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </Grid>
+            {/* Split Address */}
             <Grid item xs={12}>
               <TextField
                 label="Address"
@@ -335,12 +427,77 @@ const StaffPage = () => {
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
               />
             </Grid>
+            <Grid item xs={12}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Unit/Building"
+                    fullWidth
+                    value={form.address_unit}
+                    onChange={(e) => setForm({ ...form, address_unit: e.target.value })}
+                    helperText="e.g., Unit 5A, Building Name"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Street"
+                    fullWidth
+                    value={form.address_street}
+                    onChange={(e) => setForm({ ...form, address_street: e.target.value })}
+                    helperText="e.g., Katipunan Ave"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Barangay"
+                    fullWidth
+                    value={form.barangay}
+                    onChange={(e) => setForm({ ...form, barangay: e.target.value })}
+                    helperText="e.g., Barangay Loyola Heights"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="City / Municipality"
+                    fullWidth
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Province"
+                    fullWidth
+                    value={form.province}
+                    onChange={(e) => setForm({ ...form, province: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Postal Code"
+                    fullWidth
+                    value={form.postal_code}
+                    onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Country"
+                    fullWidth
+                    value={form.country}
+                    onChange={(e) => setForm({ ...form, country: e.target.value })}
+                    helperText="Fixed to Philippines"
+                    disabled
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 label="Date of Birth"
-                type="date"
+                type="text"
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                placeholder="YYYY-MM-DD"
                 value={form.date_of_birth}
                 onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
               />
@@ -348,9 +505,9 @@ const StaffPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 label="Start Date"
-                type="date"
+                type="text"
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                placeholder="YYYY-MM-DD"
                 value={form.start_date}
                 onChange={(e) => setForm({ ...form, start_date: e.target.value })}
               />

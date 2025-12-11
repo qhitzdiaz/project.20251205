@@ -144,8 +144,8 @@ const Dashboard = () => {
     },
     {
       title: 'Admin / Cash',
-      value: `$${(stats.netCash || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-      subtitle: `Income $${(stats.income || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} • Expense $${(stats.expense || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+      value: `₱${(stats.netCash || 0).toLocaleString('en-PH', { maximumFractionDigits: 0 })}`,
+      subtitle: `Income ₱${(stats.income || 0).toLocaleString('en-PH', { maximumFractionDigits: 0 })} • Expense ₱${(stats.expense || 0).toLocaleString('en-PH', { maximumFractionDigits: 0 })}`,
       icon: <WalletIcon sx={{ fontSize: 40 }} />,
       color: '#009688',
       bgColor: isDark ? 'rgba(0,150,136,0.18)' : 'rgba(0,150,136,0.12)',

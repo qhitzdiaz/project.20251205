@@ -49,6 +49,7 @@ import {
   Brightness7 as LightModeIcon,
   LocalShipping as SupplyIcon,
   Build as ServicesIcon,
+  PointOfSale as POSIcon,
 } from '@mui/icons-material';
 
 // Import page components
@@ -71,6 +72,9 @@ import SupplyChainPurchaseOrders from './pages/SupplyChain/PurchaseOrders';
 // Serbisyo24x7 pages
 import SerbisyoDashboard from './pages/Serbisyo24x7/Dashboard';
 import SerbisyoServices from './pages/Serbisyo24x7/Services';
+
+// Point of Sales pages
+import POSDashboard from './pages/PointOfSales/Dashboard';
 
 // Property Management pages
 import PropertyDashboard from './pages/PropertyManagement/Dashboard';
@@ -266,6 +270,15 @@ function AppContent() {
       color: '#ff6f00',
       path: '/serbisyo',
       features: ['Service Catalog', 'Job Requests', 'Scheduling', 'Status Tracking']
+    },
+    {
+      id: 'pos',
+      title: 'Point of Sales',
+      description: 'Complete POS system for retail and service transactions',
+      icon: <POSIcon sx={{ fontSize: 60, color: '#00796b' }} />,
+      color: '#00796b',
+      path: '/pos',
+      features: ['Sales Transactions', 'Inventory Tracking', 'Receipt Printing', 'Payment Processing']
     },
   ];
 
@@ -567,69 +580,84 @@ function AppContent() {
                     <Grid container spacing={3}>
                       {applications.map((app) => (
                         <Grid item xs={12} md={4} key={app.id}>
-                          <Card
-                            elevation={4}
-                            sx={{
-                              height: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              transition: 'transform 0.2s, box-shadow 0.2s',
-                              '&:hover': { transform: 'translateY(-4px)', boxShadow: 8 },
-                            }}
-                          >
-                            <CardContent sx={{ flexGrow: 1 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                          {app.isPlaceholder ? (
+                            <Card
+                              elevation={0}
+                              sx={{
+                                height: '100%',
+                                minHeight: 420,
+                                backgroundColor: 'transparent',
+                                border: `1px dashed ${theme.palette.divider}`,
+                                boxShadow: 'none',
+                              }}
+                            >
+                              <CardContent sx={{ flexGrow: 1 }} />
+                            </Card>
+                          ) : (
+                            <Card
+                              elevation={4}
+                              sx={{
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                '&:hover': { transform: 'translateY(-4px)', boxShadow: 8 },
+                              }}
+                            >
+                              <CardContent sx={{ flexGrow: 1 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                                  {app.id === 'supply' ? (
+                                    <Box
+                                      sx={{
+                                        width: 84,
+                                        height: 84,
+                                        borderRadius: '50%',
+                                        display: 'grid',
+                                        placeItems: 'center',
+                                        background: 'radial-gradient(circle at 30% 30%, #7c4dff, #311b92)',
+                                        boxShadow: '0 10px 30px rgba(81,45,168,0.35)',
+                                      }}
+                                    >
+                                      {app.icon}
+                                    </Box>
+                                  ) : (
+                                    app.icon
+                                  )}
+                                </Box>
+                                <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 700 }}>
+                                  {app.title}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" paragraph sx={{ textAlign: 'center' }}>
+                                  {app.description}
+                                </Typography>
+                                <Divider sx={{ my: 2 }} />
+                                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 700 }}>Features:</Typography>
+                                <Box component="ul" sx={{ pl: 2, mt: 1 }}>
+                                  {app.features.map((feature, idx) => (
+                                    <Typography component="li" variant="body2" key={idx} sx={{ mb: 0.5 }}>
+                                      {feature}
+                                    </Typography>
+                                  ))}
+                                </Box>
+                              </CardContent>
+                              <CardActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
                                 {app.id === 'supply' ? (
-                                  <Box
-                                    sx={{
-                                      width: 84,
-                                      height: 84,
-                                      borderRadius: '50%',
-                                      display: 'grid',
-                                      placeItems: 'center',
-                                      background: 'radial-gradient(circle at 30% 30%, #7c4dff, #311b92)',
-                                      boxShadow: '0 10px 30px rgba(81,45,168,0.35)',
-                                    }}
+                                  <Button
+                                    variant="contained"
+                                    size="medium"
+                                    sx={{ backgroundColor: app.color }}
+                                    onClick={() => navigate(app.path)}
                                   >
-                                    {app.icon}
-                                  </Box>
+                                    Open application
+                                  </Button>
                                 ) : (
-                                  app.icon
+                                  <Button variant="contained" size="large" sx={{ backgroundColor: app.color }} onClick={() => navigate(app.path)}>
+                                    Open Application
+                                  </Button>
                                 )}
-                              </Box>
-                              <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 700 }}>
-                                {app.title}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary" paragraph sx={{ textAlign: 'center' }}>
-                                {app.description}
-                              </Typography>
-                              <Divider sx={{ my: 2 }} />
-                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 700 }}>Features:</Typography>
-                              <Box component="ul" sx={{ pl: 2, mt: 1 }}>
-                                {app.features.map((feature, idx) => (
-                                  <Typography component="li" variant="body2" key={idx} sx={{ mb: 0.5 }}>
-                                    {feature}
-                                  </Typography>
-                                ))}
-                              </Box>
-                            </CardContent>
-                            <CardActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
-                              {app.id === 'supply' ? (
-                                <Button
-                                  variant="contained"
-                                  size="medium"
-                                  sx={{ backgroundColor: app.color }}
-                                  onClick={() => navigate(app.path)}
-                                >
-                                  Open application
-                                </Button>
-                              ) : (
-                                <Button variant="contained" size="large" sx={{ backgroundColor: app.color }} onClick={() => navigate(app.path)}>
-                                  Open Application
-                                </Button>
-                              )}
-                            </CardActions>
-                          </Card>
+                              </CardActions>
+                            </Card>
+                          )}
                         </Grid>
                       ))}
                     </Grid>
@@ -673,6 +701,9 @@ function AppContent() {
           <Route path="/supply-chain/purchase-orders" element={isLoggedIn ? <SupplyChainPurchaseOrders /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
           <Route path="/supply-chain/purchase-orders/add" element={isLoggedIn ? <SupplyChainPurchaseOrders /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
 
+          {/* Point of Sales Pages */}
+          <Route path="/pos" element={isLoggedIn ? <POSDashboard /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+
           {/* Info Pages */}
           <Route path="/about" element={<AboutUs />} />
           <Route path="/documentation" element={<Documentation />} />
@@ -700,9 +731,10 @@ function AppContent() {
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Quick Links</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/')}>Home</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/about')}>About Qhitz Inc.,</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/about')}>About Us</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/supply-chain')}>Supply Chain</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/property')}>Property Management</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/serbisyo')}>Serbisyo24x7</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/documentation')}>Documentation</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => navigate('/support')}>Support</Typography>
               </Box>
@@ -711,7 +743,7 @@ function AppContent() {
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Contact</Typography>
               <Typography variant="body2" color="text.secondary">Email: info@qhitz.com</Typography>
               <Typography variant="body2" color="text.secondary">Phone: 0927-172-3002</Typography>
-              <Typography variant="body2" color="text.secondary">Address: 123 Business St, City, State 12345</Typography>
+              <Typography variant="body2" color="text.secondary">Address: Quezon City, Metro Manila, Philippines</Typography>
             </Grid>
           </Grid>
           <Divider sx={{ my: 3 }} />

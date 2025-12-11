@@ -11,7 +11,7 @@ function AboutUs() {
       {/* Hero Section */}
       <Box sx={{ textAlign: 'center', mb: 8 }}>
         <Typography variant="h2" gutterBottom sx={{ fontWeight: 700 }}>
-          About Qhitz Inc.,
+          About Us
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
           Empowering businesses with integrated management solutions

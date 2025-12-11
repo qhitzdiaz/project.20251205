@@ -15,7 +15,24 @@ const Tenants = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [currentTenant, setCurrentTenant] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', notes: '' });
+  const [form, setForm] = useState({
+    full_name: '',
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    username: '',
+    email: '',
+    phone: '',
+    notes: '',
+    address: '',
+    address_unit: '',
+    address_street: '',
+    barangay: '',
+    city: '',
+    province: '',
+    country: 'Philippines',
+    postal_code: '',
+  });
 
   useEffect(() => { loadTenants(); }, []);
 
@@ -36,19 +53,96 @@ const Tenants = () => {
   const handleOpenDialog = (tenant = null) => {
     if (tenant) {
       setCurrentTenant(tenant);
-      setForm({ full_name: tenant.full_name || '', email: tenant.email || '', phone: tenant.phone || '', notes: tenant.notes || '' });
+      // Derive name parts from full_name if separate fields are missing
+      const fullName = (tenant.full_name || '').trim();
+      let first = tenant.first_name || '';
+      let middle = tenant.middle_name || '';
+      let last = tenant.last_name || '';
+      if (fullName && (!first || !last)) {
+        const tokens = fullName.split(/\s+/);
+        if (tokens.length === 1) {
+          first = tokens[0];
+        } else if (tokens.length === 2) {
+          first = tokens[0];
+          last = tokens[1];
+        } else {
+          first = tokens[0];
+          last = tokens[tokens.length - 1];
+          middle = tokens.slice(1, -1).join(' ');
+        }
+      }
+      setForm({
+        full_name: fullName,
+        first_name: first,
+        middle_name: middle,
+        last_name: last,
+        username: tenant.username || '',
+        email: tenant.email || '',
+        phone: tenant.phone || '',
+        notes: tenant.notes || '',
+        address: tenant.address || '',
+        address_unit: tenant.address_unit || '',
+        address_street: tenant.address_street || '',
+        barangay: tenant.barangay || '',
+        city: tenant.city || '',
+        province: tenant.province || '',
+        country: tenant.country || 'Philippines',
+        postal_code: tenant.postal_code || '',
+      });
     } else {
       setCurrentTenant(null);
-      setForm({ full_name: '', email: '', phone: '', notes: '' });
+      setForm({
+        full_name: '',
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        username: '',
+        email: '',
+        phone: '',
+        notes: '',
+        address: '',
+        address_unit: '',
+        address_street: '',
+        barangay: '',
+        city: '',
+        province: '',
+        country: 'Philippines',
+        postal_code: '',
+      });
     }
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.full_name) { setError('Tenant name is required'); return; }
+    // Compose full name from parts if not explicitly provided
+    const composedFullName = `${(form.first_name || '').trim()}${form.middle_name ? ' ' + form.middle_name.trim() : ''}${form.last_name ? ' ' + form.last_name.trim() : ''}`.trim();
+    const fullName = (form.full_name || composedFullName).trim();
+    // Compose address from split parts if address not provided
+    const composedAddress = (form.address && form.address.trim())
+      ? form.address.trim()
+      : [form.address_unit, form.address_street, form.barangay, form.city, form.province, form.postal_code]
+          .filter(Boolean)
+          .join(', ');
+    if (!fullName) { setError('Tenant name is required'); return; }
     try {
       const url = currentTenant ? `${API_URLS.PROPERTY}/tenants/${currentTenant.id}` : `${API_URLS.PROPERTY}/tenants`;
-      const response = await fetch(url, { method: currentTenant ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const payload = {
+        ...form,
+        full_name: fullName,
+        first_name: form.first_name || undefined,
+        middle_name: form.middle_name || undefined,
+        last_name: form.last_name || undefined,
+        username: form.username || undefined,
+        address: composedAddress,
+        address_unit: form.address_unit || undefined,
+        address_street: form.address_street || undefined,
+        barangay: form.barangay || undefined,
+        city: form.city || undefined,
+        province: form.province || undefined,
+        country: form.country || 'Philippines',
+        postal_code: form.postal_code || undefined,
+      };
+      const response = await fetch(url, { method: currentTenant ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!response.ok) throw new Error('Failed to save tenant');
       await loadTenants();
       setDialogOpen(false);
@@ -164,9 +258,44 @@ const Tenants = () => {
         <DialogTitle>{currentTenant ? 'Edit Tenant' : 'Add New Tenant'}</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}><TextField label="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required fullWidth /></Grid>
+            {/* Split Full Name */}
+            <Grid item xs={12}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <TextField label="First Name" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required fullWidth />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField label="Middle Name (optional)" value={form.middle_name} onChange={(e) => setForm({ ...form, middle_name: e.target.value })} fullWidth />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField label="Last Name / Surname" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required fullWidth />
+                </Grid>
+              </Grid>
+            </Grid>
+            {/* Username for Tenant Mobile App */}
+            <Grid item xs={12}>
+              <TextField label="Username (for Tenant App)" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} helperText="Username used to sign in on the tenant mobile app" fullWidth />
+            </Grid>
             <Grid item xs={12}><TextField label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} fullWidth /></Grid>
+            {currentTenant?.firebase_uid && (
+              <Grid item xs={12}>
+                <TextField label="Firebase UID" value={currentTenant.firebase_uid} InputProps={{ readOnly: true }} helperText="Linked Firebase identity (read-only)" fullWidth />
+              </Grid>
+            )}
             <Grid item xs={12}><TextField label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} fullWidth /></Grid>
+            {/* Address fields */}
+            <Grid item xs={12}><TextField label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} multiline rows={2} fullWidth /></Grid>
+            <Grid item xs={12}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}><TextField label="Unit/Building" value={form.address_unit} onChange={(e) => setForm({ ...form, address_unit: e.target.value })} helperText="e.g., Unit 5A, Building Name" fullWidth /></Grid>
+                <Grid item xs={12} sm={4}><TextField label="Street" value={form.address_street} onChange={(e) => setForm({ ...form, address_street: e.target.value })} helperText="e.g., Katipunan Ave" fullWidth /></Grid>
+                <Grid item xs={12} sm={4}><TextField label="Barangay" value={form.barangay} onChange={(e) => setForm({ ...form, barangay: e.target.value })} helperText="e.g., Barangay Loyola Heights" fullWidth /></Grid>
+                <Grid item xs={12} sm={4}><TextField label="City / Municipality" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} fullWidth /></Grid>
+                <Grid item xs={12} sm={4}><TextField label="Province" value={form.province} onChange={(e) => setForm({ ...form, province: e.target.value })} fullWidth /></Grid>
+                <Grid item xs={12} sm={4}><TextField label="Postal Code" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} fullWidth /></Grid>
+                <Grid item xs={12} sm={4}><TextField label="Country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} helperText="Fixed to Philippines" disabled fullWidth /></Grid>
+              </Grid>
+            </Grid>
             <Grid item xs={12}><TextField label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} multiline rows={3} fullWidth /></Grid>
           </Grid>
         </DialogContent>
