@@ -243,7 +243,7 @@ function App() {
       <Box sx={{ height: '100vh', display: 'grid', placeItems: 'center' }}>
         <Stack alignItems="center" spacing={2}>
           <CircularProgress />
-          <Typography>Loading supply chain workspace…</Typography>
+          <Typography>Loading supply chain...</Typography>
         </Stack>
       </Box>
     );

@@ -251,7 +251,7 @@ function AppContent() {
     },
     {
       id: 'supply',
-      title: 'Supply Chain Workspace',
+      title: 'Supply Chain',
       description: 'Curated playbook for suppliers, purchasing, and inventory truth.',
       icon: <SupplyIcon sx={{ fontSize: 60, color: '#512da8' }} />,
       color: '#512da8',
@@ -615,23 +615,14 @@ function AppContent() {
                             </CardContent>
                             <CardActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
                               {app.id === 'supply' ? (
-                                <>
-                                  <Button
-                                    variant="contained"
-                                    size="medium"
-                                    sx={{ backgroundColor: app.color }}
-                                    onClick={() => navigate(app.path)}
-                                  >
-                                    Open workspace
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    size="medium"
-                                    onClick={() => navigate('/supply-chain/add-product')}
-                                  >
-                                    Add product
-                                  </Button>
-                                </>
+                                <Button
+                                  variant="contained"
+                                  size="medium"
+                                  sx={{ backgroundColor: app.color }}
+                                  onClick={() => navigate(app.path)}
+                                >
+                                  Open application
+                                </Button>
                               ) : (
                                 <Button variant="contained" size="large" sx={{ backgroundColor: app.color }} onClick={() => navigate(app.path)}>
                                   Open Application
@@ -702,7 +693,7 @@ function AppContent() {
             <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Qhitz Inc.,</Typography>
               <Typography variant="body2" color="text.secondary">
-                Complete business management system with multimedia, cloud storage, property, and a dedicated supply chain workspace.
+                Complete business management system with multimedia, cloud storage, property, and a dedicated supply chain.
               </Typography>
             </Grid>
             <Grid item xs={12} md={4}>

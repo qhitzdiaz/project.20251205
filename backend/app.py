@@ -11,7 +11,7 @@ import jwt
 from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, or_
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -76,6 +76,20 @@ class VerifyResponse(BaseModel):
     valid: bool
     user: Optional[dict] = None
     exp: Optional[int] = None
+
+
+class CreateUserRequest(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    is_active: bool = True
+
+
+class UpdateUserRequest(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 # ==================== DB DEPENDENCY ====================
@@ -201,6 +215,59 @@ def verify_token(authorization: str = Header(None), db: Session = Depends(get_db
 @app.get("/api/auth/profile", summary="Current user profile")
 def get_profile(current_user: User = Depends(get_current_user)):
     return user_to_dict(current_user)
+
+
+@app.get("/api/users", summary="List all users")
+def list_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    users = db.query(User).order_by(User.id.asc()).all()
+    return [user_to_dict(user) for user in users]
+
+
+@app.post("/api/users", summary="Create a new user")
+def create_user(payload: CreateUserRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    existing = db.query(User).filter(or_(User.username == payload.username, User.email == payload.email)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists")
+
+    new_user = User(
+        username=payload.username,
+        email=payload.email,
+        password_hash=generate_password_hash(payload.password, method="pbkdf2:sha256"),
+        is_active=payload.is_active,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return user_to_dict(new_user)
+
+
+@app.put("/api/users/{user_id}", summary="Update an existing user")
+def update_user(user_id: int, payload: UpdateUserRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if payload.username and payload.username != user.username:
+        conflict = db.query(User).filter(User.username == payload.username, User.id != user_id).first()
+        if conflict:
+            raise HTTPException(status_code=400, detail="Username already in use")
+        user.username = payload.username
+
+    if payload.email and payload.email != user.email:
+        conflict = db.query(User).filter(User.email == payload.email, User.id != user_id).first()
+        if conflict:
+            raise HTTPException(status_code=400, detail="Email already in use")
+        user.email = payload.email
+
+    if payload.password:
+        user.password_hash = generate_password_hash(payload.password, method="pbkdf2:sha256")
+
+    if payload.is_active is not None:
+        user.is_active = payload.is_active
+
+    db.commit()
+    db.refresh(user)
+    return user_to_dict(user)
 
 
 if __name__ == "__main__":

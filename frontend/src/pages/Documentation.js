@@ -48,7 +48,7 @@ function Documentation() {
       items: ['Properties & Units', 'Tenants & Leases', 'Maintenance Tickets', 'Rent Tracking']
     },
     {
-      title: 'Supply Chain Workspace',
+      title: 'Supply Chain',
       icon: <DocIcon sx={{ fontSize: 50, color: 'info.main' }} />,
       items: ['Supplier visibility', 'Execution playbooks', 'Exception routing', 'Operational insights']
     },
@@ -76,7 +76,7 @@ function Documentation() {
       answer: 'The frontend is a Progressive Web App (PWA) with offline capabilities for cached content. However, new data requires an internet connection.'
     },
     {
-      question: 'What is included in the new supply chain workspace?',
+      question: 'What is included in the new supply chain?',
       answer: 'A guided playbook for suppliers, purchasing, and inventory truth—focused on visibility and predictable execution without extra spreadsheets.'
     },
     {
