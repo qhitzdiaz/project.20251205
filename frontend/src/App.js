@@ -661,17 +661,17 @@ function AppContent() {
           <Route path="/users" element={isLoggedIn ? <UserManagement /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
 
           {/* Serbisyo24x7 Pages */}
-          <Route path="/serbisyo" element={<SerbisyoDashboard />} />
-          <Route path="/serbisyo/services" element={<SerbisyoServices />} />
+          <Route path="/serbisyo" element={isLoggedIn ? <SerbisyoDashboard /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/serbisyo/services" element={isLoggedIn ? <SerbisyoServices /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
 
           {/* Supply Chain Pages */}
-          <Route path="/supply-chain" element={<SupplyChainDashboard />} />
-          <Route path="/supply-chain/suppliers" element={<SupplyChainSuppliers />} />
-          <Route path="/supply-chain/suppliers/add" element={<SupplyChainSuppliers />} />
-          <Route path="/supply-chain/products" element={<SupplyChainProducts />} />
-          <Route path="/supply-chain/products/add" element={<SupplyChainProducts />} />
-          <Route path="/supply-chain/purchase-orders" element={<SupplyChainPurchaseOrders />} />
-          <Route path="/supply-chain/purchase-orders/add" element={<SupplyChainPurchaseOrders />} />
+          <Route path="/supply-chain" element={isLoggedIn ? <SupplyChainDashboard /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain/suppliers" element={isLoggedIn ? <SupplyChainSuppliers /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain/suppliers/add" element={isLoggedIn ? <SupplyChainSuppliers /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain/products" element={isLoggedIn ? <SupplyChainProducts /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain/products/add" element={isLoggedIn ? <SupplyChainProducts /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain/purchase-orders" element={isLoggedIn ? <SupplyChainPurchaseOrders /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
+          <Route path="/supply-chain/purchase-orders/add" element={isLoggedIn ? <SupplyChainPurchaseOrders /> : <Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h5">Please login to access this application</Typography><Button variant="contained" sx={{ mt: 2 }} onClick={() => setLoginDialogOpen(true)}>Login</Button></Box>} />
 
           {/* Info Pages */}
           <Route path="/about" element={<AboutUs />} />
