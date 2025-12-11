@@ -710,7 +710,7 @@ function AppContent() {
             <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Contact</Typography>
               <Typography variant="body2" color="text.secondary">Email: info@qhitz.com</Typography>
-              <Typography variant="body2" color="text.secondary">Phone: (555) 123-4567</Typography>
+              <Typography variant="body2" color="text.secondary">Phone: 0927-172-3002</Typography>
               <Typography variant="body2" color="text.secondary">Address: 123 Business St, City, State 12345</Typography>
             </Grid>
           </Grid>
