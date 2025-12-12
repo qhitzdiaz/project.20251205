@@ -11,7 +11,7 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import (
@@ -37,6 +37,28 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///property.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 cors_origin = os.getenv("CORS_ORIGIN", "*")
+
+# Firebase (optional)
+FIREBASE_ENABLED = os.getenv("FIREBASE_ENABLED", "0") == "1"
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
+FIREBASE_AUTH_AUDIENCE = os.getenv("FIREBASE_AUTH_AUDIENCE", FIREBASE_PROJECT_ID)
+
+firebase_admin = None
+fb_auth = None
+if FIREBASE_ENABLED:
+    try:
+        import firebase_admin
+        from firebase_admin import auth as fb_auth, credentials
+
+        if not firebase_admin._apps:
+            cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            if cred_path and os.path.exists(cred_path):
+                firebase_admin.initialize_app(credentials.Certificate(cred_path))
+            else:
+                firebase_admin.initialize_app()
+    except Exception as e:
+        print(f"[WARN] Firebase initialization failed: {e}")
+        FIREBASE_ENABLED = False
 
 engine = create_engine(DATABASE_URL, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
@@ -480,6 +502,23 @@ def get_db():
         db.close()
 
 
+# ==================== AUTH HELPERS ====================
+
+
+def verify_firebase_token(authorization: str | None = Header(None)):
+    """Verify Firebase ID token from Authorization header when enabled."""
+    if not FIREBASE_ENABLED or fb_auth is None:
+        raise HTTPException(status_code=400, detail="Firebase not enabled")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token is missing")
+    token = authorization.split(" ", 1)[1]
+    try:
+        decoded = fb_auth.verify_id_token(token, check_revoked=False)
+        return decoded
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid Firebase token")
+
+
 # ==================== SCHEMAS ====================
 
 
@@ -619,6 +658,28 @@ def _startup():
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "property-management-api", "port": 5050}
+
+
+@app.post("/api/auth/firebase/verify")
+def firebase_verify(authorization: str | None = Header(None), db: Session = Depends(get_db)):
+    """Verify Firebase ID token and optionally map to a tenant by email."""
+    if not FIREBASE_ENABLED:
+        raise HTTPException(status_code=400, detail="Firebase not enabled")
+    try:
+        decoded = verify_firebase_token(authorization)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            return {"valid": False}
+        raise
+
+    email = decoded.get("email")
+    tenant = db.query(Tenant).filter(Tenant.email == email).first() if email else None
+    return {
+        "valid": True,
+        "uid": decoded.get("uid"),
+        "email": email,
+        "tenant": tenant.to_dict() if tenant else None,
+    }
 
 
 # ========== Properties ==========

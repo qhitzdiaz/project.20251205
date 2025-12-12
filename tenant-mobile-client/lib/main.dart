@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const TenantClientApp());
 }
 
@@ -35,20 +38,46 @@ class ApiClient {
   // Configure your backend base URL via --dart-define=API_BASE=https://api.example.com
   static const String _baseUrl = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'http://localhost:8000',
+    defaultValue: 'http://10.0.2.2:5010',
   );
 
   Future<LoginResult> loginWithFirebase({required String email, required String password}) async {
-    // Sign in via Firebase Auth
-    final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
-    final user = credential.user;
-    if (user == null) {
-      throw Exception('Firebase login failed');
+    // Try local backend auth first (for testing)
+    try {
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'identifier': email, 'password': password}),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'] as String?;
+        final user = data['user'] as Map?;
+        if (token == null) throw Exception('No token in response');
+        final displayName = (user?['username'] ?? email) as String;
+        return LoginResult(token: token, displayName: displayName);
+      } else {
+        throw Exception('Login failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Fallback to Firebase if backend auth fails
+      try {
+        final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+        final user = credential.user;
+        if (user == null) {
+          throw Exception('Firebase login failed');
+        }
+        final idToken = await user.getIdToken();
+        if (idToken == null || idToken.isEmpty) {
+          throw Exception('Failed to obtain Firebase ID token');
+        }
+        final displayName = user.displayName ?? user.email ?? email;
+        return LoginResult(token: idToken, displayName: displayName);
+      } catch (firebaseError) {
+        throw Exception('Both backend and Firebase auth failed: $e, Firebase: $firebaseError');
+      }
     }
-    final idToken = await user.getIdToken();
-    // Optionally verify with backend or exchange token
-    final displayName = user.displayName ?? user.email ?? email;
-    return LoginResult(token: idToken, displayName: displayName);
   }
 }
 
