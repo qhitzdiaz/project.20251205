@@ -328,7 +328,7 @@ echo -e "${GREEN}✓ Frontend rebuilt and started${NC}"
 echo ""
 
 # Step 8: Copy frontend build and start reverse proxy
-echo -e "${YELLOW}[8/8] Setting up reverse proxy...${NC}"
+echo -e "${YELLOW}[8/9] Setting up reverse proxy...${NC}"
 docker cp qhitz-frontend:/usr/share/nginx/html/. "$FRONTEND_DIR/build/"
 cd "$SCRIPT_DIR"
 docker compose up -d reverse-proxy
@@ -426,14 +426,16 @@ LOCAL_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head
 echo "  http://$LOCAL_IP"
 echo "  http://$LOCAL_IP:3000"
 echo ""
-echo -e "${GREEN}Mobile App:${NC}"
-echo "  Configured to connect to: http://$LOCAL_IP:3000"
-echo "  APK location: frontend/android/app/build/outputs/apk/release/"
+echo -e "${GREEN}Mobile Apps:${NC}"
+echo "  Tenant Mobile (Flutter):"
+echo "    - Android APK: tenant-mobile-client/build/app/outputs/flutter-apk/app-release.apk"
+echo "    - iOS: Built in Xcode (tenant-mobile-client/ios/)"
+echo "    - Login: tenant1/123456 (or tenant2, tenant3)"
+echo "    - Backend: http://localhost:5010"
 echo ""
-echo -e "${YELLOW}To build Android APK, run:${NC}"
-echo "  cd frontend/android"
-echo "  export JAVA_HOME=/opt/homebrew/opt/openjdk@21"
-echo "  ./gradlew assembleRelease"
+echo "  Property Management Web (React):"
+echo "    - http://localhost:3000"
+echo "    - APK: frontend/android/app/build/outputs/apk/release/"
 echo ""
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Backup Information${NC}"
@@ -465,6 +467,54 @@ fi
 echo -e "${YELLOW}Note:${NC} Backups are stored in $BACKUP_DIR"
 echo -e "${YELLOW}This rebuild includes full container, image, and volume pruning with automatic data restoration${NC}"
 echo ""
+
+# Step 9: Build Tenant Mobile App (Flutter)
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  Step 9: Building Tenant Mobile App${NC}"
+echo -e "${BLUE}========================================${NC}"
+
+if [ -d "tenant-mobile-client" ]; then
+    echo -e "${YELLOW}[9/9] Building Tenant Mobile App...${NC}"
+    
+    cd tenant-mobile-client
+    
+    # Clean and get dependencies
+    echo "  Cleaning Flutter project..."
+    flutter clean > /dev/null 2>&1
+    
+    echo "  Getting Flutter dependencies..."
+    flutter pub get > /dev/null 2>&1
+    
+    # Build Android APK
+    echo "  Building Android APK (release)..."
+    if flutter build apk --release > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Android APK built successfully${NC}"
+        APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+        if [ -f "$APK_PATH" ]; then
+            APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
+            echo "  APK location: tenant-mobile-client/$APK_PATH"
+            echo "  APK size: $APK_SIZE"
+        fi
+    else
+        echo -e "${RED}✗ Android APK build failed${NC}"
+    fi
+    
+    # Build iOS (if on macOS)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "  Building iOS app..."
+        if flutter build ios --release --no-codesign > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ iOS app built successfully${NC}"
+        else
+            echo -e "${YELLOW}⚠ iOS build skipped or failed (requires Xcode)${NC}"
+        fi
+    fi
+    
+    cd ..
+    echo ""
+else
+    echo -e "${YELLOW}⚠ Tenant mobile client directory not found, skipping mobile app build${NC}"
+    echo ""
+fi
 
 # Service Statistics
 echo -e "${BLUE}========================================${NC}"
