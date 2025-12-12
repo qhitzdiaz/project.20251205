@@ -473,10 +473,11 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Step 9: Building Tenant Mobile App & Emulator${NC}"
 echo -e "${BLUE}========================================${NC}"
 
-if [ -d "tenant-mobile-client" ]; then
+MOBILE_DIR="$SCRIPT_DIR/tenant-mobile-client"
+if [ -d "$MOBILE_DIR" ]; then
     echo -e "${YELLOW}[9/9] Building Tenant Mobile App...${NC}"
     
-    cd tenant-mobile-client
+    cd "$MOBILE_DIR"
     
     # Clean and get dependencies
     echo "  Cleaning Flutter project..."
@@ -571,7 +572,7 @@ if [ -d "tenant-mobile-client" ]; then
     cd ..
     echo ""
 else
-    echo -e "${YELLOW}⚠ Tenant mobile client directory not found, skipping mobile app build${NC}"
+    echo -e "${YELLOW}⚠ Tenant mobile client directory not found at $MOBILE_DIR, skipping mobile app build${NC}"
     echo ""
 fi
 
