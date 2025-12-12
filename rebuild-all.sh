@@ -468,9 +468,9 @@ echo -e "${YELLOW}Note:${NC} Backups are stored in $BACKUP_DIR"
 echo -e "${YELLOW}This rebuild includes full container, image, and volume pruning with automatic data restoration${NC}"
 echo ""
 
-# Step 9: Build Tenant Mobile App (Flutter)
+# Step 9: Build Tenant Mobile App (Flutter) and start Android emulator
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Step 9: Building Tenant Mobile App${NC}"
+echo -e "${BLUE}  Step 9: Building Tenant Mobile App & Emulator${NC}"
 echo -e "${BLUE}========================================${NC}"
 
 if [ -d "tenant-mobile-client" ]; then
@@ -498,14 +498,73 @@ if [ -d "tenant-mobile-client" ]; then
     else
         echo -e "${RED}✗ Android APK build failed${NC}"
     fi
+
+    # Start Android emulator (if available) and install apps
+    if command -v emulator >/dev/null 2>&1; then
+        echo "  Starting Android emulator (samsung_flip7)..."
+        # Start silently in background if not already running
+        if ! adb devices | grep -q "emulator-"; then
+            nohup emulator -avd samsung_flip7 -no-snapshot-load -netdelay none -netspeed full >/dev/null 2>&1 &
+            sleep 25
+        fi
+        echo "  Connected devices:"
+        adb devices | sed '1d' | sed 's/^/    - /'
+
+        # Install tenant mobile APK if built
+        TENANT_APK="build/app/outputs/flutter-apk/app-release.apk"
+        if [ -f "$TENANT_APK" ]; then
+            echo "  Installing tenant mobile APK on emulator..."
+            adb install -r "$TENANT_APK" >/dev/null 2>&1 && \
+                echo -e "${GREEN}    ✓ Tenant app installed${NC}" || \
+                echo -e "${YELLOW}    ⚠ Tenant app install failed (check adb/emulator)${NC}"
+        fi
+
+        # Install main Android app (frontend) if built
+        FRONTEND_APK="frontend/android/app/build/outputs/apk/release/app-release.apk"
+        if [ -f "$FRONTEND_APK" ]; then
+            echo "  Installing main Android app (frontend) on emulator..."
+            adb install -r "$FRONTEND_APK" >/dev/null 2>&1 && \
+                echo -e "${GREEN}    ✓ Main app installed${NC}" || \
+                echo -e "${YELLOW}    ⚠ Main app install failed (check adb/emulator)${NC}"
+        fi
+
+        echo "  Tip: Use \`adb shell monkey -p <package> 1\` to launch apps (package names vary)."
+    else
+        echo -e "${YELLOW}⚠ Android emulator not installed or not in PATH${NC}"
+    fi
     
     # Build iOS (if on macOS)
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "  Building iOS app..."
-        if flutter build ios --release --no-codesign > /dev/null 2>&1; then
+        echo "  Building iOS app (simulator)..."
+        if flutter build ios --release --no-codesign --simulator > /dev/null 2>&1; then
             echo -e "${GREEN}✓ iOS app built successfully${NC}"
         else
             echo -e "${YELLOW}⚠ iOS build skipped or failed (requires Xcode)${NC}"
+        fi
+    fi
+
+    # Start iOS simulator and install tenant app (macOS only)
+    if [[ "$OSTYPE" == "darwin"* ]] && command -v xcrun >/dev/null 2>&1; then
+        IOS_DEVICE_NAME="iPad Air 11-inch (M3)"
+        IOS_DEVICE_UDID=$(xcrun simctl list devices | grep "$IOS_DEVICE_NAME" | grep -oE "[A-F0-9-]{36}" | head -1)
+        if [ -n "$IOS_DEVICE_UDID" ]; then
+            echo "  Booting iOS simulator ($IOS_DEVICE_NAME)..."
+            xcrun simctl boot "$IOS_DEVICE_UDID" >/dev/null 2>&1 || true
+            open -a Simulator >/dev/null 2>&1 || true
+            sleep 10
+
+            IOS_APP_PATH="build/ios/iphonesimulator/Runner.app"
+            if [ -d "$IOS_APP_PATH" ]; then
+                echo "  Installing tenant iOS app on simulator..."
+                xcrun simctl install "$IOS_DEVICE_UDID" "$IOS_APP_PATH" >/dev/null 2>&1 && \
+                    echo -e "${GREEN}    ✓ Tenant iOS app installed${NC}" || \
+                    echo -e "${YELLOW}    ⚠ Tenant iOS install failed${NC}"
+                xcrun simctl launch "$IOS_DEVICE_UDID" com.example.tenantClientFlutter >/dev/null 2>&1 || true
+            else
+                echo -e "${YELLOW}    ⚠ iOS app not found at $IOS_APP_PATH (build may have failed)${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠ iOS simulator '$IOS_DEVICE_NAME' not found${NC}"
         fi
     fi
     
