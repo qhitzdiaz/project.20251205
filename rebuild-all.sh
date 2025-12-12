@@ -512,25 +512,41 @@ if [ -d "$MOBILE_DIR" ]; then
         adb devices | sed '1d' | sed 's/^/    - /'
 
         # Install tenant mobile APK if built
-        TENANT_APK="build/app/outputs/flutter-apk/app-release.apk"
+        TENANT_APK="$MOBILE_DIR/build/app/outputs/flutter-apk/app-release.apk"
         if [ -f "$TENANT_APK" ]; then
             echo "  Installing tenant mobile APK on emulator..."
-            adb install -r "$TENANT_APK" >/dev/null 2>&1 && \
-                echo -e "${GREEN}    ✓ Tenant app installed${NC}" || \
-                echo -e "${YELLOW}    ⚠ Tenant app install failed (check adb/emulator)${NC}"
+            if adb install -r "$TENANT_APK" 2>&1 | grep -q "Success"; then
+                echo -e "${GREEN}    ✓ Tenant app installed${NC}"
+            else
+                echo -e "${RED}    ✗ Tenant app install failed${NC}"
+            fi
             echo "  Launching tenant app (com.example.tenantClientFlutter)..."
             adb shell monkey -p com.example.tenantClientFlutter -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+        else
+            echo -e "${YELLOW}    ⚠ Tenant APK not found at $TENANT_APK${NC}"
         fi
 
         # Install main Android app (frontend) if built
-        FRONTEND_APK="frontend/android/app/build/outputs/apk/release/app-release.apk"
-        if [ -f "$FRONTEND_APK" ]; then
+        # Prefer debug APK (pre-signed) over release APK
+        FRONTEND_APK=""
+        if [ -f "$SCRIPT_DIR/frontend/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            FRONTEND_APK="$SCRIPT_DIR/frontend/android/app/build/outputs/apk/debug/app-debug.apk"
+        elif [ -f "$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release.apk" ]; then
+            FRONTEND_APK="$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release.apk"
+        elif [ -f "$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            FRONTEND_APK="$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+        fi
+        if [ -n "$FRONTEND_APK" ] && [ -f "$FRONTEND_APK" ]; then
             echo "  Installing main Android app (frontend) on emulator..."
-            adb install -r "$FRONTEND_APK" >/dev/null 2>&1 && \
-                echo -e "${GREEN}    ✓ Main app installed${NC}" || \
-                echo -e "${YELLOW}    ⚠ Main app install failed (check adb/emulator)${NC}"
+            if adb install -r "$FRONTEND_APK" 2>&1 | grep -q "Success"; then
+                echo -e "${GREEN}    ✓ Main app installed${NC}"
+            else
+                echo -e "${RED}    ✗ Main app install failed${NC}"
+            fi
             echo "  Launching main app (com.qhitz.mui)..."
             adb shell monkey -p com.qhitz.mui -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+        else
+            echo -e "${YELLOW}    ⚠ Main APK not found (check Gradle build)${NC}"
         fi
 
         echo "  Tip: Use \`adb shell monkey -p <package> 1\` to launch apps (package names vary)."

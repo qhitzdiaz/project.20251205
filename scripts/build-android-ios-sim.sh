@@ -114,8 +114,21 @@ log "Syncing Capacitor (android, ios)"
 start_android_emulator
 
 log "Building Android release APK"
-(cd "$ANDROID_DIR" && ./gradlew assembleRelease)
-ANDROID_APK_PATH="$ANDROID_DIR/app/build/outputs/apk/release/app-release.apk"
+(cd "$ANDROID_DIR" && ./gradlew assembleRelease assembleDebug)
+# Use debug APK (pre-signed by Gradle) instead of unsigned release APK
+# Debug APK is suitable for development/testing on emulator
+if [ -f "$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk" ]; then
+  ANDROID_APK_PATH="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
+  log "Using debug APK (pre-signed)"
+elif [ -f "$ANDROID_DIR/app/build/outputs/apk/release/app-release.apk" ]; then
+  ANDROID_APK_PATH="$ANDROID_DIR/app/build/outputs/apk/release/app-release.apk"
+elif [ -f "$ANDROID_DIR/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+  ANDROID_APK_PATH="$ANDROID_DIR/app/build/outputs/apk/release/app-release-unsigned.apk"
+  log "Using unsigned APK (will fail on emulator - requires signing)"
+else
+  log "Error: Android APK not found"
+  exit 1
+fi
 log "Android APK: $ANDROID_APK_PATH"
 
 if adb devices | grep -q "emulator-"; then
