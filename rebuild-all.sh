@@ -518,6 +518,8 @@ if [ -d "$MOBILE_DIR" ]; then
             adb install -r "$TENANT_APK" >/dev/null 2>&1 && \
                 echo -e "${GREEN}    ✓ Tenant app installed${NC}" || \
                 echo -e "${YELLOW}    ⚠ Tenant app install failed (check adb/emulator)${NC}"
+            echo "  Launching tenant app (com.example.tenantClientFlutter)..."
+            adb shell monkey -p com.example.tenantClientFlutter -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
         fi
 
         # Install main Android app (frontend) if built
@@ -527,6 +529,8 @@ if [ -d "$MOBILE_DIR" ]; then
             adb install -r "$FRONTEND_APK" >/dev/null 2>&1 && \
                 echo -e "${GREEN}    ✓ Main app installed${NC}" || \
                 echo -e "${YELLOW}    ⚠ Main app install failed (check adb/emulator)${NC}"
+            echo "  Launching main app (com.qhitz.mui)..."
+            adb shell monkey -p com.qhitz.mui -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
         fi
 
         echo "  Tip: Use \`adb shell monkey -p <package> 1\` to launch apps (package names vary)."
