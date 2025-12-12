@@ -36,9 +36,10 @@ class ApiClient {
   final http.Client _client;
 
   // Configure your backend base URL via --dart-define=API_BASE=https://api.example.com
+  // Use localhost:5010 for iOS simulator, 10.0.2.2:5010 for Android emulator
   static const String _baseUrl = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'http://10.0.2.2:5010',
+    defaultValue: 'http://localhost:5010',
   );
 
   Future<LoginResult> loginWithFirebase({required String email, required String password}) async {
