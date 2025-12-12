@@ -347,8 +347,8 @@ MOBILE_SCRIPT="$SCRIPT_DIR/scripts/build-android-ios-sim.sh"
 if [ -x "$MOBILE_SCRIPT" ]; then
   echo -e "${YELLOW}[Extra] Building & installing mobile apps to simulators...${NC}"
   # Default to iPad simulator; override with SIM_DEVICE/ANDROID_AVD env vars as needed.
-  SIM_DEVICE="${SIM_DEVICE:-iPad Pro 11-inch (M5)}" \
-  ANDROID_AVD="${ANDROID_AVD:-}" \
+    SIM_DEVICE="${SIM_DEVICE:-iPad Air 11-inch (M3)}" \
+    ANDROID_AVD="${ANDROID_AVD:-samsung_flip7}" \
   "$MOBILE_SCRIPT" || echo -e "${YELLOW}⚠️ Mobile build/install step encountered an issue; check logs above.${NC}"
   echo ""
 fi
@@ -567,6 +567,28 @@ if [ -d "$MOBILE_DIR" ]; then
                 xcrun simctl launch "$IOS_DEVICE_UDID" com.example.tenantClientFlutter >/dev/null 2>&1 || true
             else
                 echo -e "${YELLOW}    ⚠ iOS app not found at $IOS_APP_PATH (build may have failed)${NC}"
+            fi
+
+            # Build and install main iOS app (frontend Capacitor) on simulator
+            FRONTEND_IOS_DIR="$SCRIPT_DIR/frontend/ios/App"
+            if [ -d "$FRONTEND_IOS_DIR" ]; then
+                echo "  Building main iOS app (Capacitor) for simulator..."
+                pushd "$FRONTEND_IOS_DIR" >/dev/null
+                xcodebuild -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build-sim -quiet || true
+                popd >/dev/null
+                MAIN_IOS_APP_PATH="$FRONTEND_IOS_DIR/build-sim/Build/Products/Debug-iphonesimulator/App.app"
+                if [ -d "$MAIN_IOS_APP_PATH" ]; then
+                    echo "  Installing main iOS app on simulator..."
+                    xcrun simctl install "$IOS_DEVICE_UDID" "$MAIN_IOS_APP_PATH" >/dev/null 2>&1 && \
+                        echo -e "${GREEN}    ✓ Main iOS app installed${NC}" || \
+                        echo -e "${YELLOW}    ⚠ Main iOS install failed${NC}"
+                    # Attempt to launch; bundle id may differ, try common Capacitor default
+                    xcrun simctl launch "$IOS_DEVICE_UDID" com.qhitz.mui >/dev/null 2>&1 || true
+                else
+                    echo -e "${YELLOW}    ⚠ Main iOS app build not found at $MAIN_IOS_APP_PATH${NC}"
+                fi
+            else
+                echo -e "${YELLOW}    ⚠ Frontend iOS project directory not found at $FRONTEND_IOS_DIR${NC}"
             fi
         else
             echo -e "${YELLOW}⚠ iOS simulator '$IOS_DEVICE_NAME' not found${NC}"
