@@ -84,6 +84,20 @@ fi
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
+# Check disk space
+DISK_USAGE=$(df -h . | awk 'NR==2 {print $5}' | sed 's/%//')
+DISK_AVAIL=$(df -h . | awk 'NR==2 {print $4}')
+echo -e "${CYAN}Disk Space:${NC} $DISK_USAGE% used ($DISK_AVAIL available)"
+
+if [ "$DISK_USAGE" -gt 85 ]; then
+    echo -e "${RED}⚠️  WARNING: Disk usage is high (${DISK_USAGE}%)${NC}"
+    echo -e "${YELLOW}Consider cleaning up before running rebuild:${NC}"
+    echo "  - Remove old node_modules: rm -rf frontend/node_modules backend/node_modules"
+    echo "  - Remove old builds: rm -rf frontend/build frontend/dist backend/build"
+    echo "  - Remove iOS builds: rm -rf frontend/ios/build-sim frontend/ios/build"
+    echo ""
+fi
+
 if [ "$QUICK_MODE" = true ]; then
     echo -e "${YELLOW}⚡ Quick Mode: Skipping backups and volume pruning${NC}"
     echo ""
@@ -351,40 +365,40 @@ sleep 2
 # Test backend APIs
 
 # Health checks with timeout to avoid hanging
-if curl -m 3 -s http://localhost:8010/api/health > /dev/null; then
-    echo -e "${GREEN}✓ Auth API (8010) - Healthy${NC}"
+if curl -m 3 -s http://localhost:50010/api/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Auth API (50010) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Auth API (8010) - Not responding${NC}"
+    echo -e "${RED}✗ Auth API (50010) - Not responding${NC}"
 fi
 
-if curl -m 3 -s http://localhost:8011/api/health > /dev/null; then
-    echo -e "${GREEN}✓ Media API (8011) - Healthy${NC}"
+if curl -m 3 -s http://localhost:50011/api/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Media API (50011) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Media API (8011) - Not responding${NC}"
+    echo -e "${RED}✗ Media API (50011) - Not responding${NC}"
 fi
 
-if curl -m 3 -s http://localhost:8012/api/health > /dev/null; then
-    echo -e "${GREEN}✓ Cloud API (8012) - Healthy${NC}"
+if curl -m 3 -s http://localhost:50012/api/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Cloud API (50012) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Cloud API (8012) - Not responding${NC}"
+    echo -e "${RED}✗ Cloud API (50012) - Not responding${NC}"
 fi
 
-if curl -m 3 -s http://localhost:8070/health > /dev/null; then
-    echo -e "${GREEN}✓ Supply Chain API (8070) - Healthy${NC}"
+if curl -m 3 -s http://localhost:50070/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Supply Chain API (50070) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Supply Chain API (8070) - Not responding${NC}"
+    echo -e "${RED}✗ Supply Chain API (50070) - Not responding${NC}"
 fi
 
-if curl -m 3 -s http://localhost:8050/health > /dev/null; then
-    echo -e "${GREEN}✓ Property API (8050) - Healthy${NC}"
+if curl -m 3 -s http://localhost:50050/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Property API (50050) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Property API (8050) - Not responding${NC}"
+    echo -e "${RED}✗ Property API (50050) - Not responding${NC}"
 fi
 
-if curl -m 3 -s http://localhost:8090/health > /dev/null; then
-    echo -e "${GREEN}✓ Serbisyo24x7 API (8090) - Healthy${NC}"
+if curl -m 3 -s http://localhost:50090/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Serbisyo24x7 API (50090) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Serbisyo24x7 API (8090) - Not responding${NC}"
+    echo -e "${RED}✗ Serbisyo24x7 API (50090) - Not responding${NC}"
 fi
 
 # Test frontend
