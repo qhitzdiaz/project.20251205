@@ -16,13 +16,22 @@ const API_BASE = getApiBaseUrl();
 
 // Service base URLs - use these to construct API paths
 export const API_URLS = {
+  // Primary names with _BASE suffix for clarity
   AUTH_BASE: process.env.REACT_APP_AUTH_API_URL || `${API_BASE}/api/auth`,
   MEDIA_BASE: process.env.REACT_APP_MEDIA_API_URL || `${API_BASE}/api/media`,
   CLOUD_BASE: process.env.REACT_APP_CLOUD_API_URL || `${API_BASE}/api/cloud`,
   PROPERTY_BASE: process.env.REACT_APP_PROPERTY_API_URL || `${API_BASE}/api/property`,
   SUPPLY_BASE: process.env.REACT_APP_SUPPLY_API_URL || `${API_BASE}/api/supply`,
   SERBISYO_BASE: process.env.REACT_APP_SERBISYO_API_URL || `${API_BASE}/api/serbisyo`,
+
+  // Backwards compatibility - old names without _BASE suffix
+  AUTH: process.env.REACT_APP_AUTH_API_URL || `${API_BASE}/api/auth`,
+  MEDIA: process.env.REACT_APP_MEDIA_API_URL || `${API_BASE}/api/media`,
+  CLOUD: process.env.REACT_APP_CLOUD_API_URL || `${API_BASE}/api/cloud`,
+  PROPERTY: process.env.REACT_APP_PROPERTY_API_URL || `${API_BASE}/api/property`,
+  SUPPLY: process.env.REACT_APP_SUPPLY_API_URL || `${API_BASE}/api/supply`,
+  SERBISYO: process.env.REACT_APP_SERBISYO_API_URL || `${API_BASE}/api/serbisyo`,
 };
 
-// Backwards compatibility - keep AUTH for old code
+// Backwards compatibility - keep API_URL for old code
 export const API_URL = API_URLS.AUTH_BASE;
