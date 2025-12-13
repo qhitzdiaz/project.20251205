@@ -26,33 +26,33 @@ The Qhitz application consists of multiple microservices, each running independe
 
 | Service | Port | Database | Technology | Description |
 |---------|------|----------|------------|-------------|
-| Auth API | 5010 | auth_db | FastAPI | User authentication and authorization |
-| Media Server | 5011 | media_db | FastAPI | Music and video file management |
-| Cloud Storage | 5012 | cloud_db | FastAPI | File storage and sharing |
-| Property Management | 5050 | property_db | FastAPI | Property and lease management |
-| Supply Chain | 5070 | supplychain_db | FastAPI | Supply chain and inventory |
+| Auth API | 50010 | auth_db | FastAPI | User authentication and authorization |
+| Media Server | 50011 | media_db | FastAPI | Music and video file management |
+| Cloud Storage | 50012 | cloud_db | FastAPI | File storage and sharing |
+| Property Management | 50050 | property_db | FastAPI | Property and lease management |
+| Supply Chain | 50070 | supplychain_db | FastAPI | Supply chain and inventory |
 
 ### Base URLs
 
-**Development:**
-- Auth: `http://localhost:5010/api`
-- Media: `http://localhost:5011/api`
-- Cloud: `http://localhost:5012/api`
-- Property: `http://localhost:5050/api`
-- Supply Chain: `http://localhost:5070/api`
+**Development (via Reverse Proxy):**
+- Auth: `http://localhost/api/auth`
+- Media: `http://localhost/api/media`
+- Cloud: `http://localhost/api/cloud`
+- Property: `http://localhost/api/property`
+- Supply Chain: `http://localhost/api/supply`
 
-**Production (example):**
-- Auth: `http://192.168.2.98:5010/api`
-- Media: `http://192.168.2.98:5011/api`
-- Cloud: `http://192.168.2.98:5012/api`
-- Property: `http://192.168.2.98:5050/api`
-- Supply Chain: `http://192.168.2.98:5070/api`
+**Direct Access (if needed):**
+- Auth: `http://192.168.2.98:50010/api`
+- Media: `http://192.168.2.98:50011/api`
+- Cloud: `http://192.168.2.98:50012/api`
+- Property: `http://192.168.2.98:50050/api`
+- Supply Chain: `http://192.168.2.98:50070/api`
 
 ---
 
 ## Authentication Service
 
-**Base URL:** `http://localhost:5010/api`
+**Base URL:** `http://localhost/api/auth` (via Reverse Proxy) or `http://192.168.2.98:50010/api`
 **Database:** auth_db
 **Technology:** FastAPI + PostgreSQL
 
@@ -245,7 +245,7 @@ Authorization: Bearer <token>
 
 ## Media Service
 
-**Base URL:** `http://localhost:5011/api`
+**Base URL:** `http://localhost:50011/api`
 **Database:** media_db
 **Technology:** FastAPI + PostgreSQL
 
@@ -441,7 +441,7 @@ GET /media/stats
 
 ## Cloud Storage Service
 
-**Base URL:** `http://localhost:5012/api`
+**Base URL:** `http://localhost:50012/api`
 **Database:** cloud_db
 **Technology:** FastAPI + PostgreSQL
 
@@ -688,7 +688,7 @@ This service has been removed from the monorepo and is no longer deployed with t
 
 ## Property Management Service
 
-**Base URL:** `http://localhost:5050/api`
+**Base URL:** `http://localhost:50050/api`
 **Database:** property_db
 **Technology:** FastAPI + PostgreSQL
 
@@ -960,7 +960,7 @@ GET /api/dashboard
 
 ## Supply Chain Service
 
-**Base URL:** `http://localhost:5070/api`
+**Base URL:** `http://localhost:50070/api`
 **Database:** supplychain_db
 **Technology:** FastAPI + PostgreSQL
 
