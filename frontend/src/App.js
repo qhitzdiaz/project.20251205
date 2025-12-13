@@ -92,6 +92,9 @@ import UserManagement from './pages/UserManagement';
 // Auth context
 import { AuthProvider } from './context/AuthContext';
 
+// API utilities
+import { apiPost, apiFetch } from './utils/api';
+
 function AppContent() {
   const navigate = useNavigate();
   const safeAreaTop = 'env(safe-area-inset-top)';
@@ -162,9 +165,7 @@ function AppContent() {
 
   const verifyToken = async (token) => {
     try {
-      const response = await fetch(`${API_URL}/auth/verify`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiFetch(`${API_URL}/auth/verify`, { method: 'GET' });
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
@@ -173,6 +174,7 @@ function AppContent() {
         localStorage.removeItem('token');
       }
     } catch (error) {
+      console.error('Token verification failed:', error);
       localStorage.removeItem('token');
     }
   };
@@ -180,10 +182,8 @@ function AppContent() {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await apiFetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Send identifier as both email and username so either works server-side
         body: JSON.stringify({
           email: loginForm.identifier,
           username: loginForm.identifier,
@@ -202,6 +202,7 @@ function AppContent() {
         showSnackbar(data.message || 'Login failed', 'error');
       }
     } catch (error) {
+      console.error('Login error:', error);
       showSnackbar('Error connecting to server', 'error');
     }
     setLoading(false);
