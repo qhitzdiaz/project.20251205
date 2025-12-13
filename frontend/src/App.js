@@ -165,7 +165,7 @@ function AppContent() {
 
   const verifyToken = async (token) => {
     try {
-      const response = await apiFetch(`${API_URL}/auth/verify`, { method: 'GET' });
+      const response = await apiFetch(`${API_URL}/verify`, { method: 'GET' });
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
@@ -182,7 +182,7 @@ function AppContent() {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await apiFetch(`${API_URL}/auth/login`, {
+      const response = await apiFetch(`${API_URL}/login`, {
         method: 'POST',
         body: JSON.stringify({
           email: loginForm.identifier,
