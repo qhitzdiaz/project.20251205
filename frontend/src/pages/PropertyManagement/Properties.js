@@ -38,6 +38,7 @@ import {
   Map as MapIcon,
 } from '@mui/icons-material';
 import { API_URLS } from '../../config/apiConfig';
+import { apiGet, apiPost, apiPut, apiDelete, apiRequest } from '../../utils/api';
 
 const Properties = () => {
   const theme = useTheme();
@@ -86,31 +87,21 @@ const Properties = () => {
     }
 
     try {
-      const response = await fetch(`${API_URLS.PROPERTY}/geocode`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: address || [
-            form.address_unit,
-            form.address_street,
-            form.barangay,
-          ].filter(Boolean).join(', '),
-          city,
-          province,
-          country,
-        }),
+      const result = await apiPost(`${API_URLS.PROPERTY}/geocode`, {
+        address: address || [
+          form.address_unit,
+          form.address_street,
+          form.barangay,
+        ].filter(Boolean).join(', '),
+        city,
+        province,
+        country,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Geocoding failed');
-      }
-
-      const data = await response.json();
       setForm((prev) => ({
         ...prev,
-        latitude: data.latitude.toString(),
-        longitude: data.longitude.toString(),
+        latitude: result.latitude.toString(),
+        longitude: result.longitude.toString(),
       }));
       if (!isAuto) {
         setError('');

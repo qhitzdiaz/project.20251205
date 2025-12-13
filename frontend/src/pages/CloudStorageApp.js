@@ -42,48 +42,51 @@ import {
 } from '@mui/icons-material';
 import FilePreviewList from '../components/FilePreviewList';
 import { API_URLS } from '../config/apiConfig';
+import { useAuth } from '../context/AuthContext';
+import { apiGet, apiPost, apiRequest } from '../utils/api';
 
 const API_URL = API_URLS.CLOUD;
 
 function CloudStorageApp() {
+  const { user } = useAuth();
+  const userId = user?.id;
+
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  
+
   // Navigation
   const [currentFolder, setCurrentFolder] = useState(null);
   const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, name: 'Home' }]);
-  
+
   // Folders
   const [folders, setFolders] = useState([]);
   const [folderDialog, setFolderDialog] = useState(false);
   const [folderName, setFolderName] = useState('');
-  
+
   // Files
   const [files, setFiles] = useState([]);
   const [uploadDialog, setUploadDialog] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  
+
   // Share
   const [shareDialog, setShareDialog] = useState(false);
   const [shareLink, setShareLink] = useState('');
-  
+
   // Stats
   const [stats, setStats] = useState({});
-
-  const userId = 1; // TODO: Get from auth
 
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
   };
 
   const loadFolders = useCallback(async () => {
+    if (!userId) return;
     try {
-      const url = currentFolder 
+      const url = currentFolder
         ? `${API_URL}/cloud/folders?user_id=${userId}&parent_id=${currentFolder}`
         : `${API_URL}/cloud/folders?user_id=${userId}&parent_id=`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
+
+      const data = await apiGet(url);
       setFolders(data.folders || []);
     } catch (error) {
       showSnackbar('Error loading folders', 'error');
@@ -91,13 +94,13 @@ function CloudStorageApp() {
   }, [currentFolder, userId]);
 
   const loadFiles = useCallback(async () => {
+    if (!userId) return;
     try {
       const url = currentFolder
         ? `${API_URL}/cloud/files?user_id=${userId}&folder_id=${currentFolder}`
         : `${API_URL}/cloud/files?user_id=${userId}&folder_id=`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
+
+      const data = await apiGet(url);
       setFiles(data.files || []);
     } catch (error) {
       showSnackbar('Error loading files', 'error');
@@ -105,9 +108,9 @@ function CloudStorageApp() {
   }, [currentFolder, userId]);
 
   const loadStats = useCallback(async () => {
+    if (!userId) return;
     try {
-      const response = await fetch(`${API_URL}/cloud/stats?user_id=${userId}`);
-      const data = await response.json();
+      const data = await apiGet(`${API_URL}/cloud/stats?user_id=${userId}`);
       setStats(data);
     } catch (error) {
       console.error('Error loading stats');
@@ -131,28 +134,19 @@ function CloudStorageApp() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/cloud/folders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: folderName,
-          parent_id: currentFolder,
-          owner_id: userId
-        })
+      const data = await apiPost(`${API_URL}/cloud/folders`, {
+        name: folderName,
+        parent_id: currentFolder,
+        owner_id: userId
       });
-      
-      const data = await response.json();
-      if (response.ok) {
-        showSnackbar('Folder created successfully', 'success');
-        setFolderDialog(false);
-        setFolderName('');
-        loadFolders();
-        loadStats();
-      } else {
-        showSnackbar(data.message, 'error');
-      }
+
+      showSnackbar('Folder created successfully', 'success');
+      setFolderDialog(false);
+      setFolderName('');
+      loadFolders();
+      loadStats();
     } catch (error) {
-      showSnackbar('Error creating folder', 'error');
+      showSnackbar(error.message || 'Error creating folder', 'error');
     }
     setLoading(false);
   };
@@ -174,9 +168,9 @@ function CloudStorageApp() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/cloud/upload`, {
+      const response = await apiRequest(`${API_URL}/cloud/upload`, {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const data = await response.json();
@@ -190,7 +184,7 @@ function CloudStorageApp() {
         loadFiles();
         loadStats();
       } else {
-        showSnackbar(data.message, 'error');
+        showSnackbar(data.message || 'Error uploading files', 'error');
       }
     } catch (error) {
       showSnackbar('Error uploading files', 'error');

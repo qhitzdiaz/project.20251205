@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Container, Card, CardContent, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, CircularProgress, useTheme, Grid } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ArrowBack as BackIcon, Person as PersonIcon, Email as EmailIcon, Phone as PhoneIcon } from '@mui/icons-material';
 import { API_URLS } from '../../config/apiConfig';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api';
 
 const Tenants = () => {
   const theme = useTheme();
@@ -40,9 +41,8 @@ const Tenants = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_URLS.PROPERTY}/tenants`);
-      if (!response.ok) throw new Error('Failed to load tenants');
-      setTenants(await response.json());
+      const data = await apiGet(`${API_URLS.PROPERTY}/tenants`);
+      setTenants(data);
     } catch (err) {
       setError('Unable to load tenants. Please ensure the backend is running.');
     } finally {

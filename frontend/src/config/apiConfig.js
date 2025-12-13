@@ -1,27 +1,26 @@
-// Dynamic API URL configuration
-// Allows accessing from both localhost and homelab network
+// API URL configuration
+// Uses environment variables OR constructs URLs from current origin
 
+// Get base URL - use environment vars if set, otherwise use relative paths through reverse proxy
 const getApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-
-  // If accessing via localhost, use localhost for APIs
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'localhost';
+  // If environment variables are set, use them (for external access)
+  if (process.env.REACT_APP_AUTH_API_URL) {
+    return process.env.REACT_APP_AUTH_API_URL.replace('/api', '');
   }
-
-  // If accessing via IP address (homelab), use the same IP for APIs
-  return hostname;
+  // Otherwise use current host (works for both localhost and network access)
+  // This allows the reverse proxy on port 80 to handle routing
+  return window.location.origin;
 };
 
-const baseHost = getApiBaseUrl();
+const API_BASE = getApiBaseUrl();
 
 export const API_URLS = {
-  AUTH: `http://${baseHost}:5010/api`,
-  MEDIA: `http://${baseHost}:5011/api`,
-  CLOUD: `http://${baseHost}:5012/api`,
-  PROPERTY: `http://${baseHost}:5050/api`,
-  SUPPLY: `http://${baseHost}:5070`,
-  SERBISYO: `http://${baseHost}:5080/api`,
+  AUTH: process.env.REACT_APP_AUTH_API_URL || `${API_BASE}/api/auth`,
+  MEDIA: process.env.REACT_APP_MEDIA_API_URL || `${API_BASE}/api/media`,
+  CLOUD: process.env.REACT_APP_CLOUD_API_URL || `${API_BASE}/api/cloud`,
+  PROPERTY: process.env.REACT_APP_PROPERTY_API_URL || `${API_BASE}/api/property`,
+  SUPPLY: process.env.REACT_APP_SUPPLY_API_URL || `${API_BASE}/api/supply`,
+  SERBISYO: process.env.REACT_APP_SERBISYO_API_URL || `${API_BASE}/api/serbisyo`,
 };
 
 // Backwards compatibility

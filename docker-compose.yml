@@ -127,7 +127,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-api
     ports:
-      - "0.0.0.0:5010:5010"
+      - "0.0.0.0:50010:50010"
     volumes:
       - ./backend:/app:z
     environment:
@@ -137,7 +137,7 @@ services:
     depends_on:
       postgres-auth:
         condition: service_healthy
-    command: uvicorn app:app --host 0.0.0.0 --port 5010 --reload --reload-dir /app
+    command: uvicorn app:app --host 0.0.0.0 --port 50010
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -148,7 +148,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-media
     ports:
-      - "0.0.0.0:5011:5011"
+      - "0.0.0.0:50011:50011"
     volumes:
       - ./backend:/app:z
       - media-uploads:/app/uploads
@@ -159,7 +159,7 @@ services:
     depends_on:
       postgres-media:
         condition: service_healthy
-    command: uvicorn media:app --host 0.0.0.0 --port 5011 --reload --reload-dir /app
+    command: uvicorn media:app --host 0.0.0.0 --port 50011
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -170,7 +170,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-cloud
     ports:
-      - "0.0.0.0:5012:5012"
+      - "0.0.0.0:50012:50012"
     volumes:
       - ./backend:/app:z
       - cloud-storage:/app/storage
@@ -181,7 +181,7 @@ services:
     depends_on:
       postgres-cloud:
         condition: service_healthy
-    command: uvicorn cloud:app --host 0.0.0.0 --port 5012 --reload --reload-dir /app
+    command: uvicorn cloud:app --host 0.0.0.0 --port 50012
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -193,7 +193,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-property
     ports:
-      - "0.0.0.0:5050:5050"
+      - "0.0.0.0:50050:50050"
     volumes:
       - ./property-management/backend:/app:z
     environment:
@@ -203,7 +203,7 @@ services:
     depends_on:
       postgres-property:
         condition: service_healthy
-    command: uvicorn app:app --host 0.0.0.0 --port 5050 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 50050
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -215,7 +215,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-supply
     ports:
-      - "0.0.0.0:5070:5070"
+      - "0.0.0.0:50070:50070"
     volumes:
       - ./supply-chain/backend:/app:z
     environment:
@@ -225,7 +225,7 @@ services:
     depends_on:
       postgres-supply:
         condition: service_healthy
-    command: uvicorn app:app --host 0.0.0.0 --port 5070 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 50070
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -237,7 +237,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-serbisyo
     ports:
-      - "0.0.0.0:5080:5080"
+      - "0.0.0.0:50090:50090"
     volumes:
       - ./serbisyo24x7/backend:/app:z
     environment:
@@ -247,7 +247,7 @@ services:
     depends_on:
       postgres-serbisyo:
         condition: service_healthy
-    command: uvicorn app:app --host 0.0.0.0 --port 5080 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 50090
     networks:
       - qhitz-network
     restart: unless-stopped
@@ -261,10 +261,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_AUTH_API_URL=http://localhost:5010/api
-      - REACT_APP_MEDIA_API_URL=http://localhost:5011/api
-      - REACT_APP_CLOUD_API_URL=http://localhost:5012/api
-      - REACT_APP_DENTAL_API_URL=http://localhost:5013/api
+      - REACT_APP_AUTH_API_URL=http://localhost:50010/api
+      - REACT_APP_MEDIA_API_URL=http://localhost:50011/api
+      - REACT_APP_CLOUD_API_URL=http://localhost:50012/api
+      - REACT_APP_PROPERTY_API_URL=http://localhost:50050/api
+      - REACT_APP_SUPPLY_API_URL=http://localhost:50070
+      - REACT_APP_SERBISYO_API_URL=http://localhost:50090/api
+      - REACT_APP_DENTAL_API_URL=http://localhost:50013/api
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

@@ -89,6 +89,9 @@ import PropertyExpenses from './pages/PropertyManagement/Expenses';
 import PropertyContracts from './pages/PropertyManagement/Contracts';
 import UserManagement from './pages/UserManagement';
 
+// Auth context
+import { AuthProvider } from './context/AuthContext';
+
 function AppContent() {
   const navigate = useNavigate();
   const safeAreaTop = 'env(safe-area-inset-top)';
@@ -291,9 +294,10 @@ function AppContent() {
     : `url(${heroImage})`;
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box
+    <AuthProvider user={user} isLoggedIn={isLoggedIn} onLogout={() => setIsLoggedIn(false)}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
@@ -766,11 +770,12 @@ function AppContent() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>{snackbar.message}</Alert>
-      </Snackbar>
-      </Box>
-    </ThemeProvider>
+        <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+          <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>{snackbar.message}</Alert>
+        </Snackbar>
+        </Box>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
