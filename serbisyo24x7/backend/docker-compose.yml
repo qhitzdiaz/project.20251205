@@ -25,7 +25,7 @@ services:
       dockerfile: Dockerfile
     container_name: qhitz-backend-serbisyo
     ports:
-      - "0.0.0.0:5080:5080"
+      - "0.0.0.0:50090:50090"
     volumes:
       - .:/app:z
     environment:
@@ -35,7 +35,7 @@ services:
     depends_on:
       postgres-serbisyo:
         condition: service_healthy
-    command: uvicorn app:app --host 0.0.0.0 --port 5080 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 50090 --reload
     networks:
       - serbisyo-network
     restart: unless-stopped
