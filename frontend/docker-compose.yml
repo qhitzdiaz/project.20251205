@@ -6,12 +6,13 @@ services:
     container_name: qhitz-frontend
     ports:
       - "3000:3000"
-    environment:
-      # Use localhost so the browser can reach services on the host
-      - REACT_APP_AUTH_API_URL=http://localhost:50010/api
-      - REACT_APP_MEDIA_API_URL=http://localhost:50011/api
-      - REACT_APP_CLOUD_API_URL=http://localhost:50012/api
-      - REACT_APP_DENTAL_API_URL=http://localhost:50013/api
+    # Environment variables are optional - if not set, frontend uses window.location.origin
+    # To use explicit API URLs, uncomment below or set via .env file:
+    # environment:
+    #   - REACT_APP_AUTH_API_URL=http://localhost:50010/api
+    #   - REACT_APP_MEDIA_API_URL=http://localhost:50011/api
+    #   - REACT_APP_CLOUD_API_URL=http://localhost:50012/api
+    #   - REACT_APP_DENTAL_API_URL=http://localhost:50013/api
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
