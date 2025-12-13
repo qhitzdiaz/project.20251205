@@ -144,14 +144,14 @@ if [ "$SKIP_BACKUP" = false ]; then
     # Backup media uploads and cloud storage volumes
     if docker volume ls | grep -q "qhitz-media-uploads"; then
         echo "  Backing up media uploads..."
-        docker run --rm -v qhitz-media-uploads:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/media-uploads.tar.gz -C /data . 2>/dev/null && \
+        docker run --rm -v qhitz-media-uploads:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/media-uploads.tar.gz --exclude='*.apk' --exclude='*.aab' --exclude='*.ipa' --exclude='*.exe' --exclude='*.dll' --exclude='*.so' --exclude='*.dylib' -C /data . 2>/dev/null && \
             echo -e "${GREEN}  ✓ Backed up media uploads${NC}" || \
             echo -e "${YELLOW}  ⚠️  Warning: Failed to backup media uploads${NC}"
     fi
 
     if docker volume ls | grep -q "qhitz-cloud-storage"; then
         echo "  Backing up cloud storage..."
-        docker run --rm -v qhitz-cloud-storage:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/cloud-storage.tar.gz -C /data . 2>/dev/null && \
+        docker run --rm -v qhitz-cloud-storage:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/cloud-storage.tar.gz --exclude='*.apk' --exclude='*.aab' --exclude='*.ipa' --exclude='*.exe' --exclude='*.dll' --exclude='*.so' --exclude='*.dylib' -C /data . 2>/dev/null && \
             echo -e "${GREEN}  ✓ Backed up cloud storage${NC}" || \
             echo -e "${YELLOW}  ⚠️  Warning: Failed to backup cloud storage${NC}"
     fi
@@ -335,23 +335,8 @@ docker compose up -d reverse-proxy
 echo -e "${GREEN}✓ Reverse proxy started${NC}"
 echo ""
 
-# Sync Capacitor for mobile app
-echo -e "${YELLOW}[Extra] Syncing Capacitor for mobile app...${NC}"
-cd "$FRONTEND_DIR"
-npx cap sync android
-echo -e "${GREEN}✓ Capacitor synced${NC}"
-echo ""
 
-# Build and deploy mobile binaries to emulators/simulators
-MOBILE_SCRIPT="$SCRIPT_DIR/scripts/build-android-ios-sim.sh"
-if [ -x "$MOBILE_SCRIPT" ]; then
-  echo -e "${YELLOW}[Extra] Building & installing mobile apps to simulators...${NC}"
-  # Default to iPad simulator; override with SIM_DEVICE/ANDROID_AVD env vars as needed.
-    SIM_DEVICE="${SIM_DEVICE:-iPad Air 11-inch (M3)}" \
-    ANDROID_AVD="${ANDROID_AVD:-samsung_flip7}" \
-  "$MOBILE_SCRIPT" || echo -e "${YELLOW}⚠️ Mobile build/install step encountered an issue; check logs above.${NC}"
-  echo ""
-fi
+# Mobile build and emulator/device install steps have been removed from this script.
 
 # Display status
 echo -e "${BLUE}========================================${NC}"
@@ -364,50 +349,52 @@ echo -e "${YELLOW}Checking service health...${NC}"
 sleep 2
 
 # Test backend APIs
-if curl -s http://localhost:5010/api/health > /dev/null; then
-    echo -e "${GREEN}✓ Auth API (5010) - Healthy${NC}"
+
+# Health checks with timeout to avoid hanging
+if curl -m 3 -s http://localhost:8010/api/health > /dev/null; then
+    echo -e "${GREEN}✓ Auth API (8010) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Auth API (5010) - Not responding${NC}"
+    echo -e "${RED}✗ Auth API (8010) - Not responding${NC}"
 fi
 
-if curl -s http://localhost:5011/api/health > /dev/null; then
-    echo -e "${GREEN}✓ Media API (5011) - Healthy${NC}"
+if curl -m 3 -s http://localhost:8011/api/health > /dev/null; then
+    echo -e "${GREEN}✓ Media API (8011) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Media API (5011) - Not responding${NC}"
+    echo -e "${RED}✗ Media API (8011) - Not responding${NC}"
 fi
 
-if curl -s http://localhost:5012/api/health > /dev/null; then
-    echo -e "${GREEN}✓ Cloud API (5012) - Healthy${NC}"
+if curl -m 3 -s http://localhost:8012/api/health > /dev/null; then
+    echo -e "${GREEN}✓ Cloud API (8012) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Cloud API (5012) - Not responding${NC}"
+    echo -e "${RED}✗ Cloud API (8012) - Not responding${NC}"
 fi
 
-if curl -s http://localhost:5070/health > /dev/null; then
-    echo -e "${GREEN}✓ Supply Chain API (5070) - Healthy${NC}"
+if curl -m 3 -s http://localhost:8070/health > /dev/null; then
+    echo -e "${GREEN}✓ Supply Chain API (8070) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Supply Chain API (5070) - Not responding${NC}"
+    echo -e "${RED}✗ Supply Chain API (8070) - Not responding${NC}"
 fi
 
-if curl -s http://localhost:5050/health > /dev/null; then
-    echo -e "${GREEN}✓ Property API (5050) - Healthy${NC}"
+if curl -m 3 -s http://localhost:8050/health > /dev/null; then
+    echo -e "${GREEN}✓ Property API (8050) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Property API (5050) - Not responding${NC}"
+    echo -e "${RED}✗ Property API (8050) - Not responding${NC}"
 fi
 
-if curl -s http://localhost:5080/health > /dev/null; then
-    echo -e "${GREEN}✓ Serbisyo24x7 API (5080) - Healthy${NC}"
+if curl -m 3 -s http://localhost:8090/health > /dev/null; then
+    echo -e "${GREEN}✓ Serbisyo24x7 API (8090) - Healthy${NC}"
 else
-    echo -e "${RED}✗ Serbisyo24x7 API (5080) - Not responding${NC}"
+    echo -e "${RED}✗ Serbisyo24x7 API (8090) - Not responding${NC}"
 fi
 
 # Test frontend
-if curl -s http://localhost:3000 > /dev/null; then
+if curl -m 3 -s http://localhost:3000 > /dev/null; then
     echo -e "${GREEN}✓ Frontend (3000) - Running${NC}"
 else
     echo -e "${RED}✗ Frontend (3000) - Not responding${NC}"
 fi
 
-if curl -s http://localhost > /dev/null; then
+if curl -m 3 -s http://localhost > /dev/null; then
     echo -e "${GREEN}✓ Reverse Proxy (80) - Running${NC}"
 else
     echo -e "${RED}✗ Reverse Proxy (80) - Not responding${NC}"
@@ -468,159 +455,17 @@ echo -e "${YELLOW}Note:${NC} Backups are stored in $BACKUP_DIR"
 echo -e "${YELLOW}This rebuild includes full container, image, and volume pruning with automatic data restoration${NC}"
 echo ""
 
-# Step 9: Build Tenant Mobile App (Flutter) and start Android emulator
+
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Step 9: Building Tenant Mobile App & Emulator${NC}"
+echo -e "${BLUE}  Mobile Build Steps (Manual)${NC}"
 echo -e "${BLUE}========================================${NC}"
-
-MOBILE_DIR="$SCRIPT_DIR/tenant-mobile-client"
-if [ -d "$MOBILE_DIR" ]; then
-    echo -e "${YELLOW}[9/9] Building Tenant Mobile App...${NC}"
-    
-    cd "$MOBILE_DIR"
-    
-    # Clean and get dependencies
-    echo "  Cleaning Flutter project..."
-    flutter clean > /dev/null 2>&1
-    
-    echo "  Getting Flutter dependencies..."
-    flutter pub get > /dev/null 2>&1
-    
-    # Build Android APK
-    echo "  Building Android APK (release)..."
-    if flutter build apk --release > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Android APK built successfully${NC}"
-        APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
-        if [ -f "$APK_PATH" ]; then
-            APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
-            echo "  APK location: tenant-mobile-client/$APK_PATH"
-            echo "  APK size: $APK_SIZE"
-        fi
-    else
-        echo -e "${RED}✗ Android APK build failed${NC}"
-    fi
-
-    # Start Android emulator (if available) and install apps
-    if command -v emulator >/dev/null 2>&1; then
-        echo "  Starting Android emulator (samsung_flip7)..."
-        # Start silently in background if not already running
-        if ! adb devices | grep -q "emulator-"; then
-            nohup emulator -avd samsung_flip7 -no-snapshot-load -netdelay none -netspeed full >/dev/null 2>&1 &
-            sleep 25
-        fi
-        echo "  Connected devices:"
-        adb devices | sed '1d' | sed 's/^/    - /'
-
-        # Install tenant mobile APK if built
-        TENANT_APK="$MOBILE_DIR/build/app/outputs/flutter-apk/app-release.apk"
-        if [ -f "$TENANT_APK" ]; then
-            echo "  Installing tenant mobile APK on emulator..."
-            if adb install -r "$TENANT_APK" 2>&1 | grep -q "Success"; then
-                echo -e "${GREEN}    ✓ Tenant app installed${NC}"
-            else
-                echo -e "${RED}    ✗ Tenant app install failed${NC}"
-            fi
-            echo "  Launching tenant app (com.example.tenantClientFlutter)..."
-            adb shell monkey -p com.example.tenantClientFlutter -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
-        else
-            echo -e "${YELLOW}    ⚠ Tenant APK not found at $TENANT_APK${NC}"
-        fi
-
-        # Install main Android app (frontend) if built
-        # Prefer debug APK (pre-signed) over release APK
-        FRONTEND_APK=""
-        if [ -f "$SCRIPT_DIR/frontend/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
-            FRONTEND_APK="$SCRIPT_DIR/frontend/android/app/build/outputs/apk/debug/app-debug.apk"
-        elif [ -f "$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release.apk" ]; then
-            FRONTEND_APK="$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release.apk"
-        elif [ -f "$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-            FRONTEND_APK="$SCRIPT_DIR/frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk"
-        fi
-        if [ -n "$FRONTEND_APK" ] && [ -f "$FRONTEND_APK" ]; then
-            echo "  Installing main Android app (frontend) on emulator..."
-            if adb install -r "$FRONTEND_APK" 2>&1 | grep -q "Success"; then
-                echo -e "${GREEN}    ✓ Main app installed${NC}"
-            else
-                echo -e "${RED}    ✗ Main app install failed${NC}"
-            fi
-            echo "  Launching main app (com.qhitz.mui)..."
-            adb shell monkey -p com.qhitz.mui -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
-        else
-            echo -e "${YELLOW}    ⚠ Main APK not found (check Gradle build)${NC}"
-        fi
-
-        echo "  Tip: Use \`adb shell monkey -p <package> 1\` to launch apps (package names vary)."
-    else
-        echo -e "${YELLOW}⚠ Android emulator not installed or not in PATH${NC}"
-    fi
-    
-    # Build iOS (if on macOS)
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "  Building iOS app (simulator)..."
-        if flutter build ios --release --no-codesign --simulator > /dev/null 2>&1; then
-            echo -e "${GREEN}✓ iOS app built successfully${NC}"
-        else
-            echo -e "${YELLOW}⚠ iOS build skipped or failed (requires Xcode)${NC}"
-        fi
-    fi
-
-    # Start iOS simulator and install tenant app (macOS only)
-    if [[ "$OSTYPE" == "darwin"* ]] && command -v xcrun >/dev/null 2>&1; then
-        IOS_DEVICE_NAME="iPad Air 11-inch (M3)"
-        IOS_DEVICE_UDID=$(xcrun simctl list devices | grep "$IOS_DEVICE_NAME" | grep -oE "[A-F0-9-]{36}" | head -1)
-        if [ -n "$IOS_DEVICE_UDID" ]; then
-            echo "  Booting iOS simulator ($IOS_DEVICE_NAME)..."
-            xcrun simctl boot "$IOS_DEVICE_UDID" >/dev/null 2>&1 || true
-            open -a Simulator >/dev/null 2>&1 || true
-            sleep 10
-
-            IOS_APP_PATH="build/ios/iphonesimulator/Runner.app"
-            if [ -d "$IOS_APP_PATH" ]; then
-                echo "  Installing tenant iOS app on simulator..."
-                xcrun simctl install "$IOS_DEVICE_UDID" "$IOS_APP_PATH" >/dev/null 2>&1 && \
-                    echo -e "${GREEN}    ✓ Tenant iOS app installed${NC}" || \
-                    echo -e "${YELLOW}    ⚠ Tenant iOS install failed${NC}"
-                xcrun simctl launch "$IOS_DEVICE_UDID" com.example.tenantClientFlutter >/dev/null 2>&1 || true
-            else
-                echo -e "${YELLOW}    ⚠ iOS app not found at $IOS_APP_PATH (build may have failed)${NC}"
-            fi
-
-            # Build and install main iOS app (frontend Capacitor) on simulator
-            FRONTEND_IOS_DIR="$SCRIPT_DIR/frontend/ios/App"
-            if [ -d "$FRONTEND_IOS_DIR" ]; then
-                echo "  Building main iOS app (Capacitor) for simulator..."
-                pushd "$FRONTEND_IOS_DIR" >/dev/null
-                xcodebuild -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build-sim -quiet || true
-                popd >/dev/null
-                MAIN_IOS_APP_PATH="$FRONTEND_IOS_DIR/build-sim/Build/Products/Debug-iphonesimulator/App.app"
-                if [ -d "$MAIN_IOS_APP_PATH" ]; then
-                    echo "  Installing main iOS app on simulator..."
-                    xcrun simctl install "$IOS_DEVICE_UDID" "$MAIN_IOS_APP_PATH" >/dev/null 2>&1 && \
-                        echo -e "${GREEN}    ✓ Main iOS app installed${NC}" || \
-                        echo -e "${YELLOW}    ⚠ Main iOS install failed${NC}"
-                    # Attempt to launch; bundle id may differ, try common Capacitor default
-                    xcrun simctl launch "$IOS_DEVICE_UDID" com.qhitz.mui >/dev/null 2>&1 || true
-                else
-                    echo -e "${YELLOW}    ⚠ Main iOS app build not found at $MAIN_IOS_APP_PATH${NC}"
-                fi
-            else
-                echo -e "${YELLOW}    ⚠ Frontend iOS project directory not found at $FRONTEND_IOS_DIR${NC}"
-            fi
-        else
-            echo -e "${YELLOW}⚠ iOS simulator '$IOS_DEVICE_NAME' not found${NC}"
-        fi
-    fi
-    
-    cd ..
-    echo ""
-else
-    echo -e "${YELLOW}⚠ Tenant mobile client directory not found at $MOBILE_DIR, skipping mobile app build${NC}"
-    echo ""
-fi
-
-# Service Statistics
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Service Statistics${NC}"
+echo -e "To build and install Android package, run: ${CYAN}./scripts/build-android.sh${NC}"
+echo -e "To build and install iOS package, run:     ${CYAN}./scripts/build-ios.sh${NC}"
+echo ""
+echo -e "${BLUE}  Mobile Build & Emulator Steps (Manual)${NC}"
+echo -e "To build Android APKs, run:   ${CYAN}./scripts/build-android.sh${NC}"
+echo -e "To build iOS app, run:        ${CYAN}./scripts/build-ios.sh${NC}"
+echo -e "To run emulators or install APKs/apps on devices, use your preferred tools or scripts manually."
 echo -e "${BLUE}========================================${NC}"
 
 # Count running services
